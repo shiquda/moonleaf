@@ -587,6 +587,10 @@ class macpaperService: NSObject, ObservableObject {
     }
 
     private func _exec(_ arguments: [String], completion: @escaping (Bool) -> Void) {
+        guard FileManager.default.isExecutableFile(atPath: arguments[0]) else {
+            completion(false)
+            return
+        }
         DispatchQueue.global(qos: .background).async {
             let task = Process()
             task.launchPath = arguments[0]
@@ -602,7 +606,9 @@ class macpaperService: NSObject, ObservableObject {
 
     private func _exec_wallpaper(_ arguments: [String], completion: @escaping (Bool) -> Void) {
         let cliPath = Bundle.main.bundlePath + "/Contents/Resources/bin/wallpaper"
-        guard FileManager.default.fileExists(atPath: cliPath) else {
+        // `Process.launch()` raises an uncaught NSException when the helper is
+        // missing or not executable, which kills the whole app.
+        guard FileManager.default.isExecutableFile(atPath: cliPath) else {
             completion(false)
             return
         }
