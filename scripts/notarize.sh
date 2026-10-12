@@ -64,6 +64,9 @@ case "$command" in
         DMG=${2:?"staple requires a dmg path"}
         xcrun stapler staple "$DMG"
         xcrun stapler validate "$DMG"
+        # Same Gatekeeper gate SpotAsk uses: fail closed if the disk image would
+        # not pass assessment with the notarization ticket attached.
+        spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG"
         ;;
     *)
         usage
