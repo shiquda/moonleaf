@@ -25,6 +25,7 @@ enum AutoStartManager {
     }
 
     static let plistName = "com.naomisphere.macpaper.app.plist"
+    private static let appBundleIdentifier = "com.naomisphere.macpaper"
     private static let legacyWallpaperPlistNames = [
         "com.naomisphere.macpaper.wallpaper.plist",
         "com.naomisphere.moonleaf.wallpaper.plist",
@@ -34,6 +35,15 @@ enum AutoStartManager {
 
     private static let queue = DispatchQueue(label: "com.naomisphere.moonleaf.autostart")
     private static var hasMigratedInProcess = false
+
+    private static var ownsLoginItem: Bool {
+        guard Bundle.main.bundleIdentifier == appBundleIdentifier else { return false }
+        let url = Bundle.main.bundleURL.appendingPathComponent("Contents/Library/LaunchAgents/\(plistName)")
+        guard let data = try? Data(contentsOf: url),
+              let plist = (try? PropertyListSerialization.propertyList(from: data, options: [], format: nil)) as? [String: Any],
+              let associated = plist["AssociatedBundleIdentifiers"] as? [String] else { return false }
+        return associated.contains(appBundleIdentifier)
+    }
 
     private static var launchAgentsDirectory: URL {
         FileManager.default.homeDirectoryForCurrentUser
@@ -68,17 +78,57 @@ enum AutoStartManager {
         }
     }
 
+    private static func legacyJobCouldBeThisProcess(label: String) -> Bool {
+        let task = Process()
+        let output = Pipe()
+        task.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        task.arguments = ["print", "gui/\(getuid())/\(label)"]
+        task.standardOutput = output
+        task.standardError = output
+        do {
+            try task.run()
+            let data = output.fileHandleForReading.readDataToEndOfFile()
+            task.waitUntilExit()
+            let text = String(decoding: data, as: UTF8.self)
+            if task.terminationStatus != 0 {
+                // A missing job is safe to migrate; any other query failure is not.
+                return !text.contains("Could not find service")
+            }
+            return text.range(of: "(?m)^\\s*pid = \(getpid())\\s*$", options: .regularExpression) != nil
+        } catch {
+            return true
+        }
+    }
+
     @discardableResult
-    private static func bootoutAndRemovePlistLocked(at url: URL) -> (existed: Bool, removedCleanly: Bool) {
+    private static func bootoutAndRemovePlistLocked(at url: URL, preserveRunningAppJob: Bool = true) -> (existed: Bool, removedCleanly: Bool) {
         let fm = FileManager.default
         let path = url.path
         guard fm.fileExists(atPath: path) else {
             return (false, true)
         }
 
-        let bootoutStatus = runLaunchctl(["bootout", "gui/\(getuid())", path])
-        if bootoutStatus != 0 {
-            _ = runLaunchctl(["unload", path])
+        // Defer migration when bootout would kill us. Keep the old plist so next login
+        // remains enabled until a manual launch can safely register its replacement.
+        let data = try? Data(contentsOf: url)
+        let plist = data.flatMap { try? PropertyListSerialization.propertyList(from: $0, options: [], format: nil) } as? [String: Any]
+        let program = (plist?["Program"] as? String)
+            ?? (plist?["ProgramArguments"] as? [String])?.first
+            ?? (plist?["BundleProgram"] as? String).map { Bundle.main.bundleURL.appendingPathComponent($0).path }
+        let launchesThisExecutable = program.map {
+            URL(fileURLWithPath: $0).resolvingSymlinksInPath() == Bundle.main.executableURL?.resolvingSymlinksInPath()
+        } ?? false
+        let couldBeThisProcess = launchesThisExecutable && ((plist?["Label"] as? String).map {
+            legacyJobCouldBeThisProcess(label: $0)
+        } ?? true)
+        if couldBeThisProcess && preserveRunningAppJob {
+            return (true, false)
+        }
+        if !couldBeThisProcess {
+            let bootoutStatus = runLaunchctl(["bootout", "gui/\(getuid())", path])
+            if bootoutStatus != 0 {
+                _ = runLaunchctl(["unload", path])
+            }
         }
 
         do {
@@ -92,11 +142,11 @@ enum AutoStartManager {
     }
 
     @discardableResult
-    private static func removeAllLegacyPlistsLocked() -> (existedAny: Bool, allRemovedCleanly: Bool) {
+    private static func removeAllLegacyPlistsLocked(preserveRunningAppJob: Bool = true) -> (existedAny: Bool, allRemovedCleanly: Bool) {
         var existedAny = false
         var allClean = true
         for url in allLegacyPlistURLs {
-            let result = bootoutAndRemovePlistLocked(at: url)
+            let result = bootoutAndRemovePlistLocked(at: url, preserveRunningAppJob: preserveRunningAppJob)
             if result.existed {
                 existedAny = true
             }
@@ -119,6 +169,7 @@ enum AutoStartManager {
     }
 
     private static func migrateLegacyIfNeededLocked() {
+        guard ownsLoginItem else { return }
         if hasMigratedInProcess {
             return
         }
@@ -190,6 +241,7 @@ enum AutoStartManager {
 
 
     private static func registrationStateLocked() -> RegistrationState {
+        guard ownsLoginItem else { return .disabled }
         migrateLegacyIfNeededLocked()
         if #available(macOS 13.0, *) {
             switch SMAppService.agent(plistName: plistName).status {
@@ -198,7 +250,7 @@ enum AutoStartManager {
             case .requiresApproval:
                 return .requiresApproval
             case .notRegistered, .notFound:
-                return .disabled
+                return FileManager.default.fileExists(atPath: legacyPlistURL.path) ? .enabled : .disabled
             @unknown default:
                 return .disabled
             }
@@ -217,9 +269,21 @@ enum AutoStartManager {
     }
 
     private static func setEnabledLocked(_ enabled: Bool) -> Bool {
+        guard ownsLoginItem else { return false }
         if #available(macOS 13.0, *) {
-            let removal = removeAllLegacyPlistsLocked()
             let service = SMAppService.agent(plistName: plistName)
+            if enabled, service.status != .enabled, service.status != .requiresApproval,
+               legacyJobCouldBeThisProcess(label: String(plistName.dropLast(".plist".count))) {
+                // A disabled legacy job can remain loaded for this session. Restore its
+                // plist instead of registering a conflicting replacement under the same label.
+                let actual = setLegacyAppPlistEnabledLocked(true, loadJob: false)
+                UserDefaults.standard.set(actual, forKey: autoStartDefaultsKey)
+                return actual
+            }
+            let removal = removeAllLegacyPlistsLocked(preserveRunningAppJob: enabled)
+            guard removal.allRemovedCleanly else {
+                return registrationStateLocked().isActiveOrPendingApproval
+            }
 
             if enabled {
                 if service.status != .enabled && service.status != .requiresApproval {
@@ -238,6 +302,9 @@ enum AutoStartManager {
                 return active
             } else {
                 if service.status == .enabled || service.status == .requiresApproval {
+                    // Unregister can terminate this app when it was started by the agent.
+                    UserDefaults.standard.set(false, forKey: autoStartDefaultsKey)
+                    UserDefaults.standard.synchronize()
                     do {
                         try service.unregister()
                     } catch {
@@ -262,7 +329,7 @@ enum AutoStartManager {
         return actual
     }
 
-    private static func setLegacyAppPlistEnabledLocked(_ enabled: Bool) -> Bool {
+    private static func setLegacyAppPlistEnabledLocked(_ enabled: Bool, loadJob: Bool = true) -> Bool {
         let launchAgent = legacyPlistURL
         let executablePath = Bundle.main.executableURL?.path
             ?? "\(Bundle.main.bundlePath)/Contents/MacOS/moonleaf"
@@ -274,10 +341,10 @@ enum AutoStartManager {
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.naomisphere.macpaper.app</string>
+    <string>\(String(plistName.dropLast(".plist".count)))</string>
     <key>AssociatedBundleIdentifiers</key>
     <array>
-        <string>com.naomisphere.macpaper</string>
+        <string>\(appBundleIdentifier)</string>
     </array>
     <key>ProgramArguments</key>
     <array>
@@ -295,14 +362,16 @@ enum AutoStartManager {
                     at: launchAgent.deletingLastPathComponent(),
                     withIntermediateDirectories: true)
                 try plist.write(to: launchAgent, atomically: true, encoding: .utf8)
-                _ = runLaunchctl(["load", launchAgent.path])
+                if loadJob {
+                    _ = runLaunchctl(["load", launchAgent.path])
+                }
                 return true
             } catch {
                 NSLog("[AutoStartManager] Failed to write legacy LaunchAgent plist: %@", error.localizedDescription)
                 return false
             }
         } else {
-            _ = bootoutAndRemovePlistLocked(at: launchAgent)
+            _ = bootoutAndRemovePlistLocked(at: launchAgent, preserveRunningAppJob: false)
             return false
         }
     }

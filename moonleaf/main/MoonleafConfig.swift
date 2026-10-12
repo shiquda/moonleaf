@@ -325,6 +325,15 @@ final class MoonleafConfigStore {
             return
         }
 
+        // App and engine have different UserDefaults domains but migrate the same files.
+        let lockPath = Self.configRoot.appendingPathComponent(".migration.lock").path
+        let lockFD = Darwin.open(lockPath, O_CREAT | O_RDWR, mode_t(0o600))
+        guard lockFD >= 0 else { return }
+        defer { Darwin.close(lockFD) }
+        guard Darwin.lockf(lockFD, F_LOCK, 0) == 0 else { return }
+        defer { _ = Darwin.lockf(lockFD, F_ULOCK, 0) }
+        let marker = Self.configRoot.appendingPathComponent(".canonical-migration-v1")
+
         // Materialize any known config symlinks inside ~/.config/moonleaf via temp sibling + atomic rename.
         for fileName in Self.knownLegacyConfigFiles {
             let itemURL = Self.configRoot.appendingPathComponent(fileName)
@@ -342,9 +351,14 @@ final class MoonleafConfigStore {
             }
         }
 
-        if UserDefaults.standard.bool(forKey: Self.migrationDefaultsKey) {
+        if fm.fileExists(atPath: marker.path) || UserDefaults.standard.bool(forKey: Self.migrationDefaultsKey) {
             if migrationSucceeded {
-                hasMigratedInProcess = true
+                do {
+                    try Data().write(to: marker, options: .atomic)
+                    hasMigratedInProcess = true
+                } catch {
+                    NSLog("[MoonleafConfigStore] Failed to record config migration: %@", error.localizedDescription)
+                }
             }
             return
         }
@@ -395,8 +409,13 @@ final class MoonleafConfigStore {
         }
 
         if migrationSucceeded {
-            UserDefaults.standard.set(true, forKey: Self.migrationDefaultsKey)
-            hasMigratedInProcess = true
+            do {
+                try Data().write(to: marker, options: .atomic)
+                UserDefaults.standard.set(true, forKey: Self.migrationDefaultsKey)
+                hasMigratedInProcess = true
+            } catch {
+                NSLog("[MoonleafConfigStore] Failed to record config migration: %@", error.localizedDescription)
+            }
         }
     }
 

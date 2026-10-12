@@ -11,10 +11,11 @@ Sparkle is fetched from its official release archive (digest-pinned in `fetch-sp
 
 - `macpaperService.shared` owns library selection, filters, volume and rotation state. Views and the status menu use the same instance.
 - `MoonleafConfig.swift` is compiled into both moonleaf and glasswp. It provides the typed settings model and serialized config access under `~/.config/moonleaf`; the library remains under `~/.local/share/paper/wallpaper`.
-- Legacy configuration is migrated once without deleting the original data. Known config symlinks are replaced atomically; unknown JSON fields survive settings updates.
+- Legacy configuration is migrated once without deleting the original data. The app and engine share an on-disk completion marker and an interprocess migration lock; old preferences migration flags remain valid. Known config symlinks are replaced atomically; unknown JSON fields survive settings updates.
 - Startup file reads and service persistence run off the main thread. Volume writes are coalesced over 150 ms.
 - `GlasswpProcessManager` starts and adopts verified engine processes and stops them by PID, rather than shell substring matching.
 - `AutoStartManager` is the single registration owner for login startup and wallpaper persistence. macOS 13+ uses the signed, bundled LaunchAgent through `SMAppService`; macOS 12 retains the legacy registration path.
+- A legacy login job that launched the current app is left intact until a later manual launch can safely migrate it. Disabling removes its plist without terminating the app; re-enabling during that session restores the plist. Bundles with a different identifier cannot manage the production login item. Registered items awaiting macOS approval retain the existing requested-on semantics; logout/reboot and approval require separate session verification.
 - `ManagerApp.swift` contains the manager view. Cards, inspector, thumbnails/cache, crop editor, export and browse providers are separate files. Local and remote caches share an implementation but retain independent budgets and size-scoped thumbnail keys.
 
 The obsolete `moonleaf-bin` C helper, shell updater and unbundled screensaver implementation are no longer built or shipped. Updates use Sparkle.
