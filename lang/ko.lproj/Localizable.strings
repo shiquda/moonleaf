@@ -1,0 +1,174 @@
+"mgr_title" = "moonleaf";
+"mgr_wp_title" = "배경화면";
+"mgr_browse_title" = "둘러보기";
+"add_wallpaper" = "배경화면 추가";
+"persist" = "유지";
+"unset_current" = "현재 배경화면 해제";
+"refresh" = "새로고침";
+"loading_wallpapers" = "배경화면 불러오는 중...";
+"scanning_files" = "파일 스캔 중";
+"no_wallpapers_found" = "배경화면을 찾을 수 없음";
+"drop_files_or_add" = "여기에 파일을 끌어다 놓거나 '배경화면 추가'를 클릭하세요";
+"supported_formats" = "지원 포맷: .mp4, .mov, .gif, .png, .jpg, .jpeg";
+"set_wallpaper" = "배경화면 설정";
+"gif_format" = "gif";
+"video_format" = "video";
+
+"filter" = "필터";
+"show_types" = "표시";
+"show_videos" = "동영상";
+"show_images" = "이미지";
+
+"sb_no_wallpapers" = "배경화면을 찾을 수 없음";
+"sb_wallpapers" = "배경화면";
+"sb_large_count" = "%d개 더 보기...";
+"sb_perst_enabled" = "자동 유지 활성화됨";
+"sb_enable_perst" = "자동 유지 활성화";
+"sb_unset_wp" = "라이브 배경화면 해제";
+"sb_shuffle_now" = "지금 임의 재생";
+"sb_show_all" = "모두 보기...";
+"sb_refresh" = "새로고침";
+"sb_open_mgr" = "관리자 열기";
+"sb_settings" = "설정";
+"sb_about" = "moonleaf에 관하여";
+"sb_about_text" = "버전 %@ (%@)\n\nmacOS용 배경화면 관리자";
+"sb_about_github" = "GitHub";
+"sb_about_kofi" = "Ko-fi에서 후원하기";
+"sb_perst_tooltip" = "로그인 시 배경화면을 자동으로 시작합니다";
+"sb_quit" = "moonleaf 종료";
+
+"mgr_settings" = "설정";
+"settings" = "설정";
+"cfg_auto_pause" = "스마트 재생";
+"cfg_auto_pause_desc" = "앱이 전체 화면일 때 배경화면 재생 중지";
+
+"browse_save" = "저장";
+"browse_cancel" = "취소";
+"browse_search_placeholder" = "배경화면 검색...";
+"browse_filters" = "필터";
+"browse_category" = "카테고리";
+"browse_purity" = "콘텐츠 등급";
+"browse_sort" = "정렬 기준";
+"browse_top_range" = "기간";
+"browse_desc" = "내림차순";
+"browse_asc" = "오름차순";
+"browse_apply" = "필터 적용";
+"browse_loading" = "배경화면 불러오는 중...";
+"browse_no_results" = "배경화면을 찾을 수 없음";
+"browse_try_search" = "검색어나 필터를 조정해 보세요";
+"browse_provider" = "소스";
+"browse_wallhaven" = "Wallhaven";
+"browse_local" = "로컬 보관함";
+"browse_resolution" = "해상도";
+"filter_resolution_all" = "전체";
+"browse_download" = "배경화면 다운로드";
+"export_wallpaper" = "배경화면 내보내기";
+"export_error" = "내보내기 실패";
+"export_original" = "원본 크기";
+"export_iphone_header" = "iPhone";
+"export_iphone_15_pro_max" = "iPhone 15 Pro Max (1290×2796)";
+"export_iphone_15_pro" = "iPhone 15 Pro (1179×2556)";
+"export_iphone_14_pro" = "iPhone 14 Pro (1179×2556)";
+"export_iphone_13_pro" = "iPhone 13 Pro (1170×2532)";
+"export_iphone_se" = "iPhone SE (750×1334)";
+"export_ipad_header" = "iPad";
+"export_ipad_pro_12" = "iPad Pro 12.9\" (2732×2048)";
+"export_ipad_pro_11" = "iPad Pro 11\" (2388×1668)";
+"export_desktop_header" = "데스크탑";
+"export_4k" = "4K UHD (3840×2160)";
+"export_1440p" = "1440p (2560×1440)";
+"export_1080p" = "1080p (1920×1080)";
+"export_ultrawide" = "울트라와이드 21:9 (3440×1440)";
+
+"sort_date" = "추가된 날짜";
+"sort_relevance" = "관련도";
+"sort_random" = "무작위";
+"sort_views" = "조회수";
+"sort_favorites" = "즐겨찾기";
+"sort_top" = "인기 순위";
+
+"purity_all" = "전체";
+
+"category_general" = "일반";
+"category_anime" = "애니메이션";
+"category_people" = "인물";
+"category_all" = "전체";
+
+"settings_general" = "일반";
+"settings_startup" = "시작";
+"settings_auto_start" = "로그인 시 시작";
+"settings_auto_start_desc" = "로그인할 때 moonleaf를 자동으로 시작합니다";
+"settings_updates" = "업데이트";
+"settings_check_updates" = "업데이트 확인";
+"settings_check_updates_desc" = "시작 시 업데이트를 확인합니다";
+"settings_update_log" = "업데이트 기록";
+"settings_export" = "내보내기";
+"settings_export_folder" = "내보내기 폴더";
+"settings_export_folder_desc" = "내보낸 배경화면을 저장할 위치를 선택합니다";
+"settings_export_folder_default" = "그림 폴더";
+"settings_choose_folder" = "폴더 선택";
+"settings_reset_folder" = "재설정";
+
+"settings_screensaver" = "화면 보호기";
+"settings_use_screensaver" = "-";
+"settings_use_screensaver_desc" = "-";
+"settings_screensaver_hint" = "-";
+
+"settings_manager" = "관리자";
+"settings_playback" = "재생";
+"settings_appearance" = "모양";
+"settings_glass_bg" = "투명한 배경";
+"settings_glass_bg_desc" = "관리자 앱의 배경을 숨깁니다(재시작 필요)";
+
+"settings_behavior" = "재생 동작";
+"settings_volume" = "재생 음량";
+"settings_default_volume" = "기본 음량";
+
+"settings_shuffle" = "배경화면 임의 재생";
+"settings_shuffle_desc" = "배경화면 보관함의 항목을 자동으로 순환합니다";
+"settings_per_desktop_shuffle" = "데스크탑마다 다른 배경화면 사용";
+"settings_per_desktop_shuffle_desc" = "각 데스크탑에 서로 다른 배경화면을 지정하고 중복 없이 보관함을 순환합니다";
+"settings_shuffle_interval" = "변경 주기";
+"shuffle_interval_15min" = "15분";
+"shuffle_interval_1hr" = "1시간";
+"shuffle_interval_3hr" = "3시간";
+"shuffle_interval_daily" = "매일";
+
+"settings_sort" = "기본 정렬";
+"sort_by_date" = "추가된 날짜";
+"sort_by_name" = "이름";
+"sort_by_size" = "파일 크기";
+
+"settings_api_key" = "Wallhaven API 키";
+"settings_api_key_description" = "Wallhaven 계정이 있는 경우 API 키를 사용할 수 있습니다.";
+"settings_enter_api_key" = "API 키 입력";
+"settings_save" = "저장";
+"settings_cancel" = "취소";
+"settings_no_api_key" = "설정된 API 키 없음";
+"settings_api_key_set" = "API 키가 설정됨";
+"settings_add_api_key" = "API 키 추가";
+"settings_change_api_key" = "변경";
+"settings_invalid_api_key" = "유효하지 않은 API 키";
+
+"download_options_title" = "다운로드 옵션";
+"download_original" = "원본 다운로드";
+"download_custom_ratio" = "사용자 지정 화면 비율";
+"download_custom_title" = "사용자 지정 다운로드";
+"download_custom_desc" = "이미지를 자를 기기를 선택하세요";
+"crop_editor_title" = "이미지 자르기";
+"crop_zoom" = "확대/축소";
+"preview_close" = "미리보기 닫기";
+"preview_type_image" = "이미지";
+"preview_type_video" = "동영상";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "파일";
+"crop_apply" = "적용";
+"settings_change_folder" = "폴더 변경";
+"settings_select_folder" = "폴더 선택";
+"export_aspect_ratio" = "화면 비율";
+
+"favorites_filter" = "즐겨찾기";
+"show_favorites" = "즐겨찾기만 표시";
+"show_all_wallpapers" = "모든 배경화면";
+"no_favorites" = "즐겨찾기 없음";
+"no_favorites_desc" = "배경화면의 별표를 클릭하여 즐겨찾기에 추가하세요";

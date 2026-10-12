@@ -1,0 +1,174 @@
+"mgr_title" = "moonleaf";
+"mgr_wp_title" = "壁纸";
+"mgr_browse_title" = "浏览";
+"add_wallpaper" = "添加壁纸";
+"persist" = "常驻";
+"unset_current" = "取消当前壁纸";
+"refresh" = "刷新";
+"loading_wallpapers" = "正在加载壁纸...";
+"scanning_files" = "正在扫描文件";
+"no_wallpapers_found" = "未找到壁纸";
+"drop_files_or_add" = "将文件拖放到此处或点击 '添加壁纸'";
+"supported_formats" = "支持的格式：.mp4, .mov, .gif, .png, .jpg, .jpeg";
+"set_wallpaper" = "设为壁纸";
+"gif_format" = "gif";
+"video_format" = "video";
+
+"filter" = "筛选";
+"show_types" = "显示";
+"show_videos" = "视频";
+"show_images" = "图片";
+
+"sb_no_wallpapers" = "未找到壁纸";
+"sb_wallpapers" = "壁纸";
+"sb_large_count" = "还有 %d 项...";
+"sb_perst_enabled" = "已启用常驻";
+"sb_enable_perst" = "启用常驻";
+"sb_unset_wp" = "取消动态壁纸";
+"sb_shuffle_now" = "立即随机切换";
+"sb_show_all" = "显示全部...";
+"sb_refresh" = "刷新";
+"sb_open_mgr" = "打开管理器";
+"sb_settings" = "设置";
+"sb_about" = "关于 moonleaf";
+"sb_about_text" = "版本 %@ (%@)\n\nmacOS 壁纸管理器";
+"sb_about_github" = "GitHub";
+"sb_about_kofi" = "在 Ko-fi 上支持";
+"sb_perst_tooltip" = "登录时自动启动壁纸";
+"sb_quit" = "退出 moonleaf";
+
+"mgr_settings" = "设置";
+"settings" = "设置";
+"cfg_auto_pause" = "智能播放";
+"cfg_auto_pause_desc" = "应用全屏时暂停播放壁纸";
+
+"browse_save" = "保存";
+"browse_cancel" = "取消";
+"browse_search_placeholder" = "搜索壁纸...";
+"browse_filters" = "筛选";
+"browse_category" = "分类";
+"browse_purity" = "分级";
+"browse_sort" = "排序方式";
+"browse_top_range" = "时间范围";
+"browse_desc" = "降序";
+"browse_asc" = "升序";
+"browse_apply" = "应用筛选";
+"browse_loading" = "正在加载壁纸...";
+"browse_no_results" = "未找到壁纸";
+"browse_try_search" = "请尝试调整搜索词或筛选条件";
+"browse_provider" = "来源";
+"browse_wallhaven" = "Wallhaven";
+"browse_local" = "本地图库";
+"browse_resolution" = "分辨率";
+"filter_resolution_all" = "全部";
+"browse_download" = "下载壁纸";
+"export_wallpaper" = "导出壁纸";
+"export_error" = "导出失败";
+"export_original" = "原始尺寸";
+"export_iphone_header" = "iPhone";
+"export_iphone_15_pro_max" = "iPhone 15 Pro Max (1290×2796)";
+"export_iphone_15_pro" = "iPhone 15 Pro (1179×2556)";
+"export_iphone_14_pro" = "iPhone 14 Pro (1179×2556)";
+"export_iphone_13_pro" = "iPhone 13 Pro (1170×2532)";
+"export_iphone_se" = "iPhone SE (750×1334)";
+"export_ipad_header" = "iPad";
+"export_ipad_pro_12" = "iPad Pro 12.9\" (2732×2048)";
+"export_ipad_pro_11" = "iPad Pro 11\" (2388×1668)";
+"export_desktop_header" = "桌面";
+"export_4k" = "4K UHD (3840×2160)";
+"export_1440p" = "1440p (2560×1440)";
+"export_1080p" = "1080p (1920×1080)";
+"export_ultrawide" = "超宽屏 21:9 (3440×1440)";
+
+"sort_date" = "添加日期";
+"sort_relevance" = "相关度";
+"sort_random" = "随机";
+"sort_views" = "浏览量";
+"sort_favorites" = "收藏";
+"sort_top" = "排行榜";
+
+"purity_all" = "全部";
+
+"category_general" = "综合";
+"category_anime" = "动漫";
+"category_people" = "人物";
+"category_all" = "全部";
+
+"settings_general" = "通用";
+"settings_startup" = "启动";
+"settings_auto_start" = "登录时启动";
+"settings_auto_start_desc" = "登录时自动启动 moonleaf";
+"settings_updates" = "更新";
+"settings_check_updates" = "检查更新";
+"settings_check_updates_desc" = "启动时检查更新";
+"settings_update_log" = "更新日志";
+"settings_export" = "导出";
+"settings_export_folder" = "导出文件夹";
+"settings_export_folder_desc" = "选择导出壁纸的保存位置";
+"settings_export_folder_default" = "图片文件夹";
+"settings_choose_folder" = "选择文件夹";
+"settings_reset_folder" = "重置";
+
+"settings_screensaver" = "屏幕保护程序";
+"settings_use_screensaver" = "-";
+"settings_use_screensaver_desc" = "-";
+"settings_screensaver_hint" = "-";
+
+"settings_manager" = "管理器";
+"settings_playback" = "播放";
+"settings_appearance" = "外观";
+"settings_glass_bg" = "透明背景";
+"settings_glass_bg_desc" = "隐藏管理器应用的背景（需要重启）";
+
+"settings_behavior" = "播放行为";
+"settings_volume" = "播放音量";
+"settings_default_volume" = "默认音量";
+
+"settings_shuffle" = "随机切换壁纸";
+"settings_shuffle_desc" = "自动轮换图库中的壁纸";
+"settings_per_desktop_shuffle" = "每个桌面使用不同壁纸";
+"settings_per_desktop_shuffle_desc" = "为每个桌面设置独立的壁纸，并不重复地轮换图库中的壁纸";
+"settings_shuffle_interval" = "切换间隔";
+"shuffle_interval_15min" = "15 分钟";
+"shuffle_interval_1hr" = "1 小时";
+"shuffle_interval_3hr" = "3 小时";
+"shuffle_interval_daily" = "每天";
+
+"settings_sort" = "默认排序";
+"sort_by_date" = "添加日期";
+"sort_by_name" = "名称";
+"sort_by_size" = "文件大小";
+
+"settings_api_key" = "Wallhaven API 密钥";
+"settings_api_key_description" = "如果你有 WH 账号，可以使用你的 API 密钥。";
+"settings_enter_api_key" = "输入 API 密钥";
+"settings_save" = "保存";
+"settings_cancel" = "取消";
+"settings_no_api_key" = "未设置 API 密钥";
+"settings_api_key_set" = "已设置 API 密钥";
+"settings_add_api_key" = "添加 API 密钥";
+"settings_change_api_key" = "更改";
+"settings_invalid_api_key" = "无效的 API 密钥";
+
+"download_options_title" = "下载选项";
+"download_original" = "下载原图";
+"download_custom_ratio" = "自定义宽高比";
+"download_custom_title" = "自定义下载";
+"download_custom_desc" = "选择设备以裁剪图片";
+"crop_editor_title" = "裁剪图片";
+"crop_zoom" = "缩放";
+"preview_close" = "关闭预览";
+"preview_type_image" = "图片";
+"preview_type_video" = "视频";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "文件";
+"crop_apply" = "应用";
+"settings_change_folder" = "更改文件夹";
+"settings_select_folder" = "选择文件夹";
+"export_aspect_ratio" = "宽高比";
+
+"favorites_filter" = "收藏";
+"show_favorites" = "仅显示收藏";
+"show_all_wallpapers" = "全部壁纸";
+"no_favorites" = "暂无收藏";
+"no_favorites_desc" = "点击任意壁纸上的星标即可收藏";

@@ -25,6 +25,7 @@
 "sb_perst_enabled" = "Persistenz aktiviert";
 "sb_enable_perst" = "Persistenz aktivieren";
 "sb_unset_wp" = "Live-Hintergrundbild entfernen";
+"sb_shuffle_now" = "Jetzt mischen";
 "sb_show_all" = "Alle anzeigen...";
 "sb_refresh" = "Aktualisieren";
 "sb_open_mgr" = "Manager öffnen";
@@ -156,6 +157,11 @@
 "download_custom_desc" = "Wählen Sie ein Gerät zum Zuschneiden des Bildes";
 "crop_editor_title" = "Bild zuschneiden";
 "crop_zoom" = "Zoom";
+"preview_close" = "Vorschau schließen";
+"preview_type_image" = "Bild";
+"preview_type_video" = "Video";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "Datei";
 "crop_apply" = "Anwenden";
 "settings_change_folder" = "Ordner ändern";
 "settings_select_folder" = "Ordner auswählen";

@@ -1,0 +1,174 @@
+"mgr_title" = "moonleaf";
+"mgr_wp_title" = "壁紙";
+"mgr_browse_title" = "ブラウズ";
+"add_wallpaper" = "壁紙を追加";
+"persist" = "永続化";
+"unset_current" = "現在の壁紙を解除";
+"refresh" = "更新";
+"loading_wallpapers" = "壁紙を読み込み中...";
+"scanning_files" = "ファイルをスキャン中";
+"no_wallpapers_found" = "壁紙が見つかりません";
+"drop_files_or_add" = "ここにファイルをドロップするか、「壁紙を追加」をクリック";
+"supported_formats" = "対応フォーマット: .mp4, .mov, .gif, .png, .jpg, .jpeg";
+"set_wallpaper" = "壁紙に設定";
+"gif_format" = "gif";
+"video_format" = "video";
+
+"filter" = "フィルタ";
+"show_types" = "表示";
+"show_videos" = "ビデオ";
+"show_images" = "画像";
+
+"sb_no_wallpapers" = "壁紙が見つかりません";
+"sb_wallpapers" = "壁紙";
+"sb_large_count" = "他 %d 件...";
+"sb_perst_enabled" = "永続化が有効";
+"sb_enable_perst" = "永続化を有効にする";
+"sb_unset_wp" = "ライブ壁紙を解除";
+"sb_shuffle_now" = "今すぐシャッフル";
+"sb_show_all" = "すべてを表示...";
+"sb_refresh" = "更新";
+"sb_open_mgr" = "マネージャを開く";
+"sb_settings" = "設定";
+"sb_about" = "moonleaf について";
+"sb_about_text" = "バージョン %@ (%@)\n\nmacOS 用の壁紙マネージャ";
+"sb_about_github" = "GitHub";
+"sb_about_kofi" = "Ko-fi で支援する";
+"sb_perst_tooltip" = "ログイン時に壁紙を自動的に開始";
+"sb_quit" = "moonleaf を終了";
+
+"mgr_settings" = "設定";
+"settings" = "設定";
+"cfg_auto_pause" = "スマート再生";
+"cfg_auto_pause_desc" = "アプリがフルスクリーン表示のときに壁紙の再生を停止";
+
+"browse_save" = "保存";
+"browse_cancel" = "キャンセル";
+"browse_search_placeholder" = "壁紙を検索...";
+"browse_filters" = "フィルタ";
+"browse_category" = "カテゴリ";
+"browse_purity" = "純度";
+"browse_sort" = "並び替え";
+"browse_top_range" = "期間";
+"browse_desc" = "降順";
+"browse_asc" = "昇順";
+"browse_apply" = "フィルタを適用";
+"browse_loading" = "壁紙を読み込み中...";
+"browse_no_results" = "壁紙が見つかりません";
+"browse_try_search" = "検索条件やフィルタを変更してみてください";
+"browse_provider" = "ソース";
+"browse_wallhaven" = "Wallhaven";
+"browse_local" = "ローカルライブラリ";
+"browse_resolution" = "解像度";
+"filter_resolution_all" = "すべて";
+"browse_download" = "壁紙をダウンロード";
+"export_wallpaper" = "壁紙を書き出す";
+"export_error" = "書き出しに失敗しました";
+"export_original" = "オリジナルサイズ";
+"export_iphone_header" = "iPhone";
+"export_iphone_15_pro_max" = "iPhone 15 Pro Max (1290×2796)";
+"export_iphone_15_pro" = "iPhone 15 Pro (1179×2556)";
+"export_iphone_14_pro" = "iPhone 14 Pro (1179×2556)";
+"export_iphone_13_pro" = "iPhone 13 Pro (1170×2532)";
+"export_iphone_se" = "iPhone SE (750×1334)";
+"export_ipad_header" = "iPad";
+"export_ipad_pro_12" = "iPad Pro 12.9\" (2732×2048)";
+"export_ipad_pro_11" = "iPad Pro 11\" (2388×1668)";
+"export_desktop_header" = "デスクトップ";
+"export_4k" = "4K UHD (3840×2160)";
+"export_1440p" = "1440p (2560×1440)";
+"export_1080p" = "1080p (1920×1080)";
+"export_ultrawide" = "ウルトラワイド 21:9 (3440×1440)";
+
+"sort_date" = "追加日";
+"sort_relevance" = "関連度";
+"sort_random" = "ランダム";
+"sort_views" = "閲覧数";
+"sort_favorites" = "お気に入り";
+"sort_top" = "ランキング";
+
+"purity_all" = "すべて";
+
+"category_general" = "一般";
+"category_anime" = "アニメ";
+"category_people" = "人物";
+"category_all" = "すべて";
+
+"settings_general" = "一般";
+"settings_startup" = "起動";
+"settings_auto_start" = "ログイン時に起動";
+"settings_auto_start_desc" = "ログイン時に moonleaf を自動的に起動";
+"settings_updates" = "アップデート";
+"settings_check_updates" = "アップデートを確認";
+"settings_check_updates_desc" = "起動時にアップデートを確認";
+"settings_update_log" = "アップデート履歴";
+"settings_export" = "書き出し";
+"settings_export_folder" = "書き出し先フォルダ";
+"settings_export_folder_desc" = "書き出した壁紙の保存先を選択";
+"settings_export_folder_default" = "ピクチャフォルダ";
+"settings_choose_folder" = "フォルダを選択";
+"settings_reset_folder" = "リセット";
+
+"settings_screensaver" = "スクリーンセーバ";
+"settings_use_screensaver" = "-";
+"settings_use_screensaver_desc" = "-";
+"settings_screensaver_hint" = "-";
+
+"settings_manager" = "マネージャ";
+"settings_playback" = "再生";
+"settings_appearance" = "外観";
+"settings_glass_bg" = "透明な背景";
+"settings_glass_bg_desc" = "マネージャアプリの背景を非表示（再起動が必要）";
+
+"settings_behavior" = "再生の動作";
+"settings_volume" = "再生音量";
+"settings_default_volume" = "デフォルトの音量";
+
+"settings_shuffle" = "壁紙をシャッフル";
+"settings_shuffle_desc" = "壁紙ライブラリを自動的に切り替え";
+"settings_per_desktop_shuffle" = "デスクトップごとに異なる壁紙を設定";
+"settings_per_desktop_shuffle_desc" = "各デスクトップに個別の壁紙を設定し、重複なく順番に切り替え";
+"settings_shuffle_interval" = "切り替え間隔";
+"shuffle_interval_15min" = "15分";
+"shuffle_interval_1hr" = "1時間";
+"shuffle_interval_3hr" = "3時間";
+"shuffle_interval_daily" = "毎日";
+
+"settings_sort" = "デフォルトの並び順";
+"sort_by_date" = "追加日";
+"sort_by_name" = "名前";
+"sort_by_size" = "ファイルサイズ";
+
+"settings_api_key" = "Wallhaven API キー";
+"settings_api_key_description" = "Wallhaven アカウントをお持ちの場合、API キーを使用できます。";
+"settings_enter_api_key" = "API キーを入力";
+"settings_save" = "保存";
+"settings_cancel" = "キャンセル";
+"settings_no_api_key" = "API キーが設定されていません";
+"settings_api_key_set" = "API キーが設定されています";
+"settings_add_api_key" = "API キーを追加";
+"settings_change_api_key" = "変更";
+"settings_invalid_api_key" = "無効な API キーです";
+
+"download_options_title" = "ダウンロードオプション";
+"download_original" = "オリジナルをダウンロード";
+"download_custom_ratio" = "カスタムアスペクト比";
+"download_custom_title" = "カスタムダウンロード";
+"download_custom_desc" = "画像を切り抜くデバイスを選択";
+"crop_editor_title" = "画像を切り抜く";
+"crop_zoom" = "ズーム";
+"preview_close" = "プレビューを閉じる";
+"preview_type_image" = "画像";
+"preview_type_video" = "ビデオ";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "ファイル";
+"crop_apply" = "適用";
+"settings_change_folder" = "フォルダを変更";
+"settings_select_folder" = "フォルダを選択";
+"export_aspect_ratio" = "アスペクト比";
+
+"favorites_filter" = "お気に入り";
+"show_favorites" = "お気に入りのみ";
+"show_all_wallpapers" = "すべての壁紙";
+"no_favorites" = "お気に入りはまだありません";
+"no_favorites_desc" = "壁紙の星アイコンをクリックしてお気に入りに追加";

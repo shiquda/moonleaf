@@ -25,6 +25,7 @@
 "sb_perst_enabled" = "Trwałość Włączona";
 "sb_enable_perst" = "Włącz Trwałość";
 "sb_unset_wp" = "Wyłącz Żywą Tapetę";
+"sb_shuffle_now" = "Losuj Teraz";
 "sb_show_all" = "Pokaż Wszystko...";
 "sb_refresh" = "Odśwież";
 "sb_open_mgr" = "Otwórz Menedżera";
@@ -156,6 +157,11 @@
 "download_custom_desc" = "Wybierz urządzenie żeby przyciąć obraz";
 "crop_editor_title" = "Przytnij Obraz";
 "crop_zoom" = "Przybliżenie";
+"preview_close" = "Zamknij Podgląd";
+"preview_type_image" = "Obraz";
+"preview_type_video" = "Wideo";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "Plik";
 "crop_apply" = "Ustaw";
 "settings_change_folder" = "Zmień Katalog";
 "settings_select_folder" = "Wybierz Katalog";

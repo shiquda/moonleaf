@@ -1,0 +1,174 @@
+"mgr_title" = "moonleaf";
+"mgr_wp_title" = "桌布";
+"mgr_browse_title" = "瀏覽";
+"add_wallpaper" = "新增桌布";
+"persist" = "常駐";
+"unset_current" = "取消目前桌布";
+"refresh" = "重新整理";
+"loading_wallpapers" = "正在載入桌布...";
+"scanning_files" = "正在掃描檔案";
+"no_wallpapers_found" = "找不到桌布";
+"drop_files_or_add" = "將檔案拖放到此處或點一下「新增桌布」";
+"supported_formats" = "支援的格式：.mp4, .mov, .gif, .png, .jpg, .jpeg";
+"set_wallpaper" = "設為桌布";
+"gif_format" = "gif";
+"video_format" = "video";
+
+"filter" = "篩選";
+"show_types" = "顯示";
+"show_videos" = "影片";
+"show_images" = "圖片";
+
+"sb_no_wallpapers" = "找不到桌布";
+"sb_wallpapers" = "桌布";
+"sb_large_count" = "還有 %d 個...";
+"sb_perst_enabled" = "已啟用常駐";
+"sb_enable_perst" = "啟用常駐";
+"sb_unset_wp" = "取消動態桌布";
+"sb_shuffle_now" = "立即隨機播放";
+"sb_show_all" = "顯示全部...";
+"sb_refresh" = "重新整理";
+"sb_open_mgr" = "打開管理器";
+"sb_settings" = "設定";
+"sb_about" = "關於 moonleaf";
+"sb_about_text" = "版本 %@ (%@)\n\nmacOS 專屬的桌布管理器";
+"sb_about_github" = "GitHub";
+"sb_about_kofi" = "在 Ko-fi 上贊助支持";
+"sb_perst_tooltip" = "登入時自動啟動桌布";
+"sb_quit" = "結束 moonleaf";
+
+"mgr_settings" = "設定";
+"settings" = "設定";
+"cfg_auto_pause" = "智慧播放";
+"cfg_auto_pause_desc" = "當應用程式處於全螢幕時停止播放桌布";
+
+"browse_save" = "儲存";
+"browse_cancel" = "取消";
+"browse_search_placeholder" = "搜尋桌布...";
+"browse_filters" = "篩選條件";
+"browse_category" = "類別";
+"browse_purity" = "分級";
+"browse_sort" = "排序方式";
+"browse_top_range" = "時間範圍";
+"browse_desc" = "遞減";
+"browse_asc" = "遞增";
+"browse_apply" = "套用篩選條件";
+"browse_loading" = "正在載入桌布...";
+"browse_no_results" = "找不到桌布";
+"browse_try_search" = "請嘗試調整搜尋關鍵字或篩選條件";
+"browse_provider" = "來源";
+"browse_wallhaven" = "Wallhaven";
+"browse_local" = "本機圖庫";
+"browse_resolution" = "解析度";
+"filter_resolution_all" = "全部";
+"browse_download" = "下載桌布";
+"export_wallpaper" = "匯出桌布";
+"export_error" = "匯出失敗";
+"export_original" = "原始尺寸";
+"export_iphone_header" = "iPhone";
+"export_iphone_15_pro_max" = "iPhone 15 Pro Max (1290×2796)";
+"export_iphone_15_pro" = "iPhone 15 Pro (1179×2556)";
+"export_iphone_14_pro" = "iPhone 14 Pro (1179×2556)";
+"export_iphone_13_pro" = "iPhone 13 Pro (1170×2532)";
+"export_iphone_se" = "iPhone SE (750×1334)";
+"export_ipad_header" = "iPad";
+"export_ipad_pro_12" = "iPad Pro 12.9\" (2732×2048)";
+"export_ipad_pro_11" = "iPad Pro 11\" (2388×1668)";
+"export_desktop_header" = "桌面";
+"export_4k" = "4K UHD (3840×2160)";
+"export_1440p" = "1440p (2560×1440)";
+"export_1080p" = "1080p (1920×1080)";
+"export_ultrawide" = "超寬螢幕 21:9 (3440×1440)";
+
+"sort_date" = "加入日期";
+"sort_relevance" = "相關性";
+"sort_random" = "隨機";
+"sort_views" = "觀看次數";
+"sort_favorites" = "收藏";
+"sort_top" = "排行榜";
+
+"purity_all" = "全部";
+
+"category_general" = "一般";
+"category_anime" = "動漫";
+"category_people" = "人物";
+"category_all" = "全部";
+
+"settings_general" = "一般";
+"settings_startup" = "啟動";
+"settings_auto_start" = "登入時啟動";
+"settings_auto_start_desc" = "登入時自動啟動 moonleaf";
+"settings_updates" = "更新";
+"settings_check_updates" = "檢查更新";
+"settings_check_updates_desc" = "啟動時自動檢查更新";
+"settings_update_log" = "更新記錄";
+"settings_export" = "匯出";
+"settings_export_folder" = "匯出資料夾";
+"settings_export_folder_desc" = "選擇匯出桌布的儲存位置";
+"settings_export_folder_default" = "「圖片」資料夾";
+"settings_choose_folder" = "選擇資料夾";
+"settings_reset_folder" = "重設";
+
+"settings_screensaver" = "螢幕保護程式";
+"settings_use_screensaver" = "-";
+"settings_use_screensaver_desc" = "-";
+"settings_screensaver_hint" = "-";
+
+"settings_manager" = "管理器";
+"settings_playback" = "播放";
+"settings_appearance" = "外觀";
+"settings_glass_bg" = "透明背景";
+"settings_glass_bg_desc" = "隱藏管理器的背景（需要重新啟動）";
+
+"settings_behavior" = "播放行為";
+"settings_volume" = "播放音量";
+"settings_default_volume" = "預設音量";
+
+"settings_shuffle" = "隨機播放桌布";
+"settings_shuffle_desc" = "自動輪播桌布圖庫中的桌布";
+"settings_per_desktop_shuffle" = "每個桌面使用不同桌布";
+"settings_per_desktop_shuffle_desc" = "為每個桌面設定專屬桌布，並不重複地輪播圖庫內容";
+"settings_shuffle_interval" = "更換頻率";
+"shuffle_interval_15min" = "15 分鐘";
+"shuffle_interval_1hr" = "1 小時";
+"shuffle_interval_3hr" = "3 小時";
+"shuffle_interval_daily" = "每天";
+
+"settings_sort" = "預設排序";
+"sort_by_date" = "加入日期";
+"sort_by_name" = "名稱";
+"sort_by_size" = "檔案大小";
+
+"settings_api_key" = "Wallhaven API 金鑰";
+"settings_api_key_description" = "如果您有 Wallhaven 帳號，可以使用您的 API 金鑰。";
+"settings_enter_api_key" = "輸入 API 金鑰";
+"settings_save" = "儲存";
+"settings_cancel" = "取消";
+"settings_no_api_key" = "尚未設定 API 金鑰";
+"settings_api_key_set" = "已設定 API 金鑰";
+"settings_add_api_key" = "新增 API 金鑰";
+"settings_change_api_key" = "變更";
+"settings_invalid_api_key" = "無效的 API 金鑰";
+
+"download_options_title" = "下載選項";
+"download_original" = "下載原始圖片";
+"download_custom_ratio" = "自訂長寬比";
+"download_custom_title" = "自訂下載";
+"download_custom_desc" = "選擇裝置以裁切圖片";
+"crop_editor_title" = "裁切圖片";
+"crop_zoom" = "縮放";
+"preview_close" = "關閉預覽";
+"preview_type_image" = "圖片";
+"preview_type_video" = "影片";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "檔案";
+"crop_apply" = "套用";
+"settings_change_folder" = "變更資料夾";
+"settings_select_folder" = "選擇資料夾";
+"export_aspect_ratio" = "長寬比";
+
+"favorites_filter" = "收藏";
+"show_favorites" = "只顯示收藏";
+"show_all_wallpapers" = "所有桌布";
+"no_favorites" = "尚無收藏";
+"no_favorites_desc" = "點一下任何桌布上的星號即可加入收藏";

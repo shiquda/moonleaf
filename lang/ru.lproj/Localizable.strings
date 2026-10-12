@@ -1,0 +1,174 @@
+"mgr_title" = "moonleaf";
+"mgr_wp_title" = "обои";
+"mgr_browse_title" = "обзор";
+"add_wallpaper" = "добавить обои";
+"persist" = "сохранять";
+"unset_current" = "сбросить текущие";
+"refresh" = "обновить";
+"loading_wallpapers" = "загрузка обоев...";
+"scanning_files" = "поиск файлов";
+"no_wallpapers_found" = "обои не найдены";
+"drop_files_or_add" = "перетащите файлы сюда или нажмите 'добавить обои'";
+"supported_formats" = "поддерживаемые форматы: .mp4, .mov, .gif, .png, .jpg, .jpeg";
+"set_wallpaper" = "установить обои";
+"gif_format" = "gif";
+"video_format" = "video";
+
+"filter" = "фильтр";
+"show_types" = "Показать";
+"show_videos" = "Видео";
+"show_images" = "Изображения";
+
+"sb_no_wallpapers" = "Обои не найдены";
+"sb_wallpapers" = "Обои";
+"sb_large_count" = "%d ещё...";
+"sb_perst_enabled" = "Сохранение включено";
+"sb_enable_perst" = "Включить сохранение";
+"sb_unset_wp" = "Отключить живые обои";
+"sb_shuffle_now" = "Перемешать сейчас";
+"sb_show_all" = "Показать все...";
+"sb_refresh" = "Обновить";
+"sb_open_mgr" = "Открыть менеджер";
+"sb_settings" = "Настройки";
+"sb_about" = "О программе moonleaf";
+"sb_about_text" = "Версия %@ (%@)\n\nМенеджер обоев для macOS";
+"sb_about_github" = "GitHub";
+"sb_about_kofi" = "Поддержать на Ko-fi";
+"sb_perst_tooltip" = "Автоматически запускать обои при входе в систему";
+"sb_quit" = "Завершить moonleaf";
+
+"mgr_settings" = "настройки";
+"settings" = "Настройки";
+"cfg_auto_pause" = "Умное воспроизведение";
+"cfg_auto_pause_desc" = "Приостанавливать обои в полноэкранном режиме приложений";
+
+"browse_save" = "Сохранить";
+"browse_cancel" = "Отменить";
+"browse_search_placeholder" = "Поиск обоев...";
+"browse_filters" = "Фильтры";
+"browse_category" = "Категория";
+"browse_purity" = "Чистота";
+"browse_sort" = "Сортировать по";
+"browse_top_range" = "Период";
+"browse_desc" = "По убыванию";
+"browse_asc" = "По возрастанию";
+"browse_apply" = "Применить фильтры";
+"browse_loading" = "Загрузка обоев...";
+"browse_no_results" = "Обои не найдены";
+"browse_try_search" = "Попробуйте изменить запрос или фильтры";
+"browse_provider" = "Источники";
+"browse_wallhaven" = "Wallhaven";
+"browse_local" = "Локальная медиатека";
+"browse_resolution" = "Разрешение";
+"filter_resolution_all" = "Все";
+"browse_download" = "Загрузить обои";
+"export_wallpaper" = "Экспортировать обои";
+"export_error" = "Ошибка экспорта";
+"export_original" = "Исходный размер";
+"export_iphone_header" = "iPhone";
+"export_iphone_15_pro_max" = "iPhone 15 Pro Max (1290×2796)";
+"export_iphone_15_pro" = "iPhone 15 Pro (1179×2556)";
+"export_iphone_14_pro" = "iPhone 14 Pro (1179×2556)";
+"export_iphone_13_pro" = "iPhone 13 Pro (1170×2532)";
+"export_iphone_se" = "iPhone SE (750×1334)";
+"export_ipad_header" = "iPad";
+"export_ipad_pro_12" = "iPad Pro 12.9\" (2732×2048)";
+"export_ipad_pro_11" = "iPad Pro 11\" (2388×1668)";
+"export_desktop_header" = "Рабочий стол";
+"export_4k" = "4K UHD (3840×2160)";
+"export_1440p" = "1440p (2560×1440)";
+"export_1080p" = "1080p (1920×1080)";
+"export_ultrawide" = "Сверхширокий 21:9 (3440×1440)";
+
+"sort_date" = "Дата добавления";
+"sort_relevance" = "Релевантность";
+"sort_random" = "Случайно";
+"sort_views" = "Просмотры";
+"sort_favorites" = "Избранное";
+"sort_top" = "Топ";
+
+"purity_all" = "Все";
+
+"category_general" = "Общие";
+"category_anime" = "Аниме";
+"category_people" = "Люди";
+"category_all" = "Все";
+
+"settings_general" = "Основные";
+"settings_startup" = "Запуск";
+"settings_auto_start" = "Запускать при входе";
+"settings_auto_start_desc" = "Автоматически запускать moonleaf при входе в систему";
+"settings_updates" = "Обновления";
+"settings_check_updates" = "Проверять обновления";
+"settings_check_updates_desc" = "Проверять наличие обновлений при запуске";
+"settings_update_log" = "Журнал обновлений";
+"settings_export" = "Экспорт";
+"settings_export_folder" = "Папка для экспорта";
+"settings_export_folder_desc" = "Выберите папку для сохранения экспортированных обоев";
+"settings_export_folder_default" = "Папка «Изображения»";
+"settings_choose_folder" = "Выбрать папку";
+"settings_reset_folder" = "Сбросить";
+
+"settings_screensaver" = "Заставка";
+"settings_use_screensaver" = "-";
+"settings_use_screensaver_desc" = "-";
+"settings_screensaver_hint" = "-";
+
+"settings_manager" = "Менеджер";
+"settings_playback" = "Воспроизведение";
+"settings_appearance" = "Оформление";
+"settings_glass_bg" = "Прозрачный фон";
+"settings_glass_bg_desc" = "Скрыть фон окна менеджера (требуется перезапуск)";
+
+"settings_behavior" = "Параметры воспроизведения";
+"settings_volume" = "Громкость воспроизведения";
+"settings_default_volume" = "Громкость по умолчанию";
+
+"settings_shuffle" = "Перемешивать обои";
+"settings_shuffle_desc" = "Автоматически менять обои из вашей медиатеки";
+"settings_per_desktop_shuffle" = "Разные обои на каждом рабочем столе";
+"settings_per_desktop_shuffle_desc" = "Устанавливать отдельные обои для каждого рабочего стола и менять их без повторов";
+"settings_shuffle_interval" = "Менять каждые";
+"shuffle_interval_15min" = "15 минут";
+"shuffle_interval_1hr" = "1 час";
+"shuffle_interval_3hr" = "3 часа";
+"shuffle_interval_daily" = "Ежедневно";
+
+"settings_sort" = "Сортировка по умолчанию";
+"sort_by_date" = "Дата добавления";
+"sort_by_name" = "Имя";
+"sort_by_size" = "Размер файла";
+
+"settings_api_key" = "Ключ API Wallhaven";
+"settings_api_key_description" = "Если у вас есть аккаунт WH, вы можете использовать свой ключ API.";
+"settings_enter_api_key" = "Введите ключ API";
+"settings_save" = "Сохранить";
+"settings_cancel" = "Отменить";
+"settings_no_api_key" = "Ключ API не задан";
+"settings_api_key_set" = "Ключ API задан";
+"settings_add_api_key" = "Добавить ключ API";
+"settings_change_api_key" = "Изменить";
+"settings_invalid_api_key" = "Недействительный ключ API";
+
+"download_options_title" = "Параметры загрузки";
+"download_original" = "Загрузить оригинал";
+"download_custom_ratio" = "Другое соотношение сторон";
+"download_custom_title" = "Настраиваемая загрузка";
+"download_custom_desc" = "Выберите устройство для обрезки изображения";
+"crop_editor_title" = "Обрезать изображение";
+"crop_zoom" = "Масштаб";
+"preview_close" = "Закрыть предпросмотр";
+"preview_type_image" = "Изображение";
+"preview_type_video" = "Видео";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "Файл";
+"crop_apply" = "Применить";
+"settings_change_folder" = "Изменить папку";
+"settings_select_folder" = "Выбрать папку";
+"export_aspect_ratio" = "Соотношение сторон";
+
+"favorites_filter" = "Избранное";
+"show_favorites" = "Только избранное";
+"show_all_wallpapers" = "Все обои";
+"no_favorites" = "В избранном пока пусто";
+"no_favorites_desc" = "Нажмите на звёздочку на любых обоях, чтобы добавить их в избранное";

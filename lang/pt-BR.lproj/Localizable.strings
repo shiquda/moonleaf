@@ -25,6 +25,7 @@
 "sb_perst_enabled" = "Persistência Ativada";
 "sb_enable_perst" = "Ativar Persistência";
 "sb_unset_wp" = "Desativar Papel de Parede Animado";
+"sb_shuffle_now" = "Embaralhar Agora";
 "sb_show_all" = "Mostrar Tudo...";
 "sb_refresh" = "Atualizar";
 "sb_open_mgr" = "Abrir Gerenciador";
@@ -156,6 +157,11 @@
 "download_custom_desc" = "Escolha um dispositivo para cortar a imagem";
 "crop_editor_title" = "Cortar imagem";
 "crop_zoom" = "Zoom";
+"preview_close" = "Fechar pré-visualização";
+"preview_type_image" = "Imagem";
+"preview_type_video" = "Vídeo";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "Arquivo";
 "crop_apply" = "Aplicar";
 "settings_change_folder" = "Alterar pasta";
 "settings_select_folder" = "Selecionar pasta";

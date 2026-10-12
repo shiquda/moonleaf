@@ -25,6 +25,7 @@
 "sb_perst_enabled" = "Persistencia activada";
 "sb_enable_perst" = "Activar persistencia";
 "sb_unset_wp" = "Quitar fondo";
+"sb_shuffle_now" = "Mezclar ahora";
 "sb_show_all" = "Mostrar Todo...";
 "sb_refresh" = "Actualizar";
 "sb_open_mgr" = "Abrir app";
@@ -155,6 +156,11 @@
 "download_custom_desc" = "Elige un dispositivo para recortar la imagen";
 "crop_editor_title" = "Recortar imagen";
 "crop_zoom" = "Zoom";
+"preview_close" = "Cerrar vista previa";
+"preview_type_image" = "Imagen";
+"preview_type_video" = "Video";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "Archivo";
 "crop_apply" = "Aplicar";
 "settings_change_folder" = "Cambiar carpeta";
 "settings_select_folder" = "Seleccionar carpeta";

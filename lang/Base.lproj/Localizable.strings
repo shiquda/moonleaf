@@ -25,6 +25,7 @@
 "sb_perst_enabled" = "Persistence Enabled";
 "sb_enable_perst" = "Enable Persistence";
 "sb_unset_wp" = "Unset Live Wallpaper";
+"sb_shuffle_now" = "Shuffle Now";
 "sb_show_all" = "Show All...";
 "sb_refresh" = "Refresh";
 "sb_open_mgr" = "Open Manager";
@@ -156,6 +157,11 @@
 "download_custom_desc" = "Choose a device to crop the image";
 "crop_editor_title" = "Crop Image";
 "crop_zoom" = "Zoom";
+"preview_close" = "Close Preview";
+"preview_type_image" = "Image";
+"preview_type_video" = "Video";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "File";
 "crop_apply" = "Apply";
 "settings_change_folder" = "Change Folder";
 "settings_select_folder" = "Select Folder";

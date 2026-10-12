@@ -1,0 +1,174 @@
+"mgr_title" = "moonleaf";
+"mgr_wp_title" = "fonds d'écran";
+"mgr_browse_title" = "parcourir";
+"add_wallpaper" = "ajouter un fond d'écran";
+"persist" = "persister";
+"unset_current" = "retirer l'actuel";
+"refresh" = "actualiser";
+"loading_wallpapers" = "chargement des fonds d'écran...";
+"scanning_files" = "analyse des fichiers";
+"no_wallpapers_found" = "aucun fond d'écran trouvé";
+"drop_files_or_add" = "déposez des fichiers ici ou cliquez sur 'ajouter un fond d'écran'";
+"supported_formats" = "formats pris en charge : .mp4, .mov, .gif, .png, .jpg, .jpeg";
+"set_wallpaper" = "définir comme fond d'écran";
+"gif_format" = "gif";
+"video_format" = "video";
+
+"filter" = "filtrer";
+"show_types" = "Afficher";
+"show_videos" = "Vidéos";
+"show_images" = "Images fixes";
+
+"sb_no_wallpapers" = "Aucun fond d'écran trouvé";
+"sb_wallpapers" = "Fonds d'écran";
+"sb_large_count" = "%d de plus...";
+"sb_perst_enabled" = "Persistance activée";
+"sb_enable_perst" = "Activer la persistance";
+"sb_unset_wp" = "Retirer le fond d'écran animé";
+"sb_shuffle_now" = "Mélanger maintenant";
+"sb_show_all" = "Tout afficher...";
+"sb_refresh" = "Actualiser";
+"sb_open_mgr" = "Ouvrir le gestionnaire";
+"sb_settings" = "Réglages";
+"sb_about" = "À propos de moonleaf";
+"sb_about_text" = "Version %@ (%@)\n\nLe gestionnaire de fonds d'écran pour macOS";
+"sb_about_github" = "GitHub";
+"sb_about_kofi" = "Soutenir sur Ko-fi";
+"sb_perst_tooltip" = "Lancer automatiquement le fond d'écran à l'ouverture de session";
+"sb_quit" = "Quitter moonleaf";
+
+"mgr_settings" = "réglages";
+"settings" = "Réglages";
+"cfg_auto_pause" = "Lecture intelligente";
+"cfg_auto_pause_desc" = "Mettre le fond d'écran en pause quand une app est en plein écran";
+
+"browse_save" = "Enregistrer";
+"browse_cancel" = "Annuler";
+"browse_search_placeholder" = "Rechercher des fonds d'écran...";
+"browse_filters" = "Filtres";
+"browse_category" = "Catégorie";
+"browse_purity" = "Pureté";
+"browse_sort" = "Trier par";
+"browse_top_range" = "Période";
+"browse_desc" = "Décroissant";
+"browse_asc" = "Croissant";
+"browse_apply" = "Appliquer les filtres";
+"browse_loading" = "Chargement des fonds d'écran...";
+"browse_no_results" = "Aucun fond d'écran trouvé";
+"browse_try_search" = "Essayez de modifier votre recherche ou vos filtres";
+"browse_provider" = "Source";
+"browse_wallhaven" = "Wallhaven";
+"browse_local" = "Bibliothèque locale";
+"browse_resolution" = "Résolution";
+"filter_resolution_all" = "Toutes";
+"browse_download" = "Télécharger le fond d'écran";
+"export_wallpaper" = "Exporter le fond d'écran";
+"export_error" = "Échec de l'exportation";
+"export_original" = "Taille d'origine";
+"export_iphone_header" = "iPhone";
+"export_iphone_15_pro_max" = "iPhone 15 Pro Max (1290×2796)";
+"export_iphone_15_pro" = "iPhone 15 Pro (1179×2556)";
+"export_iphone_14_pro" = "iPhone 14 Pro (1179×2556)";
+"export_iphone_13_pro" = "iPhone 13 Pro (1170×2532)";
+"export_iphone_se" = "iPhone SE (750×1334)";
+"export_ipad_header" = "iPad";
+"export_ipad_pro_12" = "iPad Pro 12.9\" (2732×2048)";
+"export_ipad_pro_11" = "iPad Pro 11\" (2388×1668)";
+"export_desktop_header" = "Bureau";
+"export_4k" = "4K UHD (3840×2160)";
+"export_1440p" = "1440p (2560×1440)";
+"export_1080p" = "1080p (1920×1080)";
+"export_ultrawide" = "Ultra-large 21:9 (3440×1440)";
+
+"sort_date" = "Date d'ajout";
+"sort_relevance" = "Pertinence";
+"sort_random" = "Aléatoire";
+"sort_views" = "Vues";
+"sort_favorites" = "Favoris";
+"sort_top" = "Classement";
+
+"purity_all" = "Tout";
+
+"category_general" = "Général";
+"category_anime" = "Animé";
+"category_people" = "Personnes";
+"category_all" = "Toutes";
+
+"settings_general" = "Général";
+"settings_startup" = "Démarrage";
+"settings_auto_start" = "Ouvrir avec la session";
+"settings_auto_start_desc" = "Lancer automatiquement moonleaf à l'ouverture de session";
+"settings_updates" = "Mises à jour";
+"settings_check_updates" = "Rechercher des mises à jour";
+"settings_check_updates_desc" = "Rechercher des mises à jour au démarrage";
+"settings_update_log" = "Journal des mises à jour";
+"settings_export" = "Exportation";
+"settings_export_folder" = "Dossier d'exportation";
+"settings_export_folder_desc" = "Choisir où les fonds d'écran exportés sont enregistrés";
+"settings_export_folder_default" = "Dossier Images";
+"settings_choose_folder" = "Choisir un dossier";
+"settings_reset_folder" = "Réinitialiser";
+
+"settings_screensaver" = "Économiseur d'écran";
+"settings_use_screensaver" = "-";
+"settings_use_screensaver_desc" = "-";
+"settings_screensaver_hint" = "-";
+
+"settings_manager" = "Gestionnaire";
+"settings_playback" = "Lecture";
+"settings_appearance" = "Apparence";
+"settings_glass_bg" = "Arrière-plan invisible";
+"settings_glass_bg_desc" = "Masquer l'arrière-plan du gestionnaire (redémarrage requis)";
+
+"settings_behavior" = "Comportement de lecture";
+"settings_volume" = "Volume de lecture";
+"settings_default_volume" = "Volume par défaut";
+
+"settings_shuffle" = "Mélanger les fonds d'écran";
+"settings_shuffle_desc" = "Faire défiler automatiquement votre bibliothèque de fonds d'écran";
+"settings_per_desktop_shuffle" = "Fond d'écran différent sur chaque bureau";
+"settings_per_desktop_shuffle_desc" = "Attribuer à chaque bureau son propre fond d'écran et faire défiler la bibliothèque sans répétition";
+"settings_shuffle_interval" = "Intervalle de changement";
+"shuffle_interval_15min" = "15 min";
+"shuffle_interval_1hr" = "1 heure";
+"shuffle_interval_3hr" = "3 heures";
+"shuffle_interval_daily" = "Quotidien";
+
+"settings_sort" = "Tri par défaut";
+"sort_by_date" = "Date d'ajout";
+"sort_by_name" = "Nom";
+"sort_by_size" = "Taille du fichier";
+
+"settings_api_key" = "Clé API Wallhaven";
+"settings_api_key_description" = "Si vous avez un compte WH, vous pouvez utiliser votre clé API.";
+"settings_enter_api_key" = "Saisir la clé API";
+"settings_save" = "Enregistrer";
+"settings_cancel" = "Annuler";
+"settings_no_api_key" = "Aucune clé API définie";
+"settings_api_key_set" = "Clé API définie";
+"settings_add_api_key" = "Ajouter une clé API";
+"settings_change_api_key" = "Modifier";
+"settings_invalid_api_key" = "Clé API invalide";
+
+"download_options_title" = "Options de téléchargement";
+"download_original" = "Télécharger l'original";
+"download_custom_ratio" = "Proportions personnalisées";
+"download_custom_title" = "Téléchargement personnalisé";
+"download_custom_desc" = "Choisissez un appareil pour recadrer l'image";
+"crop_editor_title" = "Recadrer l'image";
+"crop_zoom" = "Zoomer";
+"preview_close" = "Fermer l'aperçu";
+"preview_type_image" = "Image";
+"preview_type_video" = "Vidéo";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "Fichier";
+"crop_apply" = "Appliquer";
+"settings_change_folder" = "Modifier le dossier";
+"settings_select_folder" = "Sélectionner un dossier";
+"export_aspect_ratio" = "Proportions";
+
+"favorites_filter" = "Favoris";
+"show_favorites" = "Favoris uniquement";
+"show_all_wallpapers" = "Tous les fonds d'écran";
+"no_favorites" = "Aucun favori pour le moment";
+"no_favorites_desc" = "Cliquez sur l'étoile d'un fond d'écran pour l'ajouter aux favoris";

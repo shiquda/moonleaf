@@ -1,0 +1,174 @@
+"mgr_title" = "moonleaf";
+"mgr_wp_title" = "sfondi";
+"mgr_browse_title" = "esplora";
+"add_wallpaper" = "aggiungi sfondo";
+"persist" = "persistenza";
+"unset_current" = "rimuovi attuale";
+"refresh" = "aggiorna";
+"loading_wallpapers" = "caricamento sfondi...";
+"scanning_files" = "ricerca file in corso";
+"no_wallpapers_found" = "nessuno sfondo trovato";
+"drop_files_or_add" = "trascina i file qui o fai clic su 'aggiungi sfondo'";
+"supported_formats" = "formati supportati: .mp4, .mov, .gif, .png, .jpg, .jpeg";
+"set_wallpaper" = "imposta sfondo";
+"gif_format" = "gif";
+"video_format" = "video";
+
+"filter" = "filtra";
+"show_types" = "Mostra";
+"show_videos" = "Video";
+"show_images" = "Immagini";
+
+"sb_no_wallpapers" = "Nessuno sfondo trovato";
+"sb_wallpapers" = "Sfondi";
+"sb_large_count" = "%d in più...";
+"sb_perst_enabled" = "Persistenza attivata";
+"sb_enable_perst" = "Attiva persistenza";
+"sb_unset_wp" = "Rimuovi sfondo animato";
+"sb_shuffle_now" = "Cambia ora";
+"sb_show_all" = "Mostra tutti...";
+"sb_refresh" = "Aggiorna";
+"sb_open_mgr" = "Apri gestore";
+"sb_settings" = "Impostazioni";
+"sb_about" = "Informazioni su moonleaf";
+"sb_about_text" = "Versione %@ (%@)\n\nIl gestore di sfondi per macOS";
+"sb_about_github" = "GitHub";
+"sb_about_kofi" = "Supporta su Ko-fi";
+"sb_perst_tooltip" = "Avvia automaticamente lo sfondo al login";
+"sb_quit" = "Esci da moonleaf";
+
+"mgr_settings" = "impostazioni";
+"settings" = "Impostazioni";
+"cfg_auto_pause" = "Riproduzione intelligente";
+"cfg_auto_pause_desc" = "Interrompi la riproduzione dello sfondo quando le app sono a tutto schermo";
+
+"browse_save" = "Salva";
+"browse_cancel" = "Annulla";
+"browse_search_placeholder" = "Cerca sfondi...";
+"browse_filters" = "Filtri";
+"browse_category" = "Categoria";
+"browse_purity" = "Purezza";
+"browse_sort" = "Ordina per";
+"browse_top_range" = "Intervallo di tempo";
+"browse_desc" = "Decrescente";
+"browse_asc" = "Crescente";
+"browse_apply" = "Applica filtri";
+"browse_loading" = "Caricamento sfondi...";
+"browse_no_results" = "Nessuno sfondo trovato";
+"browse_try_search" = "Prova a modificare la ricerca o i filtri";
+"browse_provider" = "Fonti";
+"browse_wallhaven" = "Wallhaven";
+"browse_local" = "Libreria locale";
+"browse_resolution" = "Risoluzione";
+"filter_resolution_all" = "Tutte";
+"browse_download" = "Scarica sfondo";
+"export_wallpaper" = "Esporta sfondo";
+"export_error" = "Esportazione non riuscita";
+"export_original" = "Dimensioni originali";
+"export_iphone_header" = "iPhone";
+"export_iphone_15_pro_max" = "iPhone 15 Pro Max (1290×2796)";
+"export_iphone_15_pro" = "iPhone 15 Pro (1179×2556)";
+"export_iphone_14_pro" = "iPhone 14 Pro (1179×2556)";
+"export_iphone_13_pro" = "iPhone 13 Pro (1170×2532)";
+"export_iphone_se" = "iPhone SE (750×1334)";
+"export_ipad_header" = "iPad";
+"export_ipad_pro_12" = "iPad Pro 12.9\" (2732×2048)";
+"export_ipad_pro_11" = "iPad Pro 11\" (2388×1668)";
+"export_desktop_header" = "Scrivania";
+"export_4k" = "4K UHD (3840×2160)";
+"export_1440p" = "1440p (2560×1440)";
+"export_1080p" = "1080p (1920×1080)";
+"export_ultrawide" = "Ultrawide 21:9 (3440×1440)";
+
+"sort_date" = "Data di aggiunta";
+"sort_relevance" = "Pertinenza";
+"sort_random" = "Casuale";
+"sort_views" = "Visualizzazioni";
+"sort_favorites" = "Preferiti";
+"sort_top" = "Classifica";
+
+"purity_all" = "Tutte";
+
+"category_general" = "Generale";
+"category_anime" = "Anime";
+"category_people" = "Persone";
+"category_all" = "Tutte";
+
+"settings_general" = "Generali";
+"settings_startup" = "Avvio";
+"settings_auto_start" = "Avvia al login";
+"settings_auto_start_desc" = "Avvia automaticamente moonleaf quando effettui l'accesso";
+"settings_updates" = "Aggiornamenti";
+"settings_check_updates" = "Verifica aggiornamenti";
+"settings_check_updates_desc" = "Verifica la presenza di aggiornamenti all'avvio";
+"settings_update_log" = "Registro aggiornamenti";
+"settings_export" = "Esportazione";
+"settings_export_folder" = "Cartella di esportazione";
+"settings_export_folder_desc" = "Scegli dove salvare gli sfondi esportati";
+"settings_export_folder_default" = "Cartella Immagini";
+"settings_choose_folder" = "Scegli cartella";
+"settings_reset_folder" = "Ripristina";
+
+"settings_screensaver" = "Salvaschermo";
+"settings_use_screensaver" = "-";
+"settings_use_screensaver_desc" = "-";
+"settings_screensaver_hint" = "-";
+
+"settings_manager" = "Gestore";
+"settings_playback" = "Riproduzione";
+"settings_appearance" = "Aspetto";
+"settings_glass_bg" = "Sfondo invisibile";
+"settings_glass_bg_desc" = "Nascondi lo sfondo dell'app gestore (richiede il riavvio)";
+
+"settings_behavior" = "Comportamento di riproduzione";
+"settings_volume" = "Volume di riproduzione";
+"settings_default_volume" = "Volume predefinito";
+
+"settings_shuffle" = "Sfondi casuali";
+"settings_shuffle_desc" = "Ruota automaticamente gli sfondi della tua libreria";
+"settings_per_desktop_shuffle" = "Sfondo diverso su ogni scrivania";
+"settings_per_desktop_shuffle_desc" = "Assegna a ogni scrivania il proprio sfondo e ruota la libreria senza ripetizioni";
+"settings_shuffle_interval" = "Cambia ogni";
+"shuffle_interval_15min" = "15 minuti";
+"shuffle_interval_1hr" = "1 ora";
+"shuffle_interval_3hr" = "3 ore";
+"shuffle_interval_daily" = "Ogni giorno";
+
+"settings_sort" = "Ordinamento predefinito";
+"sort_by_date" = "Data di aggiunta";
+"sort_by_name" = "Nome";
+"sort_by_size" = "Dimensione file";
+
+"settings_api_key" = "Chiave API di Wallhaven";
+"settings_api_key_description" = "Se hai un account WH, puoi usare la tua chiave API.";
+"settings_enter_api_key" = "Inserisci chiave API";
+"settings_save" = "Salva";
+"settings_cancel" = "Annulla";
+"settings_no_api_key" = "Nessuna chiave API impostata";
+"settings_api_key_set" = "Chiave API impostata";
+"settings_add_api_key" = "Aggiungi chiave API";
+"settings_change_api_key" = "Modifica";
+"settings_invalid_api_key" = "Chiave API non valida";
+
+"download_options_title" = "Opzioni di scaricamento";
+"download_original" = "Scarica originale";
+"download_custom_ratio" = "Proporzioni personalizzate";
+"download_custom_title" = "Scaricamento personalizzato";
+"download_custom_desc" = "Scegli un dispositivo per ritagliare l'immagine";
+"crop_editor_title" = "Ritaglia immagine";
+"crop_zoom" = "Ingrandimento";
+"preview_close" = "Chiudi anteprima";
+"preview_type_image" = "Immagine";
+"preview_type_video" = "Video";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "File";
+"crop_apply" = "Applica";
+"settings_change_folder" = "Cambia cartella";
+"settings_select_folder" = "Seleziona cartella";
+"export_aspect_ratio" = "Proporzioni";
+
+"favorites_filter" = "Preferiti";
+"show_favorites" = "Solo preferiti";
+"show_all_wallpapers" = "Tutti gli sfondi";
+"no_favorites" = "Ancora nessun preferito";
+"no_favorites_desc" = "Fai clic sulla stella di uno sfondo per aggiungerlo ai preferiti";

@@ -1,0 +1,174 @@
+"mgr_title" = "moonleaf";
+"mgr_wp_title" = "वॉलपेपर";
+"mgr_browse_title" = "ब्राउज़";
+"add_wallpaper" = "वॉलपेपर जोड़ें";
+"persist" = "स्थायी रखें";
+"unset_current" = "वर्तमान हटाएं";
+"refresh" = "रीफ़्रेश करें";
+"loading_wallpapers" = "वॉलपेपर लोड हो रहे हैं...";
+"scanning_files" = "फ़ाइलों को स्कैन किया जा रहा है";
+"no_wallpapers_found" = "कोई वॉलपेपर नहीं मिला";
+"drop_files_or_add" = "फ़ाइलें यहाँ ड्रॉप करें या 'वॉलपेपर जोड़ें' पर क्लिक करें";
+"supported_formats" = "समर्थित फ़ॉर्मैट: .mp4, .mov, .gif, .png, .jpg, .jpeg";
+"set_wallpaper" = "वॉलपेपर सेट करें";
+"gif_format" = "gif";
+"video_format" = "video";
+
+"filter" = "फ़िल्टर";
+"show_types" = "दिखाएं";
+"show_videos" = "वीडियो";
+"show_images" = "इमेज";
+
+"sb_no_wallpapers" = "कोई वॉलपेपर नहीं मिला";
+"sb_wallpapers" = "वॉलपेपर";
+"sb_large_count" = "%d और...";
+"sb_perst_enabled" = "स्थायित्व सक्षम है";
+"sb_enable_perst" = "स्थायित्व सक्षम करें";
+"sb_unset_wp" = "लाइव वॉलपेपर हटाएं";
+"sb_shuffle_now" = "अभी शफ़ल करें";
+"sb_show_all" = "सभी दिखाएं...";
+"sb_refresh" = "रीफ़्रेश करें";
+"sb_open_mgr" = "मैनेजर खोलें";
+"sb_settings" = "सेटिंग्स";
+"sb_about" = "moonleaf के बारे में";
+"sb_about_text" = "संस्करण %@ (%@)\n\nmacOS के लिए वॉलपेपर मैनेजर";
+"sb_about_github" = "GitHub";
+"sb_about_kofi" = "Ko-fi पर सहयोग करें";
+"sb_perst_tooltip" = "लॉगिन करने पर वॉलपेपर अपने आप शुरू करें";
+"sb_quit" = "moonleaf बंद करें";
+
+"mgr_settings" = "सेटिंग्स";
+"settings" = "सेटिंग्स";
+"cfg_auto_pause" = "स्मार्ट प्लेबैक";
+"cfg_auto_pause_desc" = "जब ऐप्स फ़ुलस्क्रीन हों तब वॉलपेपर चलाना बंद करें";
+
+"browse_save" = "सेव करें";
+"browse_cancel" = "रद्द करें";
+"browse_search_placeholder" = "वॉलपेपर खोजें...";
+"browse_filters" = "फ़िल्टर";
+"browse_category" = "श्रेणी";
+"browse_purity" = "शुद्धता";
+"browse_sort" = "क्रमबद्ध करें";
+"browse_top_range" = "समय सीमा";
+"browse_desc" = "अवरोही";
+"browse_asc" = "आरोही";
+"browse_apply" = "फ़िल्टर लागू करें";
+"browse_loading" = "वॉलपेपर लोड हो रहे हैं...";
+"browse_no_results" = "कोई वॉलपेपर नहीं मिला";
+"browse_try_search" = "अपनी खोज या फ़िल्टर बदलने का प्रयास करें";
+"browse_provider" = "स्रोत";
+"browse_wallhaven" = "Wallhaven";
+"browse_local" = "लोकल लाइब्रेरी";
+"browse_resolution" = "रेज़ोल्यूशन";
+"filter_resolution_all" = "सभी";
+"browse_download" = "वॉलपेपर डाउनलोड करें";
+"export_wallpaper" = "वॉलपेपर एक्सपोर्ट करें";
+"export_error" = "एक्सपोर्ट विफल रहा";
+"export_original" = "मूल आकार";
+"export_iphone_header" = "iPhone";
+"export_iphone_15_pro_max" = "iPhone 15 Pro Max (1290×2796)";
+"export_iphone_15_pro" = "iPhone 15 Pro (1179×2556)";
+"export_iphone_14_pro" = "iPhone 14 Pro (1179×2556)";
+"export_iphone_13_pro" = "iPhone 13 Pro (1170×2532)";
+"export_iphone_se" = "iPhone SE (750×1334)";
+"export_ipad_header" = "iPad";
+"export_ipad_pro_12" = "iPad Pro 12.9\" (2732×2048)";
+"export_ipad_pro_11" = "iPad Pro 11\" (2388×1668)";
+"export_desktop_header" = "डेस्कटॉप";
+"export_4k" = "4K UHD (3840×2160)";
+"export_1440p" = "1440p (2560×1440)";
+"export_1080p" = "1080p (1920×1080)";
+"export_ultrawide" = "अल्ट्रावाइड 21:9 (3440×1440)";
+
+"sort_date" = "जोड़े जाने की तिथि";
+"sort_relevance" = "प्रासंगिकता";
+"sort_random" = "रैंडम";
+"sort_views" = "व्यूज़";
+"sort_favorites" = "पसंदीदा";
+"sort_top" = "टॉपलिस्ट";
+
+"purity_all" = "सभी";
+
+"category_general" = "सामान्य";
+"category_anime" = "एनीमे";
+"category_people" = "लोग";
+"category_all" = "सभी";
+
+"settings_general" = "सामान्य";
+"settings_startup" = "स्टार्टअप";
+"settings_auto_start" = "लॉगिन पर शुरू करें";
+"settings_auto_start_desc" = "लॉगिन करने पर moonleaf को अपने आप शुरू करें";
+"settings_updates" = "अपडेट";
+"settings_check_updates" = "अपडेट की जांच करें";
+"settings_check_updates_desc" = "स्टार्टअप पर अपडेट की जांच करें";
+"settings_update_log" = "अपडेट लॉग";
+"settings_export" = "एक्सपोर्ट";
+"settings_export_folder" = "एक्सपोर्ट फ़ोल्डर";
+"settings_export_folder_desc" = "चुनें कि एक्सपोर्ट किए गए वॉलपेपर कहाँ सेव किए जाएं";
+"settings_export_folder_default" = "तस्वीरें फ़ोल्डर";
+"settings_choose_folder" = "फ़ोल्डर चुनें";
+"settings_reset_folder" = "रीसेट करें";
+
+"settings_screensaver" = "स्क्रीनसेवर";
+"settings_use_screensaver" = "-";
+"settings_use_screensaver_desc" = "-";
+"settings_screensaver_hint" = "-";
+
+"settings_manager" = "मैनेजर";
+"settings_playback" = "प्लेबैक";
+"settings_appearance" = "प्रकटन";
+"settings_glass_bg" = "अदृश्य बैकग्राउंड";
+"settings_glass_bg_desc" = "मैनेजर ऐप का बैकग्राउंड छिपाएं (रीस्टार्ट आवश्यक है)";
+
+"settings_behavior" = "प्लेबैक व्यवहार";
+"settings_volume" = "प्लेबैक वॉल्यूम";
+"settings_default_volume" = "डिफ़ॉल्ट वॉल्यूम";
+
+"settings_shuffle" = "वॉलपेपर शफ़ल करें";
+"settings_shuffle_desc" = "अपनी वॉलपेपर लाइब्रेरी को अपने आप बदलते रहें";
+"settings_per_desktop_shuffle" = "हर डेस्कटॉप पर अलग वॉलपेपर";
+"settings_per_desktop_shuffle_desc" = "प्रत्येक डेस्कटॉप को अपना वॉलपेपर दें और बिना दोहराए लाइब्रेरी को उनके बीच घुमाएं";
+"settings_shuffle_interval" = "बदलने का अंतराल";
+"shuffle_interval_15min" = "15 मिनट";
+"shuffle_interval_1hr" = "1 घंटा";
+"shuffle_interval_3hr" = "3 घंटे";
+"shuffle_interval_daily" = "प्रतिदिन";
+
+"settings_sort" = "डिफ़ॉल्ट क्रम";
+"sort_by_date" = "जोड़े जाने की तिथि";
+"sort_by_name" = "नाम";
+"sort_by_size" = "फ़ाइल का आकार";
+
+"settings_api_key" = "Wallhaven API कुंजी";
+"settings_api_key_description" = "यदि आपके पास WH खाता है, तो आप अपनी API कुंजी का उपयोग कर सकते हैं।";
+"settings_enter_api_key" = "API कुंजी दर्ज करें";
+"settings_save" = "सेव करें";
+"settings_cancel" = "रद्द करें";
+"settings_no_api_key" = "कोई API कुंजी सेट नहीं है";
+"settings_api_key_set" = "API कुंजी सेट है";
+"settings_add_api_key" = "API कुंजी जोड़ें";
+"settings_change_api_key" = "बदलें";
+"settings_invalid_api_key" = "अमान्य API कुंजी";
+
+"download_options_title" = "डाउनलोड विकल्प";
+"download_original" = "मूल डाउनलोड करें";
+"download_custom_ratio" = "कस्टम आस्पेक्ट रेशियो";
+"download_custom_title" = "कस्टम डाउनलोड";
+"download_custom_desc" = "इमेज क्रॉप करने के लिए कोई डिवाइस चुनें";
+"crop_editor_title" = "इमेज क्रॉप करें";
+"crop_zoom" = "ज़ूम";
+"preview_close" = "प्रीव्यू बंद करें";
+"preview_type_image" = "इमेज";
+"preview_type_video" = "वीडियो";
+"preview_type_gif" = "GIF";
+"preview_type_file" = "फ़ाइल";
+"crop_apply" = "लागू करें";
+"settings_change_folder" = "फ़ोल्डर बदलें";
+"settings_select_folder" = "फ़ोल्डर चुनें";
+"export_aspect_ratio" = "आस्पेक्ट रेशियो";
+
+"favorites_filter" = "पसंदीदा";
+"show_favorites" = "केवल पसंदीदा";
+"show_all_wallpapers" = "सभी वॉलपेपर";
+"no_favorites" = "अभी तक कोई पसंदीदा नहीं";
+"no_favorites_desc" = "किसी भी वॉलपेपर को पसंदीदा बनाने के लिए उस पर तारे को टैप करें";
