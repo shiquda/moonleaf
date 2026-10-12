@@ -7,6 +7,7 @@ CONTENTS_DIR="$APP_BUNDLE/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RSC_DIR="$CONTENTS_DIR/Resources"
 BIN_DIR="$RSC_DIR/bin"
+LAUNCH_AGENTS_DIR="$CONTENTS_DIR/Library/LaunchAgents"
 SAVER_BUILD_DIR="${BUILD_DIR}/saver"
 SAVER_DIR="${SAVER_BUILD_DIR}/moonleafSaver.saver"
 
@@ -65,6 +66,7 @@ rm -rf ./build
 mkdir -p "$MACOS_DIR"
 mkdir -p "$RSC_DIR"
 mkdir -p "$BIN_DIR"
+mkdir -p "$LAUNCH_AGENTS_DIR"
 
 echo ""
 echo -e "
@@ -96,7 +98,7 @@ if [[ "$BUILD_ALL" == true ]]; then
         -target x86_64-apple-macos12.0 \
         -framework SwiftUI -framework AppKit -framework AVKit \
         -framework AVFoundation -framework UniformTypeIdentifiers \
-        -framework Combine \
+        -framework Combine -framework ServiceManagement \
         -F "$SPARKLE_FRAMEWORK_DIR" -framework Sparkle \
         -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
         -O \
@@ -111,7 +113,7 @@ if [[ "$BUILD_ALL" == true ]]; then
         -target arm64-apple-macos12.0 \
         -framework SwiftUI -framework AppKit -framework AVKit \
         -framework AVFoundation -framework UniformTypeIdentifiers \
-        -framework Combine \
+        -framework Combine -framework ServiceManagement \
         -F "$SPARKLE_FRAMEWORK_DIR" -framework Sparkle \
         -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
         -O \
@@ -134,7 +136,7 @@ else
         -target "$HOST_TARGET" \
         -framework SwiftUI -framework AppKit -framework AVKit \
         -framework AVFoundation -framework UniformTypeIdentifiers \
-        -framework Combine \
+        -framework Combine -framework ServiceManagement \
         -F "$SPARKLE_FRAMEWORK_DIR" -framework Sparkle \
         -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
         -O \
@@ -259,6 +261,28 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <false/>
     <key>SUVerifyUpdateBeforeExtraction</key>
     <true/>
+</dict>
+</plist>
+EOF
+
+echo "adding bundled LaunchAgent plist"
+cat > "$LAUNCH_AGENTS_DIR/com.naomisphere.macpaper.app.plist" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.naomisphere.macpaper.app</string>
+    <key>BundleProgram</key>
+    <string>Contents/MacOS/moonleaf</string>
+    <key>AssociatedBundleIdentifiers</key>
+    <array>
+        <string>com.naomisphere.macpaper</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
 </dict>
 </plist>
 EOF

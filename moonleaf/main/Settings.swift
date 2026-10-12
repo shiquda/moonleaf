@@ -6,6 +6,127 @@
 //
 
 import SwiftUI
+import ServiceManagement
+
+enum AutoStartManager {
+    static let plistName = "com.naomisphere.macpaper.app.plist"
+    private static let migrationKey = "didMigrateAutoStartToSMAppService"
+    static var legacyPlistURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/LaunchAgents/\(plistName)")
+    }
+
+    @discardableResult
+    static func bootoutAndRemoveLegacyPlist() -> Bool {
+        let path = legacyPlistURL.path
+        guard FileManager.default.fileExists(atPath: path) else { return false }
+
+        let bootout = Process()
+        bootout.launchPath = "/bin/launchctl"
+        bootout.arguments = ["bootout", "gui/\(getuid())", path]
+        try? bootout.run()
+        bootout.waitUntilExit()
+
+        if bootout.terminationStatus != 0 {
+            let unload = Process()
+            unload.launchPath = "/bin/launchctl"
+            unload.arguments = ["unload", path]
+            try? unload.run()
+            unload.waitUntilExit()
+        }
+
+        try? FileManager.default.removeItem(at: legacyPlistURL)
+        return true
+    }
+
+    static func migrateLegacyIfNeeded() {
+        guard #available(macOS 13.0, *) else { return }
+        let removedLegacy = bootoutAndRemoveLegacyPlist()
+        let needsFirstMigration = !UserDefaults.standard.bool(forKey: migrationKey)
+        guard removedLegacy || needsFirstMigration else { return }
+
+        UserDefaults.standard.set(true, forKey: migrationKey)
+        let shouldEnable = removedLegacy || UserDefaults.standard.bool(forKey: "autoStartEnabled")
+        guard shouldEnable else { return }
+
+        let service = SMAppService.agent(plistName: plistName)
+        try? service.register()
+        UserDefaults.standard.set(service.status == .enabled, forKey: "autoStartEnabled")
+    }
+
+    static func isEnabled() -> Bool {
+        if #available(macOS 13.0, *) {
+            migrateLegacyIfNeeded()
+            return SMAppService.agent(plistName: plistName).status == .enabled
+        }
+        return FileManager.default.fileExists(atPath: legacyPlistURL.path)
+    }
+
+    @discardableResult
+    static func setEnabled(_ enabled: Bool) -> Bool {
+        if #available(macOS 13.0, *) {
+            bootoutAndRemoveLegacyPlist()
+            let service = SMAppService.agent(plistName: plistName)
+            if enabled {
+                do {
+                    try service.register()
+                } catch {}
+                return service.status == .enabled
+            } else {
+                if service.status == .enabled || service.status == .requiresApproval {
+                    try? service.unregister()
+                }
+                return false
+            }
+        }
+
+        let launchAgent = legacyPlistURL
+        let executablePath = Bundle.main.executableURL?.path
+            ?? "\(Bundle.main.bundlePath)/Contents/MacOS/moonleaf"
+
+        if enabled {
+            let plist = """
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.naomisphere.macpaper.app</string>
+    <key>AssociatedBundleIdentifiers</key>
+    <array>
+        <string>com.naomisphere.macpaper</string>
+    </array>
+    <key>ProgramArguments</key>
+    <array>
+        <string>\(executablePath)</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
+"""
+            do {
+                try FileManager.default.createDirectory(
+                    at: launchAgent.deletingLastPathComponent(),
+                    withIntermediateDirectories: true)
+                try plist.write(to: launchAgent, atomically: true, encoding: .utf8)
+                let load = Process()
+                load.launchPath = "/bin/launchctl"
+                load.arguments = ["load", launchAgent.path]
+                load.launch()
+                load.waitUntilExit()
+                return true
+            } catch {
+                return false
+            }
+        } else {
+            bootoutAndRemoveLegacyPlist()
+            return false
+        }
+    }
+}
 
 struct SettingsView: View {
     @EnvironmentObject private var service: macpaperService
@@ -743,55 +864,17 @@ struct SettingsView: View {
     }
 
     private func toggleAutoStart(_ enabled: Bool) {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let launchAgent = home.appendingPathComponent("Library/LaunchAgents/com.naomisphere.macpaper.app.plist")
-        let executablePath = Bundle.main.executableURL?.path
-            ?? "\(Bundle.main.bundlePath)/Contents/MacOS/moonleaf"
-
-        if enabled {
-            let plist = """
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.naomisphere.macpaper.app</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>\(executablePath)</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <false/>
-</dict>
-</plist>
-"""
-            do {
-                try FileManager.default.createDirectory(
-                    at: launchAgent.deletingLastPathComponent(),
-                    withIntermediateDirectories: true)
-                try plist.write(to: launchAgent, atomically: true, encoding: .utf8)
-                let load = Process()
-                load.launchPath = "/bin/launchctl"
-                load.arguments = ["load", launchAgent.path]
-                load.launch()
-                load.waitUntilExit()
-            } catch { autoStartEnabled = false }
-        } else {
-            let unload = Process()
-            unload.launchPath = "/bin/launchctl"
-            unload.arguments = ["unload", launchAgent.path]
-            try? unload.run()
-            unload.waitUntilExit()
-            try? FileManager.default.removeItem(at: launchAgent)
+        let actual = AutoStartManager.setEnabled(enabled)
+        if actual != autoStartEnabled {
+            autoStartEnabled = actual
         }
     }
 
     private func checkAutoStartStatus() {
-        let launchAgent = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/LaunchAgents/com.naomisphere.macpaper.app.plist")
-        autoStartEnabled = FileManager.default.fileExists(atPath: launchAgent.path)
+        let actual = AutoStartManager.isEnabled()
+        if actual != autoStartEnabled {
+            autoStartEnabled = actual
+        }
     }
 
     private func loadExportFolder() {

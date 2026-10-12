@@ -35,6 +35,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let service = macpaperService()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let bundleID = Bundle.main.bundleIdentifier {
+            let myPID = ProcessInfo.processInfo.processIdentifier
+            let alreadyRunning = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+                .contains { $0.processIdentifier != myPID && !$0.isTerminated }
+            if alreadyRunning {
+                NSApp.terminate(nil)
+                return
+            }
+        }
+
         NSApp.setActivationPolicy(.accessory)
         NSApp.windows.forEach { $0.close() }
         
@@ -94,6 +104,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     try? fm.createSymbolicLink(at: dest, withDestinationURL: item)
                 }
             }
+        }
+
+        DispatchQueue.global(qos: .utility).async {
+            AutoStartManager.migrateLegacyIfNeeded()
         }
     }
 
