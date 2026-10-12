@@ -5,7 +5,7 @@
 # CI: MP_NOTARY_KEYCHAIN_PROFILE, or MP_NOTARY_APPLE_ID + MP_NOTARY_TEAM_ID +
 # MP_NOTARY_PASSWORD (an app-specific password).
 #
-# usage: scripts/notarize.sh submit <dmg> [--no-wait]
+# usage: scripts/notarize.sh submit <dmg> [--wait|--no-wait]
 #        scripts/notarize.sh info <submission-id>
 #        scripts/notarize.sh log <submission-id> [output-path]
 #        scripts/notarize.sh staple <dmg>
@@ -17,7 +17,7 @@ TEAM_ID=${MP_NOTARY_TEAM_ID:-}
 PASSWORD=${MP_NOTARY_PASSWORD:-}
 
 usage() {
-    printf '%s\n' "usage: $0 submit <dmg> [--no-wait] | info <id> | log <id> [output] | staple <dmg>" >&2
+    printf '%s\n' "usage: $0 submit <dmg> [--wait|--no-wait] | info <id> | log <id> [output] | staple <dmg>" >&2
 }
 
 notarytool() {
@@ -39,6 +39,7 @@ case "$command" in
         WAIT=true
         for arg in "$@"; do
             case "$arg" in
+                --wait) WAIT=true ;;
                 --no-wait) WAIT=false ;;
                 *) usage; exit 2 ;;
             esac
