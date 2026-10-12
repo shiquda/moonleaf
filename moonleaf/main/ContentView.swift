@@ -70,7 +70,7 @@ struct ContentView: View {
 
                     HStack(spacing: 16) {
                         Button(action: {
-                            if let url = URL(string: "https://ko-fi.com/naomisphere") {
+                            if let url = URL(string: "https://ko-fi.com/shiquda") {
                                 NSWorkspace.shared.open(url)
                             }
                         }) {

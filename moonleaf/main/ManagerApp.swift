@@ -986,13 +986,20 @@ struct WallpaperCard: View {
         VStack(alignment: .center, spacing: 8) {
             previewSection
                 .frame(maxWidth: .infinity)
-                .onTapGesture(count: 2) {
-                    if !wallpaper.isFolder {
+                .onTapGesture {
+                    if wallpaper.isFolder {
+                        onTap()
+                    } else {
                         onQuickPreview()
                     }
                 }
             infoSection
                 .frame(height: 50)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    onTap()
+                }
         }
         .frame(width: 300, height: 260)
         .padding(12)
@@ -1009,9 +1016,6 @@ struct WallpaperCard: View {
                 }
         }
         .scaleEffect(isHovered ? 1.02 : 1.0)
-        .onTapGesture {
-            onTap()
-        }
         .onAppear {
             service.refreshScreenCount()
         }

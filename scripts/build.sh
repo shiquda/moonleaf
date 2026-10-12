@@ -10,17 +10,23 @@ BIN_DIR="$RSC_DIR/bin"
 SAVER_BUILD_DIR="${BUILD_DIR}/saver"
 SAVER_DIR="${SAVER_BUILD_DIR}/moonleafSaver.saver"
 
-MP_VER_STRING="v4.0.0"
-MP_VER_SHORT_STRING="v4.0"
+# MP_VER_SHORT_STRING is the user-facing version (CFBundleShortVersionString) and
+# MP_VER_STRING the numeric build Sparkle compares (CFBundleVersion). Release builds
+# get both from scripts/release-version.sh; the defaults below are for local builds.
+MP_VER_SHORT_STRING="${MP_VER_SHORT_STRING:-4.1.0.dev}"
+MP_VER_STRING="${MP_VER_STRING:-0}"
 
 BUILD_ALL=false
+ASSUME_YES=false
 for arg in "$@"; do
     if [[ "$arg" == "--all" ]]; then
         BUILD_ALL=true
+    elif [[ "$arg" == "--yes" || "$arg" == "-y" ]]; then
+        ASSUME_YES=true
     fi
 done
 
-if [[ "$BUILD_ALL" == true ]]; then
+if [[ "$BUILD_ALL" == true && "$ASSUME_YES" != true ]]; then
     echo ""
     read -p "do you really want to build moonleaf for arm64 and x86_64? it will take longer. (y/N): " -n 1 -r
     echo ""
@@ -43,6 +49,15 @@ fi
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Sparkle comes from its official release archive, digest-pinned in fetch-sparkle.sh.
+eval "$("$SCRIPT_DIR/fetch-sparkle.sh")"
+SPARKLE_FRAMEWORK="$SPARKLE_FRAMEWORK_DIR/Sparkle.framework"
+SU_PUBLIC_KEY="$(tr -d '[:space:]' < "$REPO_ROOT/sparkle-public-key.txt")"
+if [ -z "$SU_PUBLIC_KEY" ]; then
+    echo "error: sparkle-public-key.txt is missing or empty" >&2
+    exit 1
+fi
 
 cd "$REPO_ROOT" || exit 1
 rm -rf ./build
@@ -69,7 +84,7 @@ echo -e "
         [38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;60m=[0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m
         [38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;60m-[0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m[38;5;0m [0m"
 echo "####################################################"
-echo "        building moonleaf ${MP_VER_STRING} to ${BUILD_DIR}"
+echo "        building moonleaf ${MP_VER_SHORT_STRING} (build ${MP_VER_STRING}) to ${BUILD_DIR}"
 echo "####################################################"
 echo "macOS $(sw_vers -productVersion), arch: $HOST_ARCH"
 
@@ -81,7 +96,10 @@ if [[ "$BUILD_ALL" == true ]]; then
         -target x86_64-apple-macos12.0 \
         -framework SwiftUI -framework AppKit -framework AVKit \
         -framework AVFoundation -framework UniformTypeIdentifiers \
-        -framework Combine -O \
+        -framework Combine \
+        -F "$SPARKLE_FRAMEWORK_DIR" -framework Sparkle \
+        -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
+        -O \
         moonleaf/main/*.swift \
         moonleaf/utils/*.swift \
         -o "$MACOS_DIR/macpaper_amd64"
@@ -93,7 +111,10 @@ if [[ "$BUILD_ALL" == true ]]; then
         -target arm64-apple-macos12.0 \
         -framework SwiftUI -framework AppKit -framework AVKit \
         -framework AVFoundation -framework UniformTypeIdentifiers \
-        -framework Combine -O \
+        -framework Combine \
+        -F "$SPARKLE_FRAMEWORK_DIR" -framework Sparkle \
+        -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
+        -O \
         moonleaf/main/*.swift \
         moonleaf/utils/*.swift \
         -o "$MACOS_DIR/macpaper_arm64"
@@ -113,7 +134,10 @@ else
         -target "$HOST_TARGET" \
         -framework SwiftUI -framework AppKit -framework AVKit \
         -framework AVFoundation -framework UniformTypeIdentifiers \
-        -framework Combine -O \
+        -framework Combine \
+        -F "$SPARKLE_FRAMEWORK_DIR" -framework Sparkle \
+        -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
+        -O \
         moonleaf/main/*.swift \
         moonleaf/utils/*.swift \
         -o "$MACOS_DIR/moonleaf"
@@ -223,9 +247,27 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <false/>
     <key>ATSApplicationFontsPath</key>
     <string>.</string>
+    <key>SUFeedURL</key>
+    <string>https://github.com/shiquda/moonleaf/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>${SU_PUBLIC_KEY}</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUAutomaticallyUpdate</key>
+    <false/>
+    <key>SUEnableSystemProfiling</key>
+    <false/>
+    <key>SUVerifyUpdateBeforeExtraction</key>
+    <true/>
 </dict>
 </plist>
 EOF
+
+echo ""
+echo "-- embedding Sparkle.framework --"
+mkdir -p "$CONTENTS_DIR/Frameworks"
+# ditto keeps the framework's symlinks; a flattening copy breaks its signature
+ditto "$SPARKLE_FRAMEWORK" "$CONTENTS_DIR/Frameworks/Sparkle.framework"
 
 echo ""
 echo "-- bundling app resources --"
@@ -243,6 +285,6 @@ echo "adding localization strings"
 cp -r lang/*.lproj "$RSC_DIR"
 
 echo ""
-echo "done! moonleaf ${MP_VER_STRING} is at ${BUILD_DIR}/moonleaf.app"
+echo "done! moonleaf ${MP_VER_SHORT_STRING} (build ${MP_VER_STRING}) is at ${BUILD_DIR}/moonleaf.app"
 echo "glasswp installed to: $BIN_DIR/glasswp"
 echo ""

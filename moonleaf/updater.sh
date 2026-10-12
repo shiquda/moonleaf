@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SERVER_URL="${3:-https://github.com/parkuoa/moonleaf}"
+SERVER_URL="${3:-https://github.com/shiquda/moonleaf}"
 REPO=$(echo "$SERVER_URL" | sed 's|https://github.com/||')
 RAW_URL="https://raw.githubusercontent.com/$REPO/main/latest"
 

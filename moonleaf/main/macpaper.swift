@@ -31,7 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var _mwin_open = false
     @AppStorage("checkForUpdates") private var checkForUpdates = true
     @AppStorage("glassBackground") private var glassBackground = false
-    var updater = Updater()
+    var updater = Updater.shared
     private let service = macpaperService()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -44,9 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         make_paper_sb_item()
         start_launchAgent()
 
-        if checkForUpdates {
-            updater.checkForUpdates()
-        }
+        updater.automaticallyChecksForUpdates = checkForUpdates
 
         service.launchGlasswpDaemon()
 
@@ -268,6 +266,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(noWpItem)
         }
 
+        let shuffleItem = NSMenuItem(title: NSLocalizedString("sb_shuffle_now", comment: "Shuffle Now"), action: #selector(shuffle_now), keyEquivalent: "")
+        shuffleItem.target = self
+        shuffleItem.isEnabled = !wallpapers.isEmpty
+        menu.addItem(shuffleItem)
+
         menu.addItem(NSMenuItem.separator())
 
         let volumeItem = NSMenuItem()
@@ -297,6 +300,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
+        let checkUpdatesItem = NSMenuItem(title: NSLocalizedString("settings_check_updates", comment: "Check for Updates"), action: #selector(check_for_updates), keyEquivalent: "")
+        checkUpdatesItem.target = self
+        menu.addItem(checkUpdatesItem)
+
         let aboutItem = NSMenuItem(title: NSLocalizedString("sb_about", comment: "About moonleaf"), action: #selector(show_about), keyEquivalent: "")
         aboutItem.target = self
         menu.addItem(aboutItem)
@@ -322,6 +329,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let wallpaper = sender.representedObject as? endup_wp else { return }
         let service = macpaperService()
         service.set_wp(wallpaper)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.status_item?.menu = self.sb_item_menu()
+        }
+    }
+
+    @objc func shuffle_now() {
+        macpaperService.shuffleNow()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.status_item?.menu = self.sb_item_menu()
         }
@@ -390,6 +404,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc func check_for_updates() {
+        updater.checkForUpdates()
+    }
+
     @objc func show_about() {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
@@ -405,9 +423,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let response = alert.runModal()
 
         if response == .alertFirstButtonReturn {
-            NSWorkspace.shared.open(URL(string: "https://github.com/naomisphere/moonleaf")!)
+            NSWorkspace.shared.open(URL(string: "https://github.com/shiquda/moonleaf")!)
         } else if response == .alertSecondButtonReturn {
-            NSWorkspace.shared.open(URL(string: "https://ko-fi.com/naomisphere")!)
+            NSWorkspace.shared.open(URL(string: "https://ko-fi.com/shiquda")!)
         }
     }
 

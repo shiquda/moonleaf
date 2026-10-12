@@ -1,0 +1,243 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Tag to publish, e.g. v4.1.0.beta.1 (created at the tip of main when absent)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      MP_NOTARY_APPLE_ID: ${{ secrets.APPLE_NOTARIZATION_APPLE_ID }}
+      MP_NOTARY_TEAM_ID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
+      MP_NOTARY_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_APP_PASSWORD }}
+      SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+    outputs:
+      sha256: ${{ steps.checksums.outputs.sha256 }}
+      version: ${{ steps.version.outputs.short }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Resolve the release tag
+        env:
+          REQUESTED_TAG: ${{ inputs.version }}
+        run: |
+          set -eu
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            release_tag="$REQUESTED_TAG"
+          else
+            release_tag="$GITHUB_REF_NAME"
+          fi
+          if ! printf '%s' "$release_tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(\.(beta|rc)\.[0-9])?$'; then
+            echo "release tag '$release_tag' must look like v4.1.0 or v4.1.0.beta.1" >&2
+            exit 1
+          fi
+          echo "RELEASE_TAG=$release_tag" >> "$GITHUB_ENV"
+          echo "resolved $release_tag"
+
+      - name: Derive the version numbers
+        id: version
+        run: |
+          set -eu
+          eval "$(./scripts/release-version.sh "$RELEASE_TAG")"
+          echo "MP_VER_SHORT_STRING=$SHORT_VERSION" >> "$GITHUB_ENV"
+          echo "MP_VER_STRING=$BUILD_VERSION" >> "$GITHUB_ENV"
+          echo "short=$SHORT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "$RELEASE_TAG -> $SHORT_VERSION (CFBundleVersion $BUILD_VERSION)"
+
+      - name: Pin the build to the release commit
+        run: |
+          set -eu
+          git fetch --force --tags origin main
+          if git rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null; then
+            git checkout --detach "refs/tags/$RELEASE_TAG"
+          else
+            if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+              echo "tag $RELEASE_TAG does not exist and this run is not a dispatch" >&2
+              exit 1
+            fi
+            git checkout --detach origin/main
+          fi
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "the release commit is not on main; refusing to publish" >&2
+            exit 1
+          fi
+          echo "RELEASE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          git log -1 --oneline
+
+      - name: Import the Developer ID certificate
+        run: |
+          set -eu
+          test -n "$APPLE_CERTIFICATE_BASE64"
+          test -n "$APPLE_CERTIFICATE_PASSWORD"
+          test -n "$MP_NOTARY_APPLE_ID"
+          test -n "$MP_NOTARY_TEAM_ID"
+          test -n "$MP_NOTARY_PASSWORD"
+          test -n "$SPARKLE_ED_PRIVATE_KEY"
+
+          keychain="$RUNNER_TEMP/moonleaf-signing.keychain-db"
+          keychain_password="$(openssl rand -hex 16)"
+          p12="$RUNNER_TEMP/DeveloperID.p12"
+
+          printf '%s\n' "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security default-keychain -s "$keychain"
+          security list-keychains -d user -s "$keychain" "$HOME/Library/Keychains/login.keychain-db"
+          security import "$p12" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain"
+          rm -f "$p12"
+
+          security find-identity -v -p codesigning
+          identity=$(security find-identity -v -p codesigning \
+            | sed -n 's/^[[:space:]]*[0-9][0-9]*)[[:space:]]*[0-9A-Fa-f]*[[:space:]]*"\(.*\)".*/\1/p' \
+            | grep 'Developer ID Application' \
+            | head -n 1)
+          if [ -z "$identity" ]; then
+            echo "the imported certificate has no Developer ID Application identity" >&2
+            exit 1
+          fi
+          echo "MP_SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+
+      - name: Build the universal app
+        run: ./scripts/build.sh --all --yes
+
+      - name: Sign the app and its embedded Sparkle
+        run: ./scripts/sign_app.sh
+
+      - name: Package the disk image
+        run: |
+          mkdir -p dist
+          ./scripts/package_dmg.sh build/moonleaf.app dist/moonleaf.dmg
+
+      - name: Sign the disk image
+        run: codesign --force --sign "$MP_SIGN_IDENTITY" --timestamp dist/moonleaf.dmg
+
+      - name: Notarize and staple
+        run: |
+          ./scripts/notarize.sh submit dist/moonleaf.dmg --wait
+          ./scripts/notarize.sh staple dist/moonleaf.dmg
+
+      - name: Write the release notes
+        run: |
+          set -eu
+          previous_tag=$(git describe --tags --abbrev=0 "$RELEASE_COMMIT^" 2>/dev/null || true)
+          {
+            if [ -n "$previous_tag" ]; then
+              echo "Changes since $previous_tag:"
+              git log --no-merges --pretty='- %s' "$previous_tag..$RELEASE_COMMIT"
+            else
+              echo "Changes:"
+              git log --no-merges --pretty='- %s' -n 20 "$RELEASE_COMMIT"
+            fi
+            echo
+            echo "sha256: $(awk '{print $1}' dist/moonleaf.dmg.sha256)"
+          } > dist/notes.md
+          cat dist/notes.md
+
+      - name: Generate the Sparkle appcast
+        run: ./scripts/generate-appcast.sh --tag "$RELEASE_TAG" --dmg dist/moonleaf.dmg --notes dist/notes.md --output dist/appcast.xml
+
+      - name: Verify the staged release
+        run: |
+          ./scripts/verify-release.sh \
+            --appcast dist/appcast.xml \
+            --dmg dist/moonleaf.dmg \
+            --short "$MP_VER_SHORT_STRING" \
+            --build "$MP_VER_STRING" \
+            --tag "$RELEASE_TAG"
+
+      - name: Write the checksums
+        id: checksums
+        run: |
+          set -eu
+          (
+            cd dist
+            shasum -a 256 moonleaf.dmg appcast.xml > SHA256SUMS.txt
+          )
+          echo "sha256=$(awk '{print $1}' dist/moonleaf.dmg.sha256)" >> "$GITHUB_OUTPUT"
+          cat dist/SHA256SUMS.txt
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$RELEASE_COMMIT" \
+            --title "moonleaf $MP_VER_SHORT_STRING" \
+            --notes-file dist/notes.md \
+            --latest \
+            dist/moonleaf.dmg \
+            dist/moonleaf.dmg.sha256 \
+            dist/appcast.xml \
+            dist/SHA256SUMS.txt
+
+      # Pre-Sparkle clients read this file and mount moonleaf.dmg from the release
+      # it names, so it must move only after the assets exist.
+      - name: Point legacy clients at the new release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          content=$(printf '%s' "$RELEASE_TAG" | base64 | tr -d '\n')
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/contents/latest?ref=main" --jq .sha)
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/latest" \
+            -f message="chore: point the legacy updater at $RELEASE_TAG" \
+            -f content="$content" \
+            -f sha="$sha" \
+            -f branch=main >/dev/null
+          echo "legacy clients now see $RELEASE_TAG"
+
+      - name: Refresh the in-repo Homebrew cask
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          ./scripts/generate-cask.sh \
+            --version "$MP_VER_SHORT_STRING" \
+            --tag "$RELEASE_TAG" \
+            --sha256 "${{ steps.checksums.outputs.sha256 }}" \
+            --output dist/moonleaf.rb
+
+          content=$(base64 -i dist/moonleaf.rb | tr -d '\n')
+          if [ -z "$content" ]; then
+            echo "generated cask is empty" >&2
+            exit 1
+          fi
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/contents/Casks/moonleaf.rb?ref=main" 2>/dev/null \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin).get("sha",""))' || true)
+
+          if [ -n "$existing" ]; then
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/Casks/moonleaf.rb" \
+              -f message="chore: update the Homebrew cask to $MP_VER_SHORT_STRING" \
+              -f content="$content" \
+              -f sha="$existing" \
+              -f branch=main >/dev/null
+          else
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/Casks/moonleaf.rb" \
+              -f message="chore: add the Homebrew cask for $MP_VER_SHORT_STRING" \
+              -f content="$content" \
+              -f branch=main >/dev/null
+          fi
+          echo "Casks/moonleaf.rb now describes $MP_VER_SHORT_STRING"

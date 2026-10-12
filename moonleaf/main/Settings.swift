@@ -41,7 +41,7 @@ struct SettingsView: View {
     @State private var scalingMode: String = "fill"
     @State private var videoFilter: String = "none"
 
-    private let updater = Updater()
+    private let updater = Updater.shared
 
     enum SettingsTab: CaseIterable, Identifiable, Hashable {
         case general, manager, playback
@@ -131,6 +131,7 @@ struct SettingsView: View {
             checkAutoStartStatus()
             service.checkScreensaverStatus()
             loadUpdateServer()
+            updater.automaticallyChecksForUpdates = checkForUpdates
         }
         .sheet(isPresented: $showChangelogSheet) {
             changelogSheet
@@ -193,8 +194,17 @@ struct SettingsView: View {
                         description: NSLocalizedString("settings_check_updates_desc", comment: ""),
                         isOn: $checkForUpdates
                     )
+                    .onChange(of: checkForUpdates) { updater.automaticallyChecksForUpdates = $0 }
 
                     HStack {
+                        Button(action: { updater.checkForUpdates() }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                Text(NSLocalizedString("settings_check_updates", comment: "Check for Updates"))
+                            }
+                        }
+                        .buttonStyle(.bordered)
+
                         Spacer()
                         Button(action: fetchChangelog) {
                             HStack(spacing: 6) {
@@ -214,7 +224,7 @@ struct SettingsView: View {
                             .font(Font(font_loader.regular(size: 14)))
                         
                         HStack(spacing: 12) {
-                            TextField("github.com/naomisphere/...", text: $updateServer)
+                            TextField("github.com/shiquda/moonleaf", text: $updateServer)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .onChange(of: updateServer) { validateUpdateServer($0) }
 
@@ -236,7 +246,7 @@ struct SettingsView: View {
                                 .foregroundColor(.red)
                         }
                         
-                        Text("github.com/naomisphere/...")
+                        Text("github.com/shiquda/moonleaf")
                             .font(Font(font_loader.regular(size: 11)))
                             .foregroundColor(.secondary)
                     }
@@ -821,8 +831,8 @@ struct SettingsView: View {
             updateServerError = nil
             return
         }
-        if !server.lowercased().hasPrefix("github.com/naomisphere") {
-            updateServerError = "Server must start with github.com/naomisphere"
+        if !server.lowercased().hasPrefix("github.com/") {
+            updateServerError = "Server must start with github.com/"
         } else {
             updateServerError = nil
         }
@@ -834,7 +844,7 @@ struct SettingsView: View {
         if FileManager.default.fileExists(atPath: serverFile.path),
            let server = try? String(contentsOf: serverFile) {
             let trimmed = server.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.lowercased().hasPrefix("github.com/naomisphere") {
+            if trimmed.lowercased().hasPrefix("github.com/") {
                 updateServer = trimmed
             }
         }
@@ -859,6 +869,7 @@ struct SettingsView: View {
             } else {
                 try updateServer.write(to: serverFile, atomically: true, encoding: .utf8)
             }
+            updater.resetUpdateCycleAfterShortDelay()
             updateServerSaveSuccess = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { updateServerSaveSuccess = false }
         } catch {}

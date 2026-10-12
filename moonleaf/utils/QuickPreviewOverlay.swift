@@ -17,11 +17,155 @@ struct QuickPreviewOverlay: View {
     @State private var isVisible = false
     @State private var player: AVPlayer?
     @State private var isVideoPlaying = true
+    @State private var zoom: CGFloat = 1
+    @State private var pinch: CGFloat = 1
+    @State private var pan: CGSize = .zero
+    @State private var drag: CGSize = .zero
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     private var fileExtension: String {
         (wallpaper.path as NSString).pathExtension.lowercased()
+    }
+    
+    /// The wallpaper itself; `body` puts it in the zoom and pan container.
+    private var mediaContent: some View {
+        Group {
+            let ext = fileExtension
+            
+            if ["mp4", "mov"].contains(ext) {
+                
+                if let player = player {
+                    VideoPlayer(player: player)
+                        .onAppear {
+                            if isVideoPlaying {
+                                player.play()
+                            }
+                        }
+                        .onDisappear {
+                            player.pause()
+                        }
+                        .onTapGesture {
+                            if isVideoPlaying {
+                                player.pause()
+                            } else {
+                                player.play()
+                            }
+                            isVideoPlaying.toggle()
+                        }
+                        .overlay(
+                            Group {
+                                if !isVideoPlaying {
+                                    Image(systemName: "play.circle.fill")
+                                        .font(.system(size: 50))
+                                        .foregroundColor(.white.opacity(0.6))
+                                        .shadow(color: .black.opacity(0.5), radius: 10)
+                                }
+                            }
+                        )
+                } else {
+                    Color.gray.opacity(0.3)
+                        .overlay {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .tint(.white)
+                        }
+                }
+            } else if ext == "gif" {
+                
+                GIFAnimatingView(path: wallpaper.path)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if ["jpg", "jpeg", "png"].contains(ext) {
+                
+                if let image = NSImage(contentsOfFile: wallpaper.path) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    Color.gray.opacity(0.3)
+                        .overlay {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.largeTitle)
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                }
+            } else {
+                Color.gray.opacity(0.3)
+                    .overlay {
+                        Image(systemName: "photo")
+                            .font(.largeTitle)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+            }
+        }
+    }
+    
+    /// Keeps a zoomed wallpaper from being dragged off screen: the further you
+    /// zoom in, the further the picture may travel.
+    private func panOffset(in size: CGSize) -> CGSize {
+        let scale = zoom * pinch
+        let limitX = max(0, (scale - 1) * size.width / 2)
+        let limitY = max(0, (scale - 1) * size.height / 2)
+        return CGSize(
+            width: min(max(pan.width + drag.width, -limitX), limitX),
+            height: min(max(pan.height + drag.height, -limitY), limitY)
+        )
+    }
+    
+    private func resetZoom() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            zoom = 1
+            pinch = 1
+            pan = .zero
+            drag = .zero
+        }
+    }
+    
+    private func toggleZoom() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            zoom = zoom > 1 ? 1 : 2
+            pan = .zero
+            drag = .zero
+        }
+    }
+    
+    /// Steps the zoom up for pointer users, who have no pinch gesture.
+    private func zoomIn() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            zoom = min(zoom * pinch * 2, 6)
+            pinch = 1
+        }
+    }
+    
+    private var zoomGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                pinch = value
+            }
+            .onEnded { value in
+                withAnimation(.easeOut(duration: 0.2)) {
+                    zoom = min(max(zoom * value, 1), 6)
+                    pinch = 1
+                    if zoom == 1 {
+                        pan = .zero
+                        drag = .zero
+                    }
+                }
+            }
+    }
+    
+    private var panGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                guard zoom * pinch > 1 else { return }
+                drag = value.translation
+            }
+            .onEnded { _ in
+                pan.width += drag.width
+                pan.height += drag.height
+                drag = .zero
+            }
     }
     
     var body: some View {
@@ -31,74 +175,15 @@ struct QuickPreviewOverlay: View {
                 .ignoresSafeArea()
             
             
-            Group {
-                let ext = fileExtension
-                
-                if ["mp4", "mov"].contains(ext) {
-                    
-                    if let player = player {
-                        VideoPlayer(player: player)
-                            .onAppear {
-                                if isVideoPlaying {
-                                    player.play()
-                                }
-                            }
-                            .onDisappear {
-                                player.pause()
-                            }
-                            .onTapGesture {
-                                if isVideoPlaying {
-                                    player.pause()
-                                } else {
-                                    player.play()
-                                }
-                                isVideoPlaying.toggle()
-                            }
-                            .overlay(
-                                Group {
-                                    if !isVideoPlaying {
-                                        Image(systemName: "play.circle.fill")
-                                            .font(.system(size: 50))
-                                            .foregroundColor(.white.opacity(0.6))
-                                            .shadow(color: .black.opacity(0.5), radius: 10)
-                                    }
-                                }
-                            )
-                    } else {
-                        Color.gray.opacity(0.3)
-                            .overlay {
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .tint(.white)
-                            }
-                    }
-                } else if ext == "gif" {
-                    
-                    GIFAnimatingView(path: wallpaper.path)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if ["jpg", "jpeg", "png"].contains(ext) {
-                    
-                    if let image = NSImage(contentsOfFile: wallpaper.path) {
-                        Image(nsImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        Color.gray.opacity(0.3)
-                            .overlay {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-                    }
-                } else {
-                    Color.gray.opacity(0.3)
-                        .overlay {
-                            Image(systemName: "photo")
-                                .font(.largeTitle)
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                }
+            GeometryReader { geo in
+                mediaContent
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .scaleEffect(zoom * pinch)
+                    .offset(panOffset(in: geo.size))
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) { toggleZoom() }
+                    .gesture(zoomGesture)
+                    .simultaneousGesture(panGesture)
             }
             .ignoresSafeArea()
             
@@ -137,9 +222,10 @@ struct QuickPreviewOverlay: View {
                             .foregroundColor(.white.opacity(0.9))
                         
                         let ext = fileExtension
-                        let fileType = ["mp4", "mov"].contains(ext) ? "Video" :
-                                      ext == "gif" ? "GIF" :
-                                      ["jpg", "jpeg", "png"].contains(ext) ? "Image" : "File"
+                        let fileType = ["mp4", "mov"].contains(ext) ? NSLocalizedString("preview_type_video", comment: "Video") :
+                                      ext == "gif" ? NSLocalizedString("preview_type_gif", comment: "GIF") :
+                                      ["jpg", "jpeg", "png"].contains(ext) ? NSLocalizedString("preview_type_image", comment: "Image") :
+                                      NSLocalizedString("preview_type_file", comment: "File")
                         Text("\(fileType) • \(ByteCountFormatter.string(fromByteCount: wallpaper.fileSize, countStyle: .file))")
                             .font(.system(size: 11, weight: .regular, design: .rounded))
                             .foregroundColor(.white.opacity(0.5))
@@ -147,6 +233,38 @@ struct QuickPreviewOverlay: View {
                     
                     Spacer()
                     
+                    if zoom * pinch > 1.001 {
+                        Button(action: resetZoom) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text(String(format: "%.1f×", zoom * pinch))
+                                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(.regularMaterial.opacity(0.8))
+                                    .overlay {
+                                        Capsule()
+                                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                                    }
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.trailing, 8)
+                    } else {
+                        Button(action: zoomIn) {
+                            Image(systemName: "plus.magnifyingglass")
+                                .font(.system(size: 18))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.5), radius: 5)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.trailing, 8)
+                    }
                     
                     if ["mp4", "mov"].contains(fileExtension) {
                         Button(action: {
@@ -171,7 +289,7 @@ struct QuickPreviewOverlay: View {
                         HStack(spacing: 8) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16))
-                            Text("Close Preview")
+                            Text(NSLocalizedString("preview_close", comment: "Close Preview"))
                                 .font(.system(size: 13, weight: .medium, design: .rounded))
                         }
                         .foregroundColor(.white)

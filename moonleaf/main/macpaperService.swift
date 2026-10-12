@@ -252,6 +252,18 @@ class macpaperService: NSObject, ObservableObject {
     /// is not dropped when a throwaway instance goes away first.
     private static let rotationService = macpaperService()
 
+    /// Rotates to a library wallpaper right now, on demand from the status menu.
+    /// When the rotation loop is armed its interval starts over, so a manual
+    /// pick is not followed by an automatic one seconds later.
+    static func shuffleNow() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            shuffleTick()
+            if shuffleLoop != nil {
+                restartShuffleLoop()
+            }
+        }
+    }
+
     private static func shuffleTick() {
         let candidates = library_candidates()
         guard !candidates.isEmpty else { return }
