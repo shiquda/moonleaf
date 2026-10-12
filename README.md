@@ -39,21 +39,11 @@ moonleaf is a feature-packed Wallpaper Manager for macOS, with support for gifs,
 - macOS **12** *(Monterey)* or later
 - Apple Silicon (`arm64`) or Intel (`x86_64`) Mac (universal binary)
 
-Download the latest universal `moonleaf.dmg` from [GitHub Releases](https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg), open the disk image, and drag `moonleaf.app` to `/Applications`:
+Download the latest `moonleaf.dmg` from [GitHub Releases](https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg), open the disk image, and drag `moonleaf.app` to `/Applications`.
 
 <p align="center">
   <a href="https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg" target="_self"><img width="200" src="https://github.com/user-attachments/assets/e2b187d1-8010-45cf-a9d4-e7ce5e2e677c" alt="Download moonleaf.dmg" /></a>
 </p>
-
-> [!NOTE]
-> Releases are signed with a Developer ID certificate and notarized by Apple, so Gatekeeper opens them normally. Homebrew is not a supported install path yet: the upstream cask is unmaintained and installs the archived `v4.0.0` upstream build. This fork keeps a generated cask in-tree at [`Casks/moonleaf.rb`](./Casks/moonleaf.rb), refreshed by the release workflow, so a tap can adopt it later.
-
-> [!IMPORTANT]
-> Release builds are signed with a Developer ID certificate and notarized by Apple, so they open without a Gatekeeper warning. Builds you compile yourself are only ad-hoc signed; if macOS refuses to open one, use **System Settings → Privacy & Security → Open Anyway**, or clear the quarantine attribute in Terminal:
-> ```bash
-> xattr -dr com.apple.quarantine /Applications/moonleaf.app
-> ```
-> You only need to do this once.
 
 ## Updates
 
@@ -132,7 +122,7 @@ xattr -dr com.apple.quarantine /Applications/moonleaf.app
 ```
 
 ### Apple could not verify "moonleaf" is free of malware...
-Follow the Gatekeeper steps in [Installation](#installation).
+This should not happen with a downloaded release. If you compiled the app yourself, allow it under **System Settings → Privacy & Security → Open Anyway**.
 
 ## License
 
