@@ -138,6 +138,14 @@ jobs:
           ./scripts/notarize.sh submit dist/moonleaf.dmg --wait
           ./scripts/notarize.sh staple dist/moonleaf.dmg
 
+      # Signing, notarizing, and stapling all rewrite the image, so the digest is
+      # only meaningful once they are done.
+      - name: Record the final disk image checksum
+        run: |
+          set -eu
+          ( cd dist && shasum -a 256 moonleaf.dmg > moonleaf.dmg.sha256 )
+          cat dist/moonleaf.dmg.sha256
+
       - name: Write the release notes
         run: |
           set -eu

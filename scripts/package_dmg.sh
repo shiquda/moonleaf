@@ -60,6 +60,9 @@ rm -f "$OUT"
 hdiutil convert "$RW_DMG" -format UDZO -o "$OUT" >/dev/null
 
 OUT_DIR="$(dirname "$OUT")"
+# Signing the image, notarizing it, and stapling the ticket all rewrite the file,
+# so this digest only describes the freshly packaged image. The release workflow
+# recomputes it once those steps are done.
 ( cd "$OUT_DIR" && shasum -a 256 "$(basename "$OUT")" > "$(basename "$OUT").sha256" )
 
 echo "created $OUT ($(du -h "$OUT" | cut -f1))"
