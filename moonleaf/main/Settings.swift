@@ -6,128 +6,6 @@
 //
 
 import SwiftUI
-import ServiceManagement
-
-enum AutoStartManager {
-    static let plistName = "com.naomisphere.macpaper.app.plist"
-    private static let migrationKey = "didMigrateAutoStartToSMAppService"
-    static var legacyPlistURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/LaunchAgents/\(plistName)")
-    }
-
-    @discardableResult
-    static func bootoutAndRemoveLegacyPlist() -> Bool {
-        let path = legacyPlistURL.path
-        guard FileManager.default.fileExists(atPath: path) else { return false }
-
-        let bootout = Process()
-        bootout.launchPath = "/bin/launchctl"
-        bootout.arguments = ["bootout", "gui/\(getuid())", path]
-        try? bootout.run()
-        bootout.waitUntilExit()
-
-        if bootout.terminationStatus != 0 {
-            let unload = Process()
-            unload.launchPath = "/bin/launchctl"
-            unload.arguments = ["unload", path]
-            try? unload.run()
-            unload.waitUntilExit()
-        }
-
-        try? FileManager.default.removeItem(at: legacyPlistURL)
-        return true
-    }
-
-    static func migrateLegacyIfNeeded() {
-        guard #available(macOS 13.0, *) else { return }
-        let removedLegacy = bootoutAndRemoveLegacyPlist()
-        let needsFirstMigration = !UserDefaults.standard.bool(forKey: migrationKey)
-        guard removedLegacy || needsFirstMigration else { return }
-
-        UserDefaults.standard.set(true, forKey: migrationKey)
-        let shouldEnable = removedLegacy || UserDefaults.standard.bool(forKey: "autoStartEnabled")
-        guard shouldEnable else { return }
-
-        let service = SMAppService.agent(plistName: plistName)
-        try? service.register()
-        UserDefaults.standard.set(service.status == .enabled, forKey: "autoStartEnabled")
-    }
-
-    static func isEnabled() -> Bool {
-        if #available(macOS 13.0, *) {
-            migrateLegacyIfNeeded()
-            return SMAppService.agent(plistName: plistName).status == .enabled
-        }
-        return FileManager.default.fileExists(atPath: legacyPlistURL.path)
-    }
-
-    @discardableResult
-    static func setEnabled(_ enabled: Bool) -> Bool {
-        if #available(macOS 13.0, *) {
-            bootoutAndRemoveLegacyPlist()
-            let service = SMAppService.agent(plistName: plistName)
-            if enabled {
-                do {
-                    try service.register()
-                } catch {}
-                return service.status == .enabled
-            } else {
-                if service.status == .enabled || service.status == .requiresApproval {
-                    try? service.unregister()
-                }
-                return false
-            }
-        }
-
-        let launchAgent = legacyPlistURL
-        let executablePath = Bundle.main.executableURL?.path
-            ?? "\(Bundle.main.bundlePath)/Contents/MacOS/moonleaf"
-
-        if enabled {
-            let plist = """
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.naomisphere.macpaper.app</string>
-    <key>AssociatedBundleIdentifiers</key>
-    <array>
-        <string>com.naomisphere.macpaper</string>
-    </array>
-    <key>ProgramArguments</key>
-    <array>
-        <string>\(executablePath)</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <false/>
-</dict>
-</plist>
-"""
-            do {
-                try FileManager.default.createDirectory(
-                    at: launchAgent.deletingLastPathComponent(),
-                    withIntermediateDirectories: true)
-                try plist.write(to: launchAgent, atomically: true, encoding: .utf8)
-                let load = Process()
-                load.launchPath = "/bin/launchctl"
-                load.arguments = ["load", launchAgent.path]
-                load.launch()
-                load.waitUntilExit()
-                return true
-            } catch {
-                return false
-            }
-        } else {
-            bootoutAndRemoveLegacyPlist()
-            return false
-        }
-    }
-}
-
 struct SettingsView: View {
     @EnvironmentObject private var service: macpaperService
     @State private var selectedTab: SettingsTab = .general
@@ -148,7 +26,6 @@ struct SettingsView: View {
     @AppStorage("checkForUpdates") private var checkForUpdates = true
     @AppStorage("autoStartEnabled") private var autoStartEnabled = false
     @AppStorage("exportFolderPath") private var exportFolderPath = ""
-    @AppStorage("useAsScreensaver") private var useAsScreensaver = false
     @AppStorage("glassBackground") private var glassBackground = false
 
     @State private var visualizer_mode: String = "disabled"
@@ -250,7 +127,6 @@ struct SettingsView: View {
             loadVisualizerSettings()
             loadExportFolder()
             checkAutoStartStatus()
-            service.checkScreensaverStatus()
             loadUpdateServer()
             updater.automaticallyChecksForUpdates = checkForUpdates
         }
@@ -303,9 +179,11 @@ struct SettingsView: View {
                 SToggle(
                     title: NSLocalizedString("settings_auto_start", comment: "Start at Login"),
                     description: NSLocalizedString("settings_auto_start_desc", comment: ""),
-                    isOn: $autoStartEnabled
+                    isOn: Binding(
+                        get: { autoStartEnabled },
+                        set: { newValue in toggleAutoStart(newValue) }
+                    )
                 )
-                .onChange(of: autoStartEnabled) { newValue in toggleAutoStart(newValue) }
             }
 
             Section(title: NSLocalizedString("settings_updates", comment: "Updates")) {
@@ -730,57 +608,36 @@ struct SettingsView: View {
     }
 
     private func loadVisualizerSettings() {
-        let settingsFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/moonleaf/settings.json")
-
-        guard FileManager.default.fileExists(atPath: settingsFile.path),
-              let data = try? Data(contentsOf: settingsFile),
-              let settings = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
-
-        visualizer_mode = settings["visualizer_mode"] as? String ?? "disabled"
-        visualizer_colorMode = settings["visualizer_colorMode"] as? String ?? "rainbow"
-        visualizer_customColor = settings["visualizer_customColor"] as? String ?? "#FF00FF"
-        visualizer_transparency = settings["visualizer_transparency"] as? Double ?? 0.6
-        visualizer_barCount = settings["visualizer_barCount"] as? Int ?? 64
-        visualizer_maxHeight = settings["visualizer_maxHeight"] as? Double ?? 0.5
-        visualizer_minHeight = settings["visualizer_minHeight"] as? Double ?? 4.0
-        scalingMode = settings["scalingMode"] as? String ?? "fill"
-        videoFilter = settings["videoFilter"] as? String ?? "none"
+        let settings = MoonleafConfigStore.shared.loadSettings()
+        visualizer_mode = settings.visualizer_mode
+        visualizer_colorMode = settings.visualizer_colorMode
+        visualizer_customColor = settings.visualizer_customColor
+        visualizer_transparency = settings.visualizer_transparency
+        visualizer_barCount = settings.visualizer_barCount
+        visualizer_maxHeight = settings.visualizer_maxHeight
+        visualizer_minHeight = settings.visualizer_minHeight
+        scalingMode = settings.scalingMode
+        videoFilter = settings.videoFilter
     }
 
     private func saveVisualizerSettings() {
-        let settingsFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/moonleaf/settings.json")
-
-        var settings: [String: Any] = [:]
-        if FileManager.default.fileExists(atPath: settingsFile.path),
-           let data = try? Data(contentsOf: settingsFile),
-           let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            settings = existing
+        MoonleafConfigStore.shared.updateSettings { settings in
+            settings.visualizer_mode = self.visualizer_mode
+            settings.visualizer_colorMode = self.visualizer_colorMode
+            settings.visualizer_customColor = self.visualizer_customColor
+            settings.visualizer_transparency = self.visualizer_transparency
+            settings.visualizer_barCount = self.visualizer_barCount
+            settings.visualizer_maxHeight = self.visualizer_maxHeight
+            settings.visualizer_minHeight = self.visualizer_minHeight
+            settings.scalingMode = self.scalingMode
+            settings.videoFilter = self.videoFilter
         }
 
-        settings["visualizer_mode"] = visualizer_mode
-        settings["visualizer_colorMode"] = visualizer_colorMode
-        settings["visualizer_customColor"] = visualizer_customColor
-        settings["visualizer_transparency"] = visualizer_transparency
-        settings["visualizer_barCount"] = visualizer_barCount
-        settings["visualizer_maxHeight"] = visualizer_maxHeight
-        settings["visualizer_minHeight"] = visualizer_minHeight
-        settings["scalingMode"] = scalingMode
-        settings["videoFilter"] = videoFilter
-
-        if let data = try? JSONSerialization.data(withJSONObject: settings, options: .prettyPrinted) {
-            try? FileManager.default.createDirectory(
-                at: settingsFile.deletingLastPathComponent(),
-                withIntermediateDirectories: true)
-            try? data.write(to: settingsFile)
-
-            DistributedNotificationCenter.default().postNotificationName(
-                Notification.Name("com.naomisphere.moonleaf.visualizerSettingsChanged"),
-                object: nil,
-                deliverImmediately: true
-            )
-        }
+        DistributedNotificationCenter.default().postNotificationName(
+            Notification.Name("com.naomisphere.moonleaf.visualizerSettingsChanged"),
+            object: nil,
+            deliverImmediately: true
+        )
     }
 
     private func getDisplayFolderName() -> String {
@@ -827,12 +684,7 @@ struct SettingsView: View {
     }
 
     private func loadAPIKey() {
-        let keyFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".local/share/macpaper/WH_API_KEY")
-        if FileManager.default.fileExists(atPath: keyFile.path),
-           let key = try? String(contentsOf: keyFile) {
-            apiKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        apiKey = MoonleafConfigStore.shared.readWallhavenAPIKey()
     }
 
     private func saveAPIKey() {
@@ -840,20 +692,8 @@ struct SettingsView: View {
         isSaving = true
         saveSuccess = false
 
-        let keyFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".local/share/macpaper/WH_API_KEY")
-
         do {
-            try FileManager.default.createDirectory(
-                at: keyFile.deletingLastPathComponent(),
-                withIntermediateDirectories: true)
-            if apiKey.isEmpty {
-                if FileManager.default.fileExists(atPath: keyFile.path) {
-                    try FileManager.default.removeItem(at: keyFile)
-                }
-            } else {
-                try apiKey.write(to: keyFile, atomically: true, encoding: .utf8)
-            }
+            try MoonleafConfigStore.shared.writeWallhavenAPIKey(apiKey)
             saveSuccess = true
             showAPIKeyField = false
             apiKeyError = nil
@@ -864,49 +704,33 @@ struct SettingsView: View {
     }
 
     private func toggleAutoStart(_ enabled: Bool) {
-        let actual = AutoStartManager.setEnabled(enabled)
-        if actual != autoStartEnabled {
-            autoStartEnabled = actual
+        autoStartEnabled = enabled
+        AutoStartManager.setEnabledAsync(enabled) { actual in
+            if self.autoStartEnabled != actual {
+                self.autoStartEnabled = actual
+            }
         }
     }
 
     private func checkAutoStartStatus() {
-        let actual = AutoStartManager.isEnabled()
-        if actual != autoStartEnabled {
-            autoStartEnabled = actual
+        AutoStartManager.migrateLegacyIfNeededAsync { actual in
+            if self.autoStartEnabled != actual {
+                self.autoStartEnabled = actual
+            }
         }
     }
 
     private func loadExportFolder() {
-        let settingsFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".local/share/macpaper/export_folder")
-
-        if FileManager.default.fileExists(atPath: settingsFile.path),
-           let path = try? String(contentsOf: settingsFile) {
-            exportFolderPath = path.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
-        if exportFolderPath.isEmpty,
-           let picturesPath = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask).first?.path {
+        let stored = MoonleafConfigStore.shared.readExportFolderPath()
+        if !stored.isEmpty {
+            exportFolderPath = stored
+        } else if let picturesPath = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask).first?.path {
             exportFolderPath = picturesPath
         }
     }
 
     private func saveExportFolder() {
-        let settingsFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".local/share/macpaper/export_folder")
-        do {
-            try FileManager.default.createDirectory(
-                at: settingsFile.deletingLastPathComponent(),
-                withIntermediateDirectories: true)
-            if exportFolderPath.isEmpty {
-                if FileManager.default.fileExists(atPath: settingsFile.path) {
-                    try FileManager.default.removeItem(at: settingsFile)
-                }
-            } else {
-                try exportFolderPath.write(to: settingsFile, atomically: true, encoding: .utf8)
-            }
-        } catch {}
+        try? MoonleafConfigStore.shared.writeExportFolderPath(exportFolderPath)
     }
 
     private func validateUpdateServer(_ server: String) {
@@ -922,36 +746,19 @@ struct SettingsView: View {
     }
 
     private func loadUpdateServer() {
-        let serverFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".local/share/macpaper/update_server")
-        if FileManager.default.fileExists(atPath: serverFile.path),
-           let server = try? String(contentsOf: serverFile) {
-            let trimmed = server.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.lowercased().hasPrefix("github.com/") {
-                updateServer = trimmed
-            }
+        let stored = MoonleafConfigStore.shared.readUpdateServer()
+        if stored.lowercased().hasPrefix("github.com/") {
+            updateServer = stored
         }
     }
 
     private func saveUpdateServer() {
         validateUpdateServer(updateServer)
         if updateServerError != nil { return }
-        
+
         isSavingUpdateServer = true
-        let serverFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".local/share/macpaper/update_server")
-        
         do {
-            try FileManager.default.createDirectory(
-                at: serverFile.deletingLastPathComponent(),
-                withIntermediateDirectories: true)
-            if updateServer.isEmpty {
-                if FileManager.default.fileExists(atPath: serverFile.path) {
-                    try FileManager.default.removeItem(at: serverFile)
-                }
-            } else {
-                try updateServer.write(to: serverFile, atomically: true, encoding: .utf8)
-            }
+            try MoonleafConfigStore.shared.writeUpdateServer(updateServer)
             updater.resetUpdateCycleAfterShortDelay()
             updateServerSaveSuccess = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { updateServerSaveSuccess = false }

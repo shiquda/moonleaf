@@ -64,14 +64,18 @@ enum SpaceWallpapers {
     /// again, so wallpapers written for the desktops that are not on screen
     /// show up straight away.
     static func reload() {
-        let task = Process()
-        task.launchPath = "/usr/bin/killall"
-        task.arguments = ["WallpaperAgent"]
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
-        try? task.run()
-        task.waitUntilExit()
+        DispatchQueue.global(qos: .utility).async {
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+            task.arguments = ["WallpaperAgent"]
+            task.standardOutput = FileHandle.nullDevice
+            task.standardError = FileHandle.nullDevice
+            do {
+                try task.run()
+            } catch {
+                NSLog("[SpaceWallpapers] WallpaperAgent reload failed: %@", error.localizedDescription)
+            }
+        }
     }
 
     // MARK: - Store

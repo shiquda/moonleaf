@@ -8,8 +8,6 @@ MACOS_DIR="$CONTENTS_DIR/MacOS"
 RSC_DIR="$CONTENTS_DIR/Resources"
 BIN_DIR="$RSC_DIR/bin"
 LAUNCH_AGENTS_DIR="$CONTENTS_DIR/Library/LaunchAgents"
-SAVER_BUILD_DIR="${BUILD_DIR}/saver"
-SAVER_DIR="${SAVER_BUILD_DIR}/moonleafSaver.saver"
 
 # MP_VER_SHORT_STRING is the user-facing version (CFBundleShortVersionString) and
 # MP_VER_STRING the numeric build Sparkle compares (CFBundleVersion). Release builds
@@ -158,7 +156,7 @@ if [[ "$BUILD_ALL" == true ]]; then
         -framework AppKit -framework AVFoundation \
         -framework MediaToolbox -framework Accelerate \
         -O \
-        glasswp/glasswp.swift \
+        glasswp/glasswp.swift moonleaf/main/MoonleafConfig.swift \
         -o "$MACOS_DIR/glasswp_amd64"
 
     echo "compiled glasswp (amd64) (1/3)"
@@ -169,7 +167,7 @@ if [[ "$BUILD_ALL" == true ]]; then
         -framework AppKit -framework AVFoundation \
         -framework MediaToolbox -framework Accelerate \
         -O \
-        glasswp/glasswp.swift \
+        glasswp/glasswp.swift moonleaf/main/MoonleafConfig.swift \
         -o "$MACOS_DIR/glasswp_arm64"
 
     echo "compiled glasswp (arm64) (2/3)"
@@ -186,32 +184,10 @@ else
         -framework AppKit -framework AVFoundation \
         -framework MediaToolbox -framework Accelerate \
         -O \
-        glasswp/glasswp.swift \
+        glasswp/glasswp.swift moonleaf/main/MoonleafConfig.swift \
         -o "$BIN_DIR/glasswp"
 
     echo "compiled glasswp ($HOST_ARCH)"
-fi
-echo ""
-
-echo "-- moonleaf-bin --"
-
-if [[ "$BUILD_ALL" == true ]]; then
-    gcc -target x86_64-apple-macos12.0 \
-        moonleaf/obj/moonleaf.c -o "$MACOS_DIR/moonleaf-bin_amd64"
-
-    gcc -target arm64-apple-macos12.0 \
-        moonleaf/obj/moonleaf.c -o "$MACOS_DIR/moonleaf-bin_arm64"
-
-    lipo -create "$MACOS_DIR/moonleaf-bin_amd64" "$MACOS_DIR/moonleaf-bin_arm64" \
-        -o "$MACOS_DIR/moonleaf-bin"
-
-    echo "compiled moonleaf-bin (universal)"
-    rm "$MACOS_DIR/moonleaf-bin_amd64" "$MACOS_DIR/moonleaf-bin_arm64"
-else
-    gcc -target "$HOST_TARGET" \
-        moonleaf/obj/moonleaf.c -o "$MACOS_DIR/moonleaf-bin"
-
-    echo "compiled moonleaf-bin ($HOST_ARCH)"
 fi
 echo ""
 

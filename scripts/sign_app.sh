@@ -76,7 +76,7 @@ sign_item "$VERSIONS/Autoupdate"
 sign_item "$VERSIONS/Updater.app"
 sign_item "$FRAMEWORK"
 
-# The bundle's helper executables (moonleaf-bin, wallpaper, glasswp) live where
+# The bundle's helper executables (wallpaper, glasswp) live where
 # codesign does not treat them as nested code, so an unsigned helper would break
 # the bundle seal. The main executable is excluded: signing it while a sibling is
 # still unsigned makes codesign validate the whole bundle and fail. Collect the

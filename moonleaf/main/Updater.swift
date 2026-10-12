@@ -122,10 +122,8 @@ final class Updater: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDelegate
     }
 
     private var customServerRepoPath: String? {
-        let serverFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".local/share/macpaper/update_server")
-        guard FileManager.default.fileExists(atPath: serverFile.path),
-              let rawServer = try? String(contentsOf: serverFile, encoding: .utf8) else {
+        let rawServer = MoonleafConfigStore.shared.readUpdateServer()
+        guard !rawServer.isEmpty else {
             return nil
         }
         let trimmed = rawServer

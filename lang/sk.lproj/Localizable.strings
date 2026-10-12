@@ -109,10 +109,6 @@
 "settings_choose_folder" = "Vybrať priečinok";
 "settings_reset_folder" = "Obnoviť";
 
-"settings_screensaver" = "Šetrič obrazovky";
-"settings_use_screensaver" = "-";
-"settings_use_screensaver_desc" = "-";
-"settings_screensaver_hint" = "-";
 
 "settings_manager" = "Správca";
 "settings_playback" = "Prehrávanie";

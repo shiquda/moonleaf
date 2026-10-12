@@ -109,10 +109,6 @@
 "settings_choose_folder" = "Choose Folder";
 "settings_reset_folder" = "Reset";
 
-"settings_screensaver" = "Screensaver";
-"settings_use_screensaver" = "-";
-"settings_use_screensaver_desc" = "-";
-"settings_screensaver_hint" = "-";
 
 "settings_manager" = "Manager";
 "settings_playback" = "Playback";

@@ -109,10 +109,6 @@
 "settings_choose_folder" = "选择文件夹";
 "settings_reset_folder" = "重置";
 
-"settings_screensaver" = "屏幕保护程序";
-"settings_use_screensaver" = "-";
-"settings_use_screensaver_desc" = "-";
-"settings_screensaver_hint" = "-";
 
 "settings_manager" = "管理器";
 "settings_playback" = "播放";

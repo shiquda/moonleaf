@@ -109,10 +109,6 @@
 "settings_choose_folder" = "폴더 선택";
 "settings_reset_folder" = "재설정";
 
-"settings_screensaver" = "화면 보호기";
-"settings_use_screensaver" = "-";
-"settings_use_screensaver_desc" = "-";
-"settings_screensaver_hint" = "-";
 
 "settings_manager" = "관리자";
 "settings_playback" = "재생";

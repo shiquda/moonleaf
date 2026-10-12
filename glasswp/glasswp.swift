@@ -399,14 +399,7 @@ final class ScreenPlayer {
     }
 
     private func readVolume() -> Double {
-        let volFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/moonleaf/volume")
-        if let data = try? Data(contentsOf: volFile),
-           let str = String(data: data, encoding: .utf8),
-           let intVal = Int(str.trimmingCharacters(in: .whitespacesAndNewlines)) {
-            return Double(max(0, min(100, intVal))) / 100.0
-        }
-        return 0.5
+        MoonleafConfigStore.shared.readVolume()
     }
 }
 
@@ -434,26 +427,37 @@ class GlasswpApp: NSObject, NSApplicationDelegate {
     var videoFilter: String  = "none"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        MoonleafConfigStore.shared.writeDaemonPID(ProcessInfo.processInfo.processIdentifier)
         loadVisualizerSettings()
         setupWindows()
-        
-        
-        
+
         if isDaemon {
-            
-            
+            let perScreen = MoonleafConfigStore.shared.readScreenWallpapers()
+            if entryFilePath.isEmpty, let persisted = MoonleafConfigStore.shared.readCurrentWallpaper() {
+                entryFilePath = persisted
+            }
+            if !perDesktopMode {
+                for (idx, player) in screenPlayers.enumerated() {
+                    let candidate = perScreen[idx] ?? entryFilePath
+                    if !candidate.isEmpty && FileManager.default.fileExists(atPath: candidate) {
+                        player.play(filePath: candidate, fade: false)
+                    }
+                }
+            }
         } else if !perDesktopMode && !entryFilePath.isEmpty && FileManager.default.fileExists(atPath: entryFilePath) {
             for player in screenPlayers {
                 player.play(filePath: entryFilePath, fade: false)
             }
-        } else {
-            
-            for player in screenPlayers {
-                
-            }
         }
-        
+
         registerNotifications()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        let myPID = ProcessInfo.processInfo.processIdentifier
+        if MoonleafConfigStore.shared.readDaemonPID() == myPID {
+            MoonleafConfigStore.shared.writeDaemonPID(nil)
+        }
     }
 
     /// Point every screen at either the overlay picture or the system desktop
@@ -517,7 +521,6 @@ class GlasswpApp: NSObject, NSApplicationDelegate {
         DistributedNotificationCenter.default().addObserver(
             self, selector: #selector(handlePerDesktopMode(_:)),
             name: Notification.Name("com.naomisphere.moonleaf.perDesktopMode"), object: nil)
-
         
         NotificationCenter.default.addObserver(
             self, selector: #selector(handleScreenParameterChange),
@@ -582,6 +585,7 @@ class GlasswpApp: NSObject, NSApplicationDelegate {
         }
     }
 
+
     @objc private func handlePerDesktopMode(_ notification: Notification) {
         guard let enabled = notification.userInfo?["enabled"] as? Bool else { return }
         DispatchQueue.main.async {
@@ -625,21 +629,16 @@ class GlasswpApp: NSObject, NSApplicationDelegate {
     
 
     private func loadVisualizerSettings() {
-        let settingsFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/moonleaf/settings.json")
-        guard FileManager.default.fileExists(atPath: settingsFile.path),
-              let data = try? Data(contentsOf: settingsFile),
-              let settings = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
-
-        vizMode         = settings["visualizer_mode"]        as? String ?? "disabled"
-        vizColorMode    = settings["visualizer_colorMode"]   as? String ?? "rainbow"
-        vizCustomColor  = settings["visualizer_customColor"] as? String ?? "#FF00FF"
-        vizTransparency = settings["visualizer_transparency"] as? Double ?? 0.6
-        vizBarCount     = settings["visualizer_barCount"]    as? Int    ?? 64
-        vizMaxHeight    = settings["visualizer_maxHeight"]   as? Double ?? 0.5
-        vizMinHeight    = settings["visualizer_minHeight"]   as? Double ?? 4.0
-        scalingMode     = settings["scalingMode"]            as? String ?? "fill"
-        videoFilter     = settings["videoFilter"]            as? String ?? "none"
+        let settings = MoonleafConfigStore.shared.loadSettings()
+        vizMode         = settings.visualizer_mode
+        vizColorMode    = settings.visualizer_colorMode
+        vizCustomColor  = settings.visualizer_customColor
+        vizTransparency = settings.visualizer_transparency
+        vizBarCount     = settings.visualizer_barCount
+        vizMaxHeight    = settings.visualizer_maxHeight
+        vizMinHeight    = settings.visualizer_minHeight
+        scalingMode     = settings.scalingMode
+        videoFilter     = settings.videoFilter
     }
 }
 
@@ -856,39 +855,40 @@ class VisualizerView: NSView {
     }
 }
 
-let app = NSApplication.shared
-app.setActivationPolicy(.accessory)
-let delegate = GlasswpApp()
+@main
+struct GlasswpMain {
+    static func main() {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        let delegate = GlasswpApp()
 
-let args = CommandLine.arguments
-var filePath: String = ""
-
-if args.contains("--daemon") {
-    delegate.isDaemon = true
-    
-    let filteredArgs = args.filter { $0 != "--daemon" }
-    if filteredArgs.count >= 2 {
-        
-        let path = filteredArgs[1]
-        if FileManager.default.fileExists(atPath: path) {
-            filePath = path
+        let args = CommandLine.arguments
+        var filePath = ""
+        if args.contains("--daemon") {
+            delegate.isDaemon = true
+            let filteredArgs = args.filter { $0 != "--daemon" }
+            if filteredArgs.count >= 2 {
+                let path = filteredArgs[1]
+                if FileManager.default.fileExists(atPath: path) {
+                    filePath = path
+                }
+            }
+        } else if args.count >= 2 {
+            let path = args[1]
+            if FileManager.default.fileExists(atPath: path) {
+                filePath = path
+            }
         }
-    }
-} else if args.count >= 2 {
-    let path = args[1]
-    if FileManager.default.fileExists(atPath: path) {
-        filePath = path
+
+        delegate.entryFilePath = filePath
+        if !delegate.isDaemon && filePath.isEmpty {
+            print("error: file not found: \(args.last ?? "")")
+            print("usage: glasswp [--daemon] <wallpaper_file>")
+            print("       glasswp --daemon")
+            exit(1)
+        }
+
+        app.delegate = delegate
+        app.run()
     }
 }
-
-delegate.entryFilePath = filePath
-
-if !delegate.isDaemon && filePath.isEmpty {
-    print("error: file not found: \(args.last ?? "")")
-    print("usage: glasswp [--daemon] <wallpaper_file>")
-    print("       glasswp --daemon")
-    exit(1)
-}
-
-app.delegate = delegate
-app.run()

@@ -7,6 +7,29 @@
 
 Sparkle is fetched from its official release archive (digest-pinned in `fetch-sparkle.sh`) into `.build/` on the first build, so building needs network access.
 
+## Runtime ownership
+
+- `macpaperService.shared` owns library selection, filters, volume and rotation state. Views and the status menu use the same instance.
+- `MoonleafConfig.swift` is compiled into both moonleaf and glasswp. It provides the typed settings model and serialized config access under `~/.config/moonleaf`; the library remains under `~/.local/share/paper/wallpaper`.
+- Legacy configuration is migrated once without deleting the original data. Known config symlinks are replaced atomically; unknown JSON fields survive settings updates.
+- Startup file reads and service persistence run off the main thread. Volume writes are coalesced over 150 ms.
+- `GlasswpProcessManager` starts and adopts verified engine processes and stops them by PID, rather than shell substring matching.
+- `AutoStartManager` is the single registration owner for login startup and wallpaper persistence. macOS 13+ uses the signed, bundled LaunchAgent through `SMAppService`; macOS 12 retains the legacy registration path.
+- `ManagerApp.swift` contains the manager view. Cards, inspector, thumbnails/cache, crop editor, export and browse providers are separate files. Local and remote caches share an implementation but retain independent budgets and size-scoped thumbnail keys.
+
+The obsolete `moonleaf-bin` C helper, shell updater and unbundled screensaver implementation are no longer built or shipped. Updates use Sparkle.
+
+## Refactor smoke checks
+
+Use a disposable app bundle and a fixture home (`open -n --env CFFIXED_USER_HOME=<fixture-home> <app>`); back up the library, config and preferences before testing migrations. Changing the bundle identifier alone does not isolate distributed wallpaper notifications or launchd labels. Do not toggle the fixture's login registration against the production agent.
+
+- Build both architectures with `scripts/build.sh --all --yes`, then verify the signed bundle.
+- Exercise library filters, local/remote previews, all settings tabs and status-menu thumbnails.
+- Verify file/folder import and original/cropped export against temporary media.
+- Verify config migration from real legacy files and symlinks, partial settings, unknown-field preservation and coalesced volume writes.
+- Verify engine start, adoption after app relaunch, unset and restart; verify rotation while no manager window is open.
+- Validate login registration and migration separately in a disposable macOS account; logout/reboot and multi-Space behavior require an actual session test.
+
 ## Releases
 
 A release is published by [`.github/workflows/release.yml`](./.github/workflows/release.yml), either from a pushed `v*` tag or by dispatching the workflow with a tag name (if the tag does not exist yet it is created at the tip of `main`). The tag must look like `v4.1.0` or `v4.1.0.beta.1`; `release-version.sh` turns it into the user-facing version plus the monotonic numeric `CFBundleVersion` that Sparkle compares.

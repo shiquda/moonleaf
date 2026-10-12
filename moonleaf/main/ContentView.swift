@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab: TabSelection = .wallpapers
-    @State private var version_label_alpha: Double = 0.6
+    private let version_label_alpha: Double = 0.6
     @State private var previewTarget: PreviewTarget?
     @AppStorage("glassBackground") private var glassBackground = false
 
@@ -47,13 +47,11 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 HStack(spacing: 20) {
                     HStack(spacing: 12) {
-                        HStack(spacing: 12) {
-                            if let ml_logo = NSImage(named: ".moonleaf_logo") {
-                                Image(nsImage: ml_logo)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 42, height: 42)
-                            }
+                        if let ml_logo = NSImage(named: ".moonleaf_logo") {
+                            Image(nsImage: ml_logo)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 42, height: 42)
                         }
 
                         Text(NSLocalizedString("mgr_title", comment: "moonleaf"))

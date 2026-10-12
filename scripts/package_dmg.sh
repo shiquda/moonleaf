@@ -3,8 +3,7 @@
 #
 # The layout is part of the update contract: the volume is named "moonleaf",
 # moonleaf.app sits at its root, and the asset is published as moonleaf.dmg, so
-# the in-app updater (Updater.swift) and moonleaf/updater.sh can mount it and
-# copy /Volumes/moonleaf/moonleaf.app into /Applications.
+# Sparkle installs the bundled application from the release disk image.
 #
 # usage: scripts/package_dmg.sh [app-bundle] [output-dmg]
 set -euo pipefail

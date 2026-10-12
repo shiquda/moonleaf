@@ -100,10 +100,6 @@
 "settings_export_folder_default" = "";
 "settings_choose_folder" = "";
 "settings_reset_folder" = "";
-"settings_screensaver" = "";
-"settings_use_screensaver" = "";
-"settings_use_screensaver_desc" = "";
-"settings_screensaver_hint" = "";
 "settings_manager" = "";
 "settings_playback" = "";
 "settings_appearance" = "";
