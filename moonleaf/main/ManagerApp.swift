@@ -38,8 +38,7 @@ struct ManagerView: View {
     @State private var showFavoritesOnly = false
     @State private var showSortDropdown = false
     @State private var showWpActionsDropdown = false
-    @State private var previewWallpaper: endup_wp? = nil
-    @State private var showPreview = false
+    @Binding var previewTarget: PreviewTarget?
     private let menuHandler = MenuHandler()
     
     var body: some View {
@@ -62,20 +61,6 @@ struct ManagerView: View {
                 )
                 .transition(.opacity)
                 .zIndex(1)
-            }
-            
-            if showPreview, let wallpaper = previewWallpaper {
-                QuickPreviewOverlay(
-                    wallpaper: wallpaper,
-                    onClose: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showPreview = false
-                            previewWallpaper = nil
-                        }
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(999)
             }
         }
         .onAppear {
@@ -561,8 +546,11 @@ struct ManagerView: View {
                         onExport: { export_wp(wallpaper) },
                         onQuickPreview: {
                             withAnimation(.easeInOut(duration: 0.3)) {
-                                previewWallpaper = wallpaper
-                                showPreview = true
+                                previewTarget = PreviewTarget(
+                                    url: URL(fileURLWithPath: wallpaper.path),
+                                    title: wallpaper.name,
+                                    detail: ByteCountFormatter.string(fromByteCount: wallpaper.fileSize, countStyle: .file)
+                                )
                             }
                         }
                     )

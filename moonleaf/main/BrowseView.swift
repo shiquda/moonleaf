@@ -29,6 +29,7 @@ struct BrowseView: View {
     @State private var pexelsAPIKey: String = ""
     @State private var showPexelsKeyAlert = false
     @State private var pexelsKeyError = false
+    @Binding var previewTarget: PreviewTarget?
     
     enum ResolutionFilter: String, CaseIterable {
         case hd = "HD"
@@ -353,7 +354,7 @@ struct BrowseView: View {
         ScrollView {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: 3), spacing: 20) {
                 ForEach(filteredWallpapers) { wallpaper in
-                    BrowseWallpaperCard(item: wallpaper)
+                    BrowseWallpaperCard(item: wallpaper, onPreview: { openPreview(for: wallpaper) })
                         .onAppear {
                             if wallpaper.id == filteredWallpapers.last?.id {
                                 loadNextPage()
@@ -400,6 +401,20 @@ struct BrowseView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    /// Opens the same full-screen preview the library cards use. Browse items
+    /// have no file on disk, so the preview streams the provider's
+    /// full-resolution asset and falls back to the card thumbnail.
+    private func openPreview(for item: AnyWallpaper) {
+        guard let url = item.downloadURL ?? item.previewURL else { return }
+        withAnimation(.easeInOut(duration: 0.3)) {
+            previewTarget = PreviewTarget(
+                url: url,
+                title: item.id,
+                detail: "\(item.width)x\(item.height)"
+            )
+        }
     }
     
     private func loadWallpapers() {
@@ -533,6 +548,7 @@ extension WHWallpaper: WallpaperItem {
 
 struct BrowseWallpaperCard: View {
     let item: AnyWallpaper
+    let onPreview: () -> Void
     @State private var image: NSImage?
     @State private var isLoading = true
     @State private var isHovered = false
@@ -630,6 +646,8 @@ struct BrowseWallpaperCard: View {
             }
             .frame(height: 200)
             .cornerRadius(12)
+            .contentShape(Rectangle())
+            .onTapGesture { onPreview() }
             
             Text(item.id)
                 .font(Font(font_loader.regular(size: 12)))

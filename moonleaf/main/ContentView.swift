@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var selectedTab: TabSelection = .wallpapers
     @State private var version_label_alpha: Double = 0.6
+    @State private var previewTarget: PreviewTarget?
     @AppStorage("glassBackground") private var glassBackground = false
 
     private func app_version() -> String {
@@ -113,9 +114,9 @@ struct ContentView: View {
                     Group {
                         switch selectedTab {
                         case .wallpapers:
-                            ManagerView()
+                            ManagerView(previewTarget: $previewTarget)
                         case .browse:
-                            BrowseView()
+                            BrowseView(previewTarget: $previewTarget)
                         }
                     }
                     .transition(.opacity)
@@ -123,6 +124,19 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .focusable(false)
+
+            if let target = previewTarget {
+                QuickPreviewOverlay(
+                    target: target,
+                    onClose: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            previewTarget = nil
+                        }
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(999)
+            }
         }
     }
 }

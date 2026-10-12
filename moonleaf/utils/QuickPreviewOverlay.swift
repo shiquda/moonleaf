@@ -8,8 +8,18 @@
 import SwiftUI
 import AVKit
 
+/// What the full-screen preview shows: a wallpaper that lives in the library, or
+/// a remote result from the browse view. `url.isFileURL` decides how it loads —
+/// library wallpaper read from disk, browse results stream over https.
+struct PreviewTarget {
+    let url: URL
+    let title: String
+    /// Appended to the media type in the caption, e.g. file size or resolution.
+    let detail: String?
+}
+
 struct QuickPreviewOverlay: View {
-    let wallpaper: endup_wp
+    let target: PreviewTarget
     let onClose: () -> Void
     
     @State private var isHovered = false
@@ -25,80 +35,116 @@ struct QuickPreviewOverlay: View {
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     private var fileExtension: String {
-        (wallpaper.path as NSString).pathExtension.lowercased()
+        target.url.pathExtension.lowercased()
+    }
+    
+    private var isVideo: Bool {
+        ["mp4", "mov"].contains(fileExtension)
+    }
+    
+    private var isStillImage: Bool {
+        ["jpg", "jpeg", "png", "gif"].contains(fileExtension)
     }
     
     /// The wallpaper itself; `body` puts it in the zoom and pan container.
     private var mediaContent: some View {
         Group {
-            let ext = fileExtension
-            
-            if ["mp4", "mov"].contains(ext) {
-                
-                if let player = player {
-                    VideoPlayer(player: player)
-                        .onAppear {
-                            if isVideoPlaying {
-                                player.play()
-                            }
-                        }
-                        .onDisappear {
-                            player.pause()
-                        }
-                        .onTapGesture {
-                            if isVideoPlaying {
-                                player.pause()
-                            } else {
-                                player.play()
-                            }
-                            isVideoPlaying.toggle()
-                        }
-                        .overlay(
-                            Group {
-                                if !isVideoPlaying {
-                                    Image(systemName: "play.circle.fill")
-                                        .font(.system(size: 50))
-                                        .foregroundColor(.white.opacity(0.6))
-                                        .shadow(color: .black.opacity(0.5), radius: 10)
-                                }
-                            }
-                        )
-                } else {
-                    Color.gray.opacity(0.3)
-                        .overlay {
-                            ProgressView()
-                                .progressViewStyle(.circular)
-                                .tint(.white)
-                        }
-                }
-            } else if ext == "gif" {
-                
-                GIFAnimatingView(path: wallpaper.path)
+            if isVideo {
+                videoContent
+            } else if fileExtension == "gif" && target.url.isFileURL {
+                GIFAnimatingView(path: target.url.path)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if ["jpg", "jpeg", "png"].contains(ext) {
-                
-                if let image = NSImage(contentsOfFile: wallpaper.path) {
+            } else if isStillImage && target.url.isFileURL {
+                if let image = NSImage(contentsOfFile: target.url.path) {
                     Image(nsImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    Color.gray.opacity(0.3)
-                        .overlay {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.largeTitle)
-                                .foregroundColor(.white.opacity(0.5))
-                        }
+                    unreadableMedia
+                }
+            } else if isStillImage {
+                // Browse results are streamed from the provider instead of disk.
+                AsyncImage(url: target.url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case .failure:
+                        unreadableMedia
+                    default:
+                        loadingMedia
+                    }
                 }
             } else {
-                Color.gray.opacity(0.3)
-                    .overlay {
-                        Image(systemName: "photo")
-                            .font(.largeTitle)
-                            .foregroundColor(.white.opacity(0.5))
-                    }
+                unsupportedMedia
             }
         }
+    }
+    
+    private var videoContent: some View {
+        Group {
+            if let player = player {
+                VideoPlayer(player: player)
+                    .onAppear {
+                        if isVideoPlaying {
+                            player.play()
+                        }
+                    }
+                    .onDisappear {
+                        player.pause()
+                    }
+                    .onTapGesture {
+                        if isVideoPlaying {
+                            player.pause()
+                        } else {
+                            player.play()
+                        }
+                        isVideoPlaying.toggle()
+                    }
+                    .overlay(
+                        Group {
+                            if !isVideoPlaying {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .shadow(color: .black.opacity(0.5), radius: 10)
+                            }
+                        }
+                    )
+            } else {
+                loadingMedia
+            }
+        }
+    }
+    
+    private var loadingMedia: some View {
+        Color.gray.opacity(0.3)
+            .overlay {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(.white)
+            }
+    }
+    
+    private var unreadableMedia: some View {
+        Color.gray.opacity(0.3)
+            .overlay {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                    .foregroundColor(.white.opacity(0.5))
+            }
+    }
+    
+    private var unsupportedMedia: some View {
+        Color.gray.opacity(0.3)
+            .overlay {
+                Image(systemName: "photo")
+                    .font(.largeTitle)
+                    .foregroundColor(.white.opacity(0.5))
+            }
     }
     
     /// Keeps a zoomed wallpaper from being dragged off screen: the further you
@@ -185,6 +231,7 @@ struct QuickPreviewOverlay: View {
                     .gesture(zoomGesture)
                     .simultaneousGesture(panGesture)
             }
+            .clipped()
             .ignoresSafeArea()
             
             
@@ -217,16 +264,16 @@ struct QuickPreviewOverlay: View {
                 HStack(spacing: 20) {
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(wallpaper.name)
+                        Text(target.title)
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(.white.opacity(0.9))
                         
                         let ext = fileExtension
-                        let fileType = ["mp4", "mov"].contains(ext) ? NSLocalizedString("preview_type_video", comment: "Video") :
+                        let fileType = isVideo ? NSLocalizedString("preview_type_video", comment: "Video") :
                                       ext == "gif" ? NSLocalizedString("preview_type_gif", comment: "GIF") :
                                       ["jpg", "jpeg", "png"].contains(ext) ? NSLocalizedString("preview_type_image", comment: "Image") :
                                       NSLocalizedString("preview_type_file", comment: "File")
-                        Text("\(fileType) • \(ByteCountFormatter.string(fromByteCount: wallpaper.fileSize, countStyle: .file))")
+                        Text([fileType, target.detail].compactMap { $0 }.joined(separator: " • "))
                             .font(.system(size: 11, weight: .regular, design: .rounded))
                             .foregroundColor(.white.opacity(0.5))
                     }
@@ -266,7 +313,7 @@ struct QuickPreviewOverlay: View {
                         .padding(.trailing, 8)
                     }
                     
-                    if ["mp4", "mov"].contains(fileExtension) {
+                    if isVideo {
                         Button(action: {
                             if isVideoPlaying {
                                 player?.pause()
@@ -321,10 +368,8 @@ struct QuickPreviewOverlay: View {
         }
         .onAppear {
             
-            let ext = fileExtension
-            if ["mp4", "mov"].contains(ext) {
-                let url = URL(fileURLWithPath: wallpaper.path)
-                player = AVPlayer(url: url)
+            if isVideo {
+                player = AVPlayer(url: target.url)
                 player?.volume = 0 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     player?.play()
