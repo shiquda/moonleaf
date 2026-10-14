@@ -286,7 +286,7 @@ class macpaperService: NSObject, ObservableObject {
         let spaces = SpaceWallpapers.liveSpaces()
         guard !stills.isEmpty, !spaces.isEmpty else { return }
 
-        let current = SpaceWallpapers.currentAssignments()
+        let current = SpaceWallpapers.liveAssignments(for: spaces)
         let onScreen = Set(current.values)
         var claimed = Set<String>()
         var assignment: [SpaceWallpapers.Space: String] = [:]
@@ -343,7 +343,7 @@ class macpaperService: NSObject, ObservableObject {
             let spaces = SpaceWallpapers.liveSpaces()
             guard !spaces.isEmpty else { return }
 
-            let current = SpaceWallpapers.currentAssignments()
+            let current = SpaceWallpapers.liveAssignments(for: spaces)
             let missing = spaces.filter { current[$0.uuid] == nil }
             guard !missing.isEmpty else { return }
 
@@ -625,7 +625,7 @@ class macpaperService: NSObject, ObservableObject {
         let spaces = SpaceWallpapers.liveSpaces()
         guard let current = spaces.first(where: { $0.isCurrent }) else { return }
 
-        var wallpaper_of_space = SpaceWallpapers.currentAssignments()
+        var wallpaper_of_space = SpaceWallpapers.liveAssignments(for: spaces)
         wallpaper_of_space[current.uuid] = path
 
         var assignment: [SpaceWallpapers.Space: String] = [:]

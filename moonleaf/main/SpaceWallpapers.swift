@@ -96,6 +96,18 @@ enum SpaceWallpapers {
         return assignments
     }
 
+    /// Desktop uuid -> wallpaper path, restricted to the desktops that exist now.
+    ///
+    /// The store keeps an entry for every desktop that has ever existed, and a
+    /// stale entry still names the picture that desktop last showed. Callers
+    /// that reason about what is on screen have to look at the live desktops
+    /// only: counting the leftovers as "in use" leaves the shuffle a pool of
+    /// whichever few library files no leftover happens to name.
+    static func liveAssignments(for spaces: [Space]) -> [String: String] {
+        let live = Set(spaces.map { $0.uuid })
+        return currentAssignments().filter { live.contains($0.key) }
+    }
+
     /// Points the given desktops at their wallpaper.
     @discardableResult
     static func assign(_ wallpapers: [Space: String]) -> Bool {
