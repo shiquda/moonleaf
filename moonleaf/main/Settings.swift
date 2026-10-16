@@ -25,6 +25,7 @@ struct SettingsView: View {
 
     @AppStorage("checkForUpdates") private var checkForUpdates = true
     @AppStorage("autoStartEnabled") private var autoStartEnabled = false
+    @AppStorage("showInDock") private var showInDock = false
     @AppStorage("exportFolderPath") private var exportFolderPath = ""
     @AppStorage("glassBackground") private var glassBackground = false
 
@@ -182,6 +183,19 @@ struct SettingsView: View {
                     isOn: Binding(
                         get: { autoStartEnabled },
                         set: { newValue in toggleAutoStart(newValue) }
+                    )
+                )
+            }
+            Section(title: NSLocalizedString("settings_dock", comment: "Dock")) {
+                SToggle(
+                    title: NSLocalizedString("settings_show_in_dock", comment: "Show in Dock"),
+                    description: NSLocalizedString("settings_show_in_dock_desc", comment: ""),
+                    isOn: Binding(
+                        get: { showInDock },
+                        set: { newValue in
+                            showInDock = newValue
+                            AppDelegate.updateActivationPolicy()
+                        }
                     )
                 )
             }
@@ -649,8 +663,6 @@ struct SettingsView: View {
     }
 
     private func chooseFolder() {
-        let previousPolicy = NSApp.activationPolicy()
-        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
         let panel = NSOpenPanel()
@@ -672,9 +684,7 @@ struct SettingsView: View {
                 self.exportFolderPath = url.path
                 self.saveExportFolder()
             }
-            if previousPolicy == .accessory && NSApp.windows.filter({ $0.isVisible }).isEmpty {
-                NSApp.setActivationPolicy(.accessory)
-            }
+            AppDelegate.updateActivationPolicy()
         }
     }
 

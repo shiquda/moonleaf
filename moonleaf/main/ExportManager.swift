@@ -81,8 +81,6 @@ class ExportManager: NSObject {
         default: allowedTypes = [.jpeg, .png, .gif, .mpeg4Movie, .quickTimeMovie]
         }
 
-        let previousPolicy = NSApp.activationPolicy()
-        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
         let savePanel = NSSavePanel()
@@ -103,9 +101,7 @@ class ExportManager: NSObject {
                 }
             }
 
-            if previousPolicy == .accessory && NSApp.windows.filter({ $0.isVisible }).isEmpty {
-                NSApp.setActivationPolicy(.accessory)
-            }
+            AppDelegate.updateActivationPolicy()
         }
     }
 
@@ -114,8 +110,6 @@ class ExportManager: NSObject {
 
         let croppedImage = cropImage(sourceImage, cropRect: cropRect, targetSize: targetSize)
 
-        let previousPolicy = NSApp.activationPolicy()
-        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
         let savePanel = NSSavePanel()
@@ -129,9 +123,7 @@ class ExportManager: NSObject {
                 self.saveCroppedImage(croppedImage, to: destinationURL)
             }
 
-            if previousPolicy == .accessory && NSApp.windows.filter({ $0.isVisible }).isEmpty {
-                NSApp.setActivationPolicy(.accessory)
-            }
+            AppDelegate.updateActivationPolicy()
         }
     }
 

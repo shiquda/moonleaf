@@ -98,6 +98,9 @@
 "settings_startup" = "स्टार्टअप";
 "settings_auto_start" = "लॉगिन पर शुरू करें";
 "settings_auto_start_desc" = "लॉगिन करने पर moonleaf को अपने आप शुरू करें";
+"settings_dock" = "डॉक";
+"settings_show_in_dock" = "Dock में दिखाएं";
+"settings_show_in_dock_desc" = "macOS Dock में एप्लिकेशन आइकन दिखाएं";
 "settings_updates" = "अपडेट";
 "settings_check_updates" = "अपडेट की जांच करें";
 "settings_check_updates_desc" = "स्टार्टअप पर अपडेट की जांच करें";

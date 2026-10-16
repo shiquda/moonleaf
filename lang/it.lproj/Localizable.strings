@@ -98,6 +98,9 @@
 "settings_startup" = "Avvio";
 "settings_auto_start" = "Avvia al login";
 "settings_auto_start_desc" = "Avvia automaticamente moonleaf quando effettui l'accesso";
+"settings_dock" = "Dock";
+"settings_show_in_dock" = "Mostra nel Dock";
+"settings_show_in_dock_desc" = "Mostra l'icona dell'applicazione nel Dock di macOS";
 "settings_updates" = "Aggiornamenti";
 "settings_check_updates" = "Verifica aggiornamenti";
 "settings_check_updates_desc" = "Verifica la presenza di aggiornamenti all'avvio";

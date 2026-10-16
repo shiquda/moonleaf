@@ -98,6 +98,9 @@
 "settings_startup" = "启动";
 "settings_auto_start" = "登录时启动";
 "settings_auto_start_desc" = "登录时自动启动 moonleaf";
+"settings_dock" = "程序坞";
+"settings_show_in_dock" = "在程序坞中显示";
+"settings_show_in_dock_desc" = "在 macOS 程序坞中显示应用图标";
 "settings_updates" = "更新";
 "settings_check_updates" = "检查更新";
 "settings_check_updates_desc" = "启动时检查更新";

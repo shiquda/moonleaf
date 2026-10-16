@@ -90,6 +90,9 @@
 "settings_startup" = "";
 "settings_auto_start" = "";
 "settings_auto_start_desc" = "";
+"settings_dock" = "";
+"settings_show_in_dock" = "";
+"settings_show_in_dock_desc" = "";
 "settings_updates" = "";
 "settings_check_updates" = "";
 "settings_check_updates_desc" = "";

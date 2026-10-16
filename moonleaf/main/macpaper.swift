@@ -31,6 +31,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @AppStorage("glassBackground") private var glassBackground = false
     var updater = Updater.shared
     private let service = macpaperService.shared
+    static func updateActivationPolicy() {
+        let showInDock = UserDefaults.standard.bool(forKey: "showInDock")
+        let targetPolicy: NSApplication.ActivationPolicy = showInDock ? .regular : .accessory
+        if NSApp.activationPolicy() != targetPolicy {
+            NSApp.setActivationPolicy(targetPolicy)
+        }
+    }
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let bundleID = Bundle.main.bundleIdentifier {
             let myPID = ProcessInfo.processInfo.processIdentifier
@@ -42,7 +49,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
 
-        NSApp.setActivationPolicy(.accessory)
+        Self.updateActivationPolicy()
         NSApp.windows.forEach { $0.close() }
         
         font_loader.regFonts()
@@ -75,6 +82,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         AutoStartManager.migrateLegacyIfNeededAsync()
     }
     func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            show_manager()
+            return true
+        }
         return false
     }
 
@@ -132,7 +143,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         _mwin?.makeKeyAndOrderFront(nil)
-        NSApp.setActivationPolicy(.regular)
+        Self.updateActivationPolicy()
         NSApp.activate(ignoringOtherApps: true)
     }
     func sb_item_menu() -> NSMenu {
@@ -263,6 +274,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc func show_settings() {
         if let existing = _settingsWin {
+            Self.updateActivationPolicy()
             existing.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -288,9 +300,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         window.titleVisibility = .hidden
         window.contentView = NSHostingView(rootView: settingsView.font(Font(font_loader.regular(size: 13))))
         window.isReleasedWhenClosed = false
+        window.delegate = self
         
         _settingsWin = window
-        NSApp.setActivationPolicy(.regular)
+        Self.updateActivationPolicy()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -332,9 +345,7 @@ extension AppDelegate: NSWindowDelegate {
             _settingsWin = nil
         }
         
-        if _mwin == nil && _settingsWin == nil {
-            NSApp.setActivationPolicy(.accessory)
-        }
+        Self.updateActivationPolicy()
     }
 
     func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {

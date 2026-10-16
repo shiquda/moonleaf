@@ -98,6 +98,9 @@
 "settings_startup" = "Spustenie";
 "settings_auto_start" = "Spustiť po prihlásení";
 "settings_auto_start_desc" = "Automaticky spustiť moonleaf po prihlásení";
+"settings_dock" = "Dock";
+"settings_show_in_dock" = "Zobraziť v Docku";
+"settings_show_in_dock_desc" = "Zobraziť ikonu aplikácie v Docku macOS";
 "settings_updates" = "Aktualizácie";
 "settings_check_updates" = "Kontrolovať aktualizácie";
 "settings_check_updates_desc" = "Skontrolovať aktualizácie pri spustení";

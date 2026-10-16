@@ -98,6 +98,9 @@
 "settings_startup" = "시작";
 "settings_auto_start" = "로그인 시 시작";
 "settings_auto_start_desc" = "로그인할 때 moonleaf를 자동으로 시작합니다";
+"settings_dock" = "Dock";
+"settings_show_in_dock" = "Dock에 표시";
+"settings_show_in_dock_desc" = "macOS Dock에 응용 프로그램 아이콘을 표시합니다";
 "settings_updates" = "업데이트";
 "settings_check_updates" = "업데이트 확인";
 "settings_check_updates_desc" = "시작 시 업데이트를 확인합니다";
