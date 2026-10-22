@@ -151,15 +151,24 @@ jobs:
           set -eu
           previous_tag=$(git describe --tags --abbrev=0 "$RELEASE_COMMIT^" 2>/dev/null || true)
           {
+            echo "> [!NOTE]"
+            echo "> **Actively Maintained Fork:** This is an actively maintained fork of [\`illufied/moonleaf\`](https://github.com/illufied/moonleaf) (formerly \`macpaper\`, archived at \`v4.0.0\`). Development continues with bug fixes, modern macOS support, and Sparkle auto-updates."
+            echo
+            echo "### 📦 Quick Install with Homebrew"
+            echo "\`\`\`bash"
+            echo "brew install shiquda/moonleaf/moonleaf"
+            echo "\`\`\`"
+            echo
             if [ -n "$previous_tag" ]; then
-              echo "Changes since $previous_tag:"
+              echo "### What's Changed (since $previous_tag):"
               git log --no-merges --pretty='- %s' "$previous_tag..$RELEASE_COMMIT"
             else
-              echo "Changes:"
+              echo "### What's Changed:"
               git log --no-merges --pretty='- %s' -n 20 "$RELEASE_COMMIT"
             fi
             echo
-            echo "sha256: $(awk '{print $1}' dist/moonleaf.dmg.sha256)"
+            echo "### Verification"
+            echo "- **sha256:** \`$(awk '{print $1}' dist/moonleaf.dmg.sha256)\`"
           } > dist/notes.md
           cat dist/notes.md
 
@@ -193,7 +202,7 @@ jobs:
           gh release create "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_COMMIT" \
-            --title "moonleaf $MP_VER_SHORT_STRING" \
+            --title "moonleaf $MP_VER_SHORT_STRING – Actively Maintained macOS Wallpaper Manager" \
             --notes-file dist/notes.md \
             --latest \
             dist/moonleaf.dmg \
