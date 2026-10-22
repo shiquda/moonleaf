@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moonleaf – macOS Wallpaper Manager (Actively Maintained)</title>
+  <meta name="description" content="Moonleaf is the actively maintained wallpaper manager for macOS (successor to illufied/moonleaf & macpaper). Supports dynamic video, GIF, per-desktop & multi-monitor rotation, Wallhaven/Pexels integration.">
+  <meta name="keywords" content="macOS wallpaper manager, moonleaf, macpaper, live wallpaper mac, dynamic wallpaper macos, per-space wallpaper, multi-monitor wallpaper, wallhaven mac, video wallpaper mac">
+  <link rel="canonical" href="https://shiquda.github.io/moonleaf/">
+  <link rel="icon" type="image/png" href="icon.png">
+
+  <!-- OpenGraph Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://shiquda.github.io/moonleaf/">
+  <meta property="og:title" content="Moonleaf – macOS Wallpaper Manager">
+  <meta property="og:description" content="Actively maintained fork of moonleaf (formerly macpaper). Video/GIF live wallpapers, per-space and multi-monitor rotation, Wallhaven/Pexels browsing.">
+  <meta property="og:image" content="https://shiquda.github.io/moonleaf/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Moonleaf – macOS Wallpaper Manager">
+  <meta name="twitter:description" content="Actively maintained fork of moonleaf. Video/GIF live wallpapers, per-space and multi-monitor rotation, Wallhaven/Pexels browsing.">
+  <meta name="twitter:image" content="https://shiquda.github.io/moonleaf/og-image.png">
+
+  <!-- JSON-LD Structured Data for SEO & AI Crawlers -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "Moonleaf",
+        "alternateName": "macpaper",
+        "operatingSystem": "macOS 12.0 or later",
+        "applicationCategory": "MultimediaApplication",
+        "softwareVersion": "4.1.0",
+        "downloadUrl": "https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg",
+        "offers": {
+          "@type": "Offer",
+          "price": "0.00",
+          "priceCurrency": "USD"
+        },
+        "description": "Lightweight, full-featured wallpaper manager for macOS with support for video, GIF, per-desktop rotation, multi-monitor setups, and Wallhaven/Pexels browsing.",
+        "license": "https://opensource.org/licenses/MIT",
+        "url": "https://shiquda.github.io/moonleaf/",
+        "author": {
+          "@type": "Person",
+          "name": "naomisphere",
+          "url": "https://github.com/illufied"
+        },
+        "maintainer": {
+          "@type": "Person",
+          "name": "shiquda",
+          "url": "https://github.com/shiquda"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is moonleaf still maintained?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, moonleaf is actively maintained. While the original upstream repository (illufied/moonleaf, formerly naomisphere/macpaper) was archived and frozen at v4.0.0, this official maintained fork (shiquda/moonleaf) continues active development with regular bug fixes, macOS Sequoia and Apple Silicon support, modern Homebrew packaging, and automated updates via Sparkle."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I upgrade from upstream Moonleaf v4.0.0 or macpaper?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Because upstream v4.0.0 is archived, its built-in legacy updater cannot receive new releases. Upgrading is seamless: simply install via Homebrew with 'brew install shiquda/moonleaf/moonleaf' or download moonleaf.dmg from GitHub Releases. On first launch, Moonleaf automatically and non-destructively migrates your existing settings (~/.config/moonleaf) and wallpaper library (~/.local/share/paper/wallpaper)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I install Moonleaf via Homebrew?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "You can install Moonleaf with a single Homebrew command: 'brew install shiquda/moonleaf/moonleaf'. Alternatively, run 'brew tap shiquda/moonleaf && brew install --cask moonleaf'."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does Moonleaf support Apple Silicon and Intel Macs?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Moonleaf is built as a Universal binary containing native machine code for both Apple Silicon (M1, M2, M3, M4 series) and Intel (x86_64) Macs running macOS 12 Monterey or newer."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does Moonleaf support live video and GIF wallpapers?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Moonleaf supports smooth playback for MP4, MOV, and animated GIF wallpapers. It includes intelligent battery-friendly auto-pausing when fullscreen applications are active."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(22, 30, 48, 0.7);
+      --card-border: rgba(56, 75, 115, 0.4);
+      --text: #f0f6fc;
+      --text-muted: #8b949e;
+      --accent: #388bfd;
+      --accent-glow: rgba(56, 139, 253, 0.25);
+      --badge-bg: rgba(56, 139, 253, 0.15);
+      --badge-border: rgba(56, 139, 253, 0.35);
+      --code-bg: #111726;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background glow */
+    .glow-top {
+      position: absolute;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(56, 139, 253, 0.2) 0%, rgba(138, 92, 246, 0.1) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: relative;
+      z-index: 10;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .github-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      color: var(--text) !important;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .github-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .hero {
+      position: relative;
+      z-index: 10;
+      max-width: 900px;
+      margin: 40px auto 30px;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: var(--badge-bg);
+      border: 1px solid var(--badge-border);
+      border-radius: 50px;
+      font-size: 0.88rem;
+      color: #79c0ff;
+      margin-bottom: 24px;
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      font-size: 3.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 18px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #ffffff 40%, #79c0ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto 36px;
+      font-weight: 400;
+    }
+
+    .cta-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    .brew-box {
+      display: inline-flex;
+      align-items: center;
+      background: var(--code-bg);
+      border: 1px solid var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 1rem;
+      color: #79c0ff;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.2s;
+    }
+
+    .brew-box:hover {
+      transform: translateY(-1px);
+    }
+
+    .brew-box span.prefix {
+      color: var(--text-muted);
+      margin-right: 8px;
+      user-select: none;
+    }
+
+    .copy-icon {
+      margin-left: 14px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      background: linear-gradient(180deg, #2f81f7 0%, #1f6feb 100%);
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.05rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(31, 111, 235, 0.4);
+      transition: all 0.2s;
+    }
+
+    .btn-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(31, 111, 235, 0.5);
+    }
+
+    .meta-badges {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .meta-badge {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 4px 10px;
+    }
+
+    /* Preview Showcase */
+    .preview-container {
+      position: relative;
+      z-index: 10;
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .preview-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+    }
+
+    .preview-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Feature Cards */
+    .section-title {
+      text-align: center;
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin: 80px 0 16px;
+    }
+
+    .section-desc {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto 50px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 28px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(56, 139, 253, 0.5);
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+
+    .card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+    }
+
+    /* Migration Section */
+    .migration-box {
+      max-width: 900px;
+      margin: 80px auto;
+      padding: 36px 32px;
+      background: linear-gradient(180deg, rgba(30, 42, 68, 0.7) 0%, rgba(20, 28, 46, 0.7) 100%);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+    }
+
+    .migration-box h2 {
+      font-size: 1.7rem;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .migration-box p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      margin-bottom: 20px;
+    }
+
+    .migration-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .step-num {
+      background: var(--accent);
+      color: white;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* FAQ Section */
+    .faq-container {
+      max-width: 860px;
+      margin: 0 auto 100px;
+      padding: 0 20px;
+    }
+
+    .faq-item {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      padding: 22px 26px;
+    }
+
+    .faq-item h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #e6edf3;
+    }
+
+    .faq-item p {
+      color: var(--text-muted);
+      font-size: 0.98rem;
+      line-height: 1.6;
+    }
+
+    footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: var(--text);
+    }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 2.3rem; }
+      .hero-desc { font-size: 1.1rem; }
+      .brew-box { font-size: 0.85rem; padding: 8px 12px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-top"></div>
+
+  <header>
+    <a href="https://github.com/shiquda/moonleaf" class="brand">
+      <img src="icon.png" alt="Moonleaf icon">
+      <span>moonleaf</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#upgrade">Migration</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/shiquda/moonleaf" class="github-btn" target="_blank" rel="noopener">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="pill-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#58a6ff"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"/></svg>
+        <span>Actively Maintained Fork (formerly macpaper)</span>
+      </div>
+
+      <h1>
+        <span class="gradient-text">The Wallpaper Manager</span><br>for macOS
+      </h1>
+
+      <p class="hero-desc">
+        Lightweight, native, and feature-packed. Dynamic video & GIF wallpapers, per-desktop & multi-monitor rotation, Wallhaven & Pexels discovery, and menu bar control.
+      </p>
+
+      <div class="cta-group">
+        <div class="brew-box" id="brewCmd" onclick="copyBrew()">
+          <span class="prefix">$</span>
+          <span>brew install shiquda/moonleaf/moonleaf</span>
+          <span class="copy-icon" id="copyLabel">📋 copy</span>
+        </div>
+
+        <a href="https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg" class="btn-download">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download moonleaf.dmg
+        </a>
+      </div>
+
+      <div class="meta-badges">
+        <span class="meta-badge">Universal (Apple Silicon & Intel)</span>
+        <span class="meta-badge">macOS 12.0+ (Monterey to Sequoia)</span>
+        <span class="meta-badge">MIT License</span>
+        <span class="meta-badge">Free & Open Source</span>
+      </div>
+    </section>
+
+    <!-- Preview -->
+    <section class="preview-container">
+      <div class="preview-card">
+        <img src="https://github.com/user-attachments/assets/15118fad-306d-4804-b108-462e81fef237" alt="Moonleaf macOS Wallpaper Manager Demo GIF">
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features">
+      <h2 class="section-title">Everything you need in a wallpaper engine</h2>
+      <p class="section-desc">Engineered in native Swift and AppKit for maximum performance, minimal battery draw, and total privacy.</p>
+
+      <div class="grid">
+        <div class="card">
+          <div class="card-icon">🖥️</div>
+          <h3>Multi-Monitor & Spaces</h3>
+          <p>Assign distinct wallpapers per monitor or per macOS Space (virtual desktop). Independently rotate and shuffle wallpapers across multiple screens seamlessly.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🎬</div>
+          <h3>Video & GIF Playback</h3>
+          <p>Bring your desktop to life with silky smooth MP4, MOV, and GIF wallpapers. Smart battery-saving automatically pauses playback whenever apps are in fullscreen.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🌐</div>
+          <h3>Wallhaven & Pexels Browsing</h3>
+          <p>Explore, preview, and download thousands of curated community wallpapers directly in-app with built-in Wallhaven and Pexels integration.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <h3>Native Universal Binary</h3>
+          <p>Optimized for Apple Silicon (M1/M2/M3/M4) and Intel Macs alike. Runs quietly in the background without hogging system RAM or CPU cycles.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🔄</div>
+          <h3>Sparkle Auto-Updates</h3>
+          <p>Stay up to date effortlessly with verified, cryptographically signed updates powered by the standard Sparkle framework.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🌍</div>
+          <h3>14 Languages Included</h3>
+          <p>Fully localized in English, Chinese (Simplified & Traditional), Spanish, French, German, Japanese, Korean, Russian, Portuguese, and more.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Migration Guide -->
+    <section id="upgrade" class="migration-box">
+      <h2>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#388bfd"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Upgrading from Moonleaf v4.0.0 or macpaper
+      </h2>
+      <p>
+        The original upstream repository (<code>illufied/moonleaf</code>) has been archived, meaning its automatic update checker can no longer receive new versions. Upgrading to this maintained fork is 100% seamless and safe.
+      </p>
+
+      <div class="migration-steps">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div>
+            <strong>Install the maintained version:</strong> Run <code>brew install shiquda/moonleaf/moonleaf</code> or download the latest <code>moonleaf.dmg</code>.
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div>
+            <strong>Non-destructive automatic migration:</strong> Launching Moonleaf automatically preserves and adopts your existing settings (<code>~/.config/moonleaf</code>) and downloaded wallpaper library (<code>~/.local/share/paper/wallpaper</code>). No data is deleted.
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div>
+            <strong>Enjoy future updates:</strong> Subsequent releases will be delivered automatically via the built-in Sparkle updater.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="faq-container">
+      <h2 class="section-title">Frequently Asked Questions</h2>
+      <p class="section-desc">Answers to common questions about Moonleaf maintenance, installation, and capabilities.</p>
+
+      <div class="faq-item">
+        <h3>Is moonleaf still maintained?</h3>
+        <p><strong>Yes, Moonleaf is actively maintained.</strong> While the original repository (<code>illufied/moonleaf</code>, originally <code>naomisphere/macpaper</code>) was archived after v4.0.0, this fork (<code>shiquda/moonleaf</code>) is actively maintained with bug fixes, multi-monitor stability patches, modern Homebrew packaging, and compatibility with the latest macOS versions.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How do I install Moonleaf with Homebrew?</h3>
+        <p>You can install Moonleaf with a single command:<br>
+          <code style="background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; display: inline-block; margin-top: 6px;">brew install shiquda/moonleaf/moonleaf</code><br>
+          Homebrew will automatically download, verify, and link Moonleaf to your Applications folder.
+        </p>
+      </div>
+
+      <div class="faq-item">
+        <h3>What happened to naomisphere / macpaper?</h3>
+        <p>Moonleaf was originally named <strong>macpaper</strong> by creator naomisphere before being rebranded to moonleaf. Following the creator's archiving of the repository, this project was established to ensure ongoing maintenance, community pull request reviews, and continued macOS updates.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Does Moonleaf drain laptop battery?</h3>
+        <p>No. Moonleaf uses native AppKit rendering engines and automatically pauses video and GIF animations whenever a fullscreen app or game is active, or when screens sleep. When using static image shuffles, resource usage is virtually zero.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How do I bypass the macOS Gatekeeper quarantine prompt?</h3>
+        <p>Because Moonleaf is distributed as an open-source binary without an Apple Developer subscription, macOS may display a standard security prompt on first launch. You can either right-click the app in Finder and choose <strong>Open</strong>, or run:<br>
+          <code style="background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; display: inline-block; margin-top: 6px;">xattr -dr com.apple.quarantine /Applications/moonleaf.app</code>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Moonleaf is open-source software licensed under the <a href="https://github.com/shiquda/moonleaf/blob/main/LICENSE">MIT License</a>.<br>
+      Originally created by <a href="https://github.com/illufied">naomisphere</a>. Actively maintained by <a href="https://github.com/shiquda">shiquda</a> and contributors.
+    </p>
+  </footer>
+
+  <script>
+    function copyBrew() {
+      navigator.clipboard.writeText("brew install shiquda/moonleaf/moonleaf").then(() => {
+        const label = document.getElementById("copyLabel");
+        label.innerText = "✓ copied!";
+        label.style.color = "#3fb950";
+        setTimeout(() => {
+          label.innerText = "📋 copy";
+          label.style.color = "";
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
