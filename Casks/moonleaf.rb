@@ -12,6 +12,7 @@ cask "moonleaf" do
     regex(/^v?(\d+(?:\.\d+)*(?:\.beta\.\d+)?)$/i)
   end
 
+  auto_updates true
   depends_on macos: :monterey
 
   app "moonleaf.app"

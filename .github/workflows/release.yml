@@ -258,3 +258,31 @@ jobs:
               -f branch=main >/dev/null
           fi
           echo "Casks/moonleaf.rb now describes $MP_VER_SHORT_STRING"
+
+      - name: Refresh the Homebrew tap repository
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.TAP_GITHUB_TOKEN }}
+          TAP_REPO: shiquda/homebrew-moonleaf
+        run: |
+          set -eu
+          if [ -z "${TAP_TOKEN:-}" ]; then
+            echo "::notice title=Tap sync skipped::Secrets HOMEBREW_TAP_TOKEN or TAP_GITHUB_TOKEN not configured. Update $TAP_REPO manually or configure a PAT secret with repo scope."
+            exit 0
+          fi
+          content=$(base64 -i dist/moonleaf.rb | tr -d '\n')
+          existing=$(GH_TOKEN="$TAP_TOKEN" gh api "repos/$TAP_REPO/contents/Casks/moonleaf.rb?ref=main" 2>/dev/null \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin).get("sha",""))' || true)
+
+          if [ -n "$existing" ]; then
+            GH_TOKEN="$TAP_TOKEN" gh api -X PUT "repos/$TAP_REPO/contents/Casks/moonleaf.rb" \
+              -f message="chore: update moonleaf cask to $MP_VER_SHORT_STRING" \
+              -f content="$content" \
+              -f sha="$existing" \
+              -f branch=main >/dev/null
+          else
+            GH_TOKEN="$TAP_TOKEN" gh api -X PUT "repos/$TAP_REPO/contents/Casks/moonleaf.rb" \
+              -f message="chore: add moonleaf cask for $MP_VER_SHORT_STRING" \
+              -f content="$content" \
+              -f branch=main >/dev/null
+          fi
+          echo "$TAP_REPO now updated to $MP_VER_SHORT_STRING"
