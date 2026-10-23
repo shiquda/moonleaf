@@ -44,18 +44,17 @@ cask "moonleaf" do
   version "$VERSION"
   sha256 "$SHA256"
 
-  url "https://github.com/$REPO/releases/download/$TAG/moonleaf.dmg",
-      verified: "github.com/$REPO/"
+  url "https://github.com/$REPO/releases/download/v#{version}/moonleaf.dmg"
   name "moonleaf"
   desc "Wallpaper engine with shuffling, per-desktop wallpapers and a wallpaper browser"
-  homepage "https://github.com/$REPO"
+  homepage "https://shiquda.github.io/moonleaf"
 
   livecheck do
     url "https://github.com/$REPO/releases/latest/download/latest"
     regex(/^v?(\d+(?:\.\d+)*(?:\.beta\.\d+)?)$/i)
   end
 
-  depends_on macos: ">= :monterey"
+  depends_on macos: :monterey
 
   app "moonleaf.app"
 

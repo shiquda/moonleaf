@@ -12,7 +12,7 @@ LAUNCH_AGENTS_DIR="$CONTENTS_DIR/Library/LaunchAgents"
 # MP_VER_SHORT_STRING is the user-facing version (CFBundleShortVersionString) and
 # MP_VER_STRING the numeric build Sparkle compares (CFBundleVersion). Release builds
 # get both from scripts/release-version.sh; the defaults below are for local builds.
-MP_VER_SHORT_STRING="${MP_VER_SHORT_STRING:-4.1.0.dev}"
+MP_VER_SHORT_STRING="${MP_VER_SHORT_STRING:-4.1.1.dev}"
 MP_VER_STRING="${MP_VER_STRING:-0}"
 
 BUILD_ALL=false
