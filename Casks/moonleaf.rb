@@ -1,11 +1,11 @@
 cask "moonleaf" do
-  version "4.1.0"
-  sha256 "c15de2395df5d7f2dbcbf389f9792e0f075000d60e6e39001e3c1013f0ec9e40"
+  version "4.1.1"
+  sha256 "d3d6a806b3d27296ac42a81766892ef25466ee7d7dfddfca2f273c1ea278ebbc"
 
   url "https://github.com/shiquda/moonleaf/releases/download/v#{version}/moonleaf.dmg"
   name "moonleaf"
   desc "Wallpaper engine with shuffling, per-desktop wallpapers and a wallpaper browser"
-  homepage "https://github.com/shiquda/moonleaf"
+  homepage "https://shiquda.github.io/moonleaf"
 
   livecheck do
     url "https://github.com/shiquda/moonleaf/releases/latest/download/latest"
