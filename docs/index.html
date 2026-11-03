@@ -63,7 +63,7 @@
             "name": "Is moonleaf still maintained?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes, moonleaf is actively maintained. While the original upstream repository (illufied/moonleaf, formerly naomisphere/macpaper) was archived and frozen at v4.0.0, this official maintained fork (shiquda/moonleaf) continues active development with regular bug fixes, macOS Sequoia & Tahoe support, Apple Silicon and Intel support, modern Homebrew packaging, and automated updates via Sparkle."
+              "text": "Yes, moonleaf is actively maintained. While the original upstream repository (illufied/moonleaf, formerly naomisphere/macpaper) was archived and frozen at v4.0.0, this official maintained fork (shiquda/moonleaf) continues active development with regular bug fixes, Homebrew packaging, and Sparkle updates. It requires macOS 12 or later; tested on macOS 26 Tahoe."
             }
           },
           {
@@ -87,7 +87,7 @@
             "name": "Does Moonleaf support Apple Silicon and Intel Macs?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. Moonleaf is built as a Universal binary containing native machine code for both Apple Silicon (M1, M2, M3, M4 series) and Intel (x86_64) Macs running macOS 12 Monterey or newer."
+              "text": "The v4.1.1 release is a Universal binary for Intel (x86_64) and Apple Silicon (arm64). It requires macOS 12 or later. We tested it on macOS 26 Tahoe."
             }
           },
           {
@@ -95,7 +95,7 @@
             "name": "Does Moonleaf support live video and GIF wallpapers?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. Moonleaf supports smooth playback for MP4, MOV, and animated GIF wallpapers. It uses native hardware-accelerated AppKit and AVFoundation decoders with negligible CPU usage."
+              "text": "Yes. Moonleaf plays MP4, MOV, and animated GIF wallpapers. In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while playing a 1080p MP4. That is one machine and one file."
             }
           }
         ]
@@ -607,7 +607,7 @@
         <div class="card">
           <div class="card-icon">⚡</div>
           <h3>Native Universal Binary</h3>
-          <p>Optimized for Apple Silicon (M1/M2/M3/M4) and Intel Macs alike. Runs quietly in the background without hogging system RAM or CPU cycles.</p>
+          <p>Universal binary for Apple Silicon and Intel. Requires macOS 12 or later; tested on macOS 26 Tahoe.</p>
         </div>
 
         <div class="card">
@@ -683,7 +683,7 @@
 
       <div class="faq-item" id="faq-maintenance">
         <h3>Is moonleaf still maintained?</h3>
-        <p><strong>Yes, Moonleaf is actively maintained.</strong> While the original repository (<code>illufied/moonleaf</code>, originally <code>naomisphere/macpaper</code>) was archived after v4.0.0, this fork (<code>shiquda/moonleaf</code>) is actively maintained with bug fixes, multi-monitor stability patches, modern Homebrew packaging, and compatibility with the latest macOS versions including macOS 15 Sequoia and macOS 26 Tahoe.</p>
+        <p><strong>Yes, Moonleaf is actively maintained.</strong> While the original repository (<code>illufied/moonleaf</code>, originally <code>naomisphere/macpaper</code>) was archived after v4.0.0, this fork (<code>shiquda/moonleaf</code>) is actively maintained with bug fixes, multi-monitor patches, and Homebrew packaging. It requires macOS 12 or later; tested on macOS 26 Tahoe.</p>
       </div>
 
       <div class="faq-item" id="faq-homebrew">
@@ -701,7 +701,7 @@
 
       <div class="faq-item" id="faq-battery">
         <h3>Does Moonleaf drain laptop battery?</h3>
-        <p>Moonleaf is engineered in native Swift and AppKit. Live video (MP4/MOV) and animated GIF playback utilizes hardware-accelerated AVFoundation and Core Animation pipelines with negligible CPU consumption (&lt;1% on Apple Silicon). When running static wallpaper shuffles, resource usage is virtually zero.</p>
+        <p>In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while playing a 1080p MP4. That is one machine and one file. We did not measure battery life on other Macs.</p>
       </div>
 
       <div class="faq-item" id="faq-gatekeeper">

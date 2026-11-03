@@ -62,7 +62,7 @@
             "name": "Is there a free live video wallpaper app for Mac with no watermarks?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. Moonleaf is 100% free, MIT-licensed open-source software. It places no watermarks, requires no account or subscription, and contains no in-app purchases."
+              "text": "Yes. Moonleaf is free, MIT-licensed open-source software. It places no watermarks, requires no account or subscription, and contains no in-app purchases."
             }
           },
           {
@@ -78,7 +78,7 @@
             "name": "Does it work on Intel Macs and older macOS versions?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. Moonleaf is distributed as a Universal binary for macOS 12 Monterey or later, running natively on Intel (x86_64) and Apple Silicon (M1, M2, M3, M4) Macs."
+              "text": "The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe."
             }
           },
           {
@@ -94,7 +94,7 @@
             "name": "Does playing a video wallpaper drain battery?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Video playback uses hardware-accelerated AVFoundation decoders. On Apple Silicon, background CPU utilization is typically under 1%. Shorter 1080p loops keep energy consumption lowest."
+              "text": "In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while playing a 1080p MP4. That is one machine and one file, not a battery claim for every Mac."
             }
           },
           {
@@ -118,7 +118,7 @@
             "name": "Does the video wallpaper appear on the macOS lock screen?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "No. Apple restricts third-party wallpaper utilities from modifying the macOS lock screen. Moonleaf animates the desktop surface while your Mac is unlocked."
+              "text": "No. moonleaf animates the desktop only; it doesn't change the lock screen."
             }
           }
         ]
@@ -178,7 +178,7 @@
         <strong>Can you set a video as your wallpaper on a Mac?</strong> Not from System Settings &mdash; macOS only offers Apple's own curated Aerial flyovers and dynamic landscapes. A wallpaper utility can play your own video files on the desktop instead. <a href="../../">Moonleaf</a> is a free, open-source app that plays MP4 and MOV videos (and animated GIFs) as your desktop wallpaper, supporting independent assignments on each monitor and virtual Space.
       </p>
       <p>
-        <strong>Is there a free live wallpaper app for Mac that works on Intel?</strong> Yes. Moonleaf is MIT-licensed with no subscription fees or watermarks. Built as a Universal binary for macOS 12 Monterey through macOS 26 Tahoe, it runs smoothly on both Intel and Apple Silicon Macs.
+        <strong>Is there a free live wallpaper app for Mac that works on Intel?</strong> Moonleaf is free and open source, with no subscription. The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later; we tested it on macOS 26 Tahoe.
       </p>
       <span class="disclosure">Disclosure: Moonleaf is our open-source application. This guide outlines how to use it alongside honest comparisons with commercial and system-level alternatives.</span>
     </section>
@@ -186,10 +186,10 @@
     <section>
       <h2>What macOS Can Do on Its Own</h2>
       <p>
-        Starting with macOS Sonoma and continuing through macOS Sequoia and Tahoe, Apple introduced slow-motion video wallpapers. When you browse <strong>System Settings &rarr; Wallpaper</strong>, you can select drone footage of Greenland, the Hawaiian coast, or Dubai's skyline that animates smoothly across your desktop and slows to a stop on login.
+        System Settings includes Apple's own Aerial and dynamic wallpapers. As documented in <a href="https://support.apple.com/guide/mac-help/change-desktop-picture-mchlp1103/mac" target="_blank" rel="noopener">Apple's desktop picture guide</a>, that picker does not let you choose an arbitrary MP4 or MOV from disk.
       </p>
       <p>
-        However, as documented in <a href="https://support.apple.com/guide/mac-help/change-desktop-picture-mchlp1103/mac" target="_blank" rel="noopener">Apple's official desktop picture guide</a>, this feature is closed to third-party content. You cannot click an "Add Video" button in System Settings to pick a personal 4K drone clip, an MP4 loop from Pexels, or a captured game highlight. If you select your own video file via Finder, macOS simply rejects it or sets nothing.
+        You cannot click an "Add Video" button in System Settings to pick a personal clip. A wallpaper app can play your own file on the desktop instead.
       </p>
       <p>
         To run your own MP4 or MOV clips as live desktop backgrounds, you need an application designed to render hardware-accelerated video frames directly onto the desktop layer.
@@ -262,7 +262,7 @@
         <figcaption>Figure 3: Active video wallpaper cards display a green checkmark, inline volume slider, and file details.</figcaption>
       </figure>
 
-      <h3>4. Pause, Skip, and Adjust Volume from the Menu Bar</h3>
+      <h3>4. Shuffle, Adjust Volume, and Unset from the Menu Bar</h3>
       <p>
         With Moonleaf running, you can manage playback without reopening the main window:
       </p>
@@ -277,7 +277,7 @@
     <section>
       <h2>Where to Find High-Quality Video Wallpapers</h2>
       <p>
-        A great live wallpaper depends on seamless looping and clean resolution. Here are the best sources:
+        A looping clip at a clean resolution is easier to live with. Places to look:
       </p>
       <ul>
         <li><strong>Your Own Video Clips:</strong> Drone footage, landscape recordings shot on your iPhone, or rendered 3D motion graphics in 1080p or 4K.</li>
@@ -317,24 +317,20 @@
     <section>
       <h2>Battery, CPU, and Performance</h2>
       <p>
-        Playing continuous video on a MacBook could easily drain battery if poorly implemented. Moonleaf is architected specifically to prevent energy waste:
+        Moonleaf plays video with AVFoundation. In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while playing a 1080p MP4. That is one machine and one file. We did not measure battery life on other Macs.
       </p>
-      <ul>
-        <li><strong>Hardware VideoToolbox Decoding:</strong> Moonleaf delegates video playback to Apple's native AVFoundation and VideoToolbox frameworks. Dedicated hardware media engines handle the decoding, keeping CPU consumption under <strong>1% on Apple Silicon</strong>.</li>
-        <li><strong>Pure Native Swift:</strong> No Electron, Chromium, or WebKit wrappers running in the background.</li>
-      </ul>
       <div class="callout callout-tip">
-        <strong>Optimization Tips:</strong>
-        <p>&bull; <strong>Codec:</strong> Use H.264 or HEVC (H.265) encoded MP4/MOV files for optimal hardware decode efficiency.</p>
-        <p>&bull; <strong>Resolution:</strong> 1080p (1920&times;1080) at 30 fps looks stunning on Retina screens while consuming half the VRAM of uncompressed 4K files.</p>
-        <p>&bull; <strong>Audio:</strong> If your loop contains ambient audio, you can leave it muted or slide the volume to zero in the menu bar.</p>
+        <strong>File tips:</strong>
+        <p>&bull; <strong>Codec:</strong> H.264 or HEVC (H.265) MP4 and MOV files are the formats this build imports.</p>
+        <p>&bull; <strong>Resolution:</strong> A 1080p loop is a practical size. We did not measure 4K power use.</p>
+        <p>&bull; <strong>Audio:</strong> If the file has audio, use the menu bar volume slider or drag it to zero.</p>
       </div>
     </section>
 
     <section>
       <h2>Other Ways to Get a Live Wallpaper on Mac (Trade-Offs)</h2>
       <p>
-        Here is how the landscape of live video wallpaper tools compares as of November 2026:
+        Prices and system requirements below are copied from each project's own page, as of Nov 2026. Check their site before you rely on them. A cell is &mdash; when that page did not state the fact.
       </p>
 
       <div class="table-responsive">
@@ -343,52 +339,66 @@
             <tr>
               <th>Solution</th>
               <th>Price</th>
-              <th>Supported Formats</th>
-              <th>macOS Version</th>
-              <th>Key Trade-Offs</th>
+              <th>What their page says it plays</th>
+              <th>macOS, as stated by them</th>
+              <th>Source</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><strong>Moonleaf</strong></td>
-              <td>100% Free (MIT)</td>
-              <td>MP4, MOV, GIF, PNG, JPG</td>
-              <td>macOS 12+ (Universal)</td>
-              <td>Plays your own video &amp; GIF files; does not execute interactive Wallpaper Engine 3D scenes.</td>
+              <td>Free (MIT)</td>
+              <td>Your own MP4, MOV, GIF, PNG, and JPG files on the desktop. Not Wallpaper Engine scenes. It does not change the lock screen.</td>
+              <td>Requires macOS 12 or later. Tested here on macOS 26 Tahoe. Universal binary.</td>
+              <td>This site</td>
             </tr>
             <tr>
-              <td><strong>Phosphene</strong></td>
-              <td>Free / Open Source</td>
-              <td>Custom Aerial videos</td>
-              <td>macOS 26+ (Tahoe)</td>
-              <td>Injects custom videos into Apple's native Aerial path for lock screen sync; requires the newest macOS.</td>
+              <td><a href="https://github.com/kageroumado/phosphene" target="_blank" rel="noopener">Phosphene</a></td>
+              <td>Free. Their README lists a Homebrew cask.</td>
+              <td>Personal videos, and Wallpaper Engine workshop items turned into video. Their README says macOS plays them on the desktop and lock screen.</td>
+              <td>macOS 26 or later; Apple silicon or Intel.</td>
+              <td>README, as of Nov 2026</td>
             </tr>
             <tr>
-              <td><strong>Backdrop by Cindori</strong></td>
-              <td>Commercial ($19.99 or sub)</td>
-              <td>Video &amp; Motion</td>
-              <td>macOS 14+</td>
-              <td>Polished commercial interface with lock-screen integration; requires a paid license.</td>
+              <td><a href="https://cindori.com/backdrop" target="_blank" rel="noopener">Backdrop</a></td>
+              <td>Free to try with up to 3 watermarked wallpapers. Then $1.99/month, $14.99/year, or $29.99 lifetime (US prices on their <a href="https://cindori.com/store/backdrop" target="_blank" rel="noopener">store</a>).</td>
+              <td>Video backdrops, plus custom images and videos. GIF file support: &mdash;</td>
+              <td>macOS 15 Sequoia or later, per their product FAQ.</td>
+              <td>Product page and store, as of Nov 2026. Their product page says Lock Screen video is supported.</td>
             </tr>
             <tr>
-              <td><strong>MacWall / Vivid Walls / Muro</strong></td>
-              <td>Freemium / In-App Purchases</td>
-              <td>Video only</td>
-              <td>Often macOS 15+</td>
-              <td>Subscription models common; free tiers frequently restrict library size or features.</td>
+              <td><a href="https://macwall.app/download" target="_blank" rel="noopener">MacWall</a></td>
+              <td>Free 24-hour trial, then $12.99 once for up to 3 Macs.</td>
+              <td>A live video catalog. Own videos need Pro.</td>
+              <td>macOS 15 or later, Apple silicon or Intel. Live Lock Screen and Screen Saver need macOS 26 or later.</td>
+              <td>Download page, as of Nov 2026</td>
             </tr>
             <tr>
-              <td><strong>Unsupported Aerial Hack</strong> (idleassetsd replacement)</td>
-              <td>Free (Manual hack)</td>
-              <td>Custom Aerial injection</td>
-              <td>Varies</td>
-              <td>Overwrites system asset cache files; brittle and frequently breaks after minor macOS security updates.</td>
+              <td><a href="https://vividwalls.app/" target="_blank" rel="noopener">Vivid Walls</a></td>
+              <td>Free download, 3-day trial, then $9.99 once.</td>
+              <td>Wallpaper Engine scene files, plus video, web, GIF, and images.</td>
+              <td>macOS 14.0 or later, Apple Silicon.</td>
+              <td>Their site, as of Nov 2026. It lists a Lock Screen feature.</td>
+            </tr>
+            <tr>
+              <td><a href="https://github.com/MrRockySL/Muro" target="_blank" rel="noopener">Muro</a></td>
+              <td>Free</td>
+              <td>Looping video wallpapers.</td>
+              <td>macOS 14 or later. Universal binary. Lock screen and screen saver wallpapers need macOS 26 or later.</td>
+              <td>README, as of Nov 2026</td>
+            </tr>
+            <tr>
+              <td>Unsupported system-file change</td>
+              <td>&mdash;</td>
+              <td>&mdash;</td>
+              <td>&mdash;</td>
+              <td>Not recommended. This guide does not document it.</td>
             </tr>
           </tbody>
         </table>
       </div>
       <p>
-        If you want your video wallpaper to persist seamlessly onto the macOS lock screen and you are running the latest operating system, solutions like Phosphene utilize the system Aerial pipeline. However, for a dependable, universal, and completely free solution that works with your own files on macOS 12 through macOS 26, Moonleaf is the most direct native option.
+        moonleaf is a free, open-source option for playing your own files on the desktop. It requires macOS 12 or later; we tested it on macOS 26 Tahoe. It does not change the lock screen.
       </p>
     </section>
 
@@ -431,13 +441,13 @@
       </div>
 
       <div class="faq-card">
-        <h3>Which video formats work best?</h3>
-        <p>MP4 and MOV files encoded in H.264 or HEVC work best. Animated GIFs are also supported without conversion.</p>
+        <h3>Which video formats does Moonleaf import?</h3>
+        <p>This build imports MP4 and MOV files, including H.264 and HEVC. Animated GIFs are also supported without conversion.</p>
       </div>
 
       <div class="faq-card">
         <h3>Does Moonleaf work on Intel Macs?</h3>
-        <p>Yes. Moonleaf is built as a Universal binary with native support for Intel (x86_64) and Apple Silicon (M1/M2/M3/M4) architectures on macOS 12 Monterey or newer.</p>
+        <p>The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe.</p>
       </div>
 
       <div class="faq-card">
@@ -447,7 +457,7 @@
 
       <div class="faq-card">
         <h3>Does playing a video wallpaper drain battery?</h3>
-        <p>Moonleaf uses hardware video decoding through AVFoundation with under 1% CPU utilization on Apple Silicon, keeping battery drain negligible.</p>
+        <p>In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while playing a 1080p MP4. That is one machine and one file, not a battery claim for every Mac.</p>
       </div>
 
       <div class="faq-card">
@@ -462,14 +472,14 @@
 
       <div class="faq-card">
         <h3>Does the video wallpaper appear on the lock screen?</h3>
-        <p>No. macOS reserves the lock screen for system wallpapers. Moonleaf animates your desktop while logged in.</p>
+        <p>No. moonleaf animates the desktop only; it doesn't change the lock screen.</p>
       </div>
     </section>
 
     <!-- Footer CTA Banner -->
     <div class="cta-banner">
       <h2>Ready for Live Video Wallpapers on Mac?</h2>
-      <p>Download Moonleaf today. 100% free, open-source, and lightweight with support for MP4, MOV, and GIF on all your monitors.</p>
+      <p>Download Moonleaf. It is a free, open-source option for MP4, MOV, and GIF on the desktop.</p>
       <div class="cta-buttons">
         <a href="https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg" class="btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>

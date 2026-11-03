@@ -70,7 +70,7 @@
             "name": "Does moonleaf work on Intel Macs?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. Moonleaf is a Universal app supporting macOS 12 Monterey or later on both Intel and Apple Silicon Macs."
+              "text": "The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe."
             }
           },
           {
@@ -86,7 +86,7 @@
             "name": "Will an animated GIF wallpaper drain battery?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Animated graphics consume slightly more power than still pictures, but Moonleaf uses native AppKit rendering with less than 1% CPU usage on Apple Silicon."
+              "text": "In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while an animated GIF was playing. That is one machine and one file, not a battery claim for every Mac."
             }
           },
           {
@@ -94,7 +94,7 @@
             "name": "Does the GIF show on the lock screen?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "No. Moonleaf animates the active desktop wallpaper; macOS does not allow third-party utilities to modify the lock screen."
+              "text": "No. moonleaf animates the desktop only; it doesn't change the lock screen."
             }
           }
         ]
@@ -154,7 +154,7 @@
         <strong>Can you set a GIF as wallpaper on a Mac?</strong> Not with System Settings alone &mdash; macOS treats a GIF wallpaper as a still image and shows only its first frame. To make it move, you need an app that plays the animation on the desktop. Moonleaf is a free, open-source wallpaper manager that plays animated GIFs directly, so you don't have to convert them to MP4 first.
       </p>
       <p>
-        <strong>Does it work on older or Intel Macs?</strong> Yes. Many live-wallpaper utilities require macOS 14+ or Apple Silicon. Moonleaf is a Universal app built for macOS 12 Monterey or later, running natively on both Intel and Apple Silicon Macs.
+        <strong>Does it work on older or Intel Macs?</strong> The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later; we tested it on macOS 26 Tahoe.
       </p>
       <span class="disclosure">Disclosure: Moonleaf is our open-source app. We built it to offer a free, honest wallpaper manager without subscriptions or paywalls.</span>
     </section>
@@ -168,7 +168,7 @@
         According to <a href="https://support.apple.com/guide/mac-help/change-desktop-picture-mchlp1103/mac" target="_blank" rel="noopener">Apple's official wallpaper documentation</a>, macOS is designed to render desktop pictures as static bitmaps. The operating system's background daemon, <code>WallpaperAgent</code>, reads the file, decodes only frame index 0, and paints that single snapshot onto the desktop context.
       </p>
       <p>
-        Because macOS lacks a continuous loop playback pipeline for user image files, the remaining frames in the GIF are simply ignored. While macOS includes slow-motion Aerial flyovers, Apple restricts those to its proprietary streaming catalogue and provides no built-in mechanism for custom animated GIF playback.
+        The remaining frames are not played. System Settings can show Apple's own Aerial wallpapers, but it does not play a GIF file you choose.
       </p>
     </section>
 
@@ -267,14 +267,10 @@
     <section>
       <h2>Battery Life and Performance</h2>
       <p>
-        Animated wallpapers require active rendering cycles, but Moonleaf is engineered to keep resource usage negligible:
+        An animated wallpaper does more work than a still picture. Moonleaf plays GIF frames with Core Animation. In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while an animated GIF was playing. That is one machine and one file. We did not measure battery life on other Macs.
       </p>
-      <ul>
-        <li><strong>Core Animation Rendering:</strong> Moonleaf decodes frame delays and animates them using native <code>CAKeyframeAnimation</code>, avoiding the high memory overhead of browser-based tools.</li>
-        <li><strong>Low CPU Draw:</strong> On Apple Silicon Macs, Moonleaf typically registers under <strong>1% CPU usage</strong> during active playback.</li>
-      </ul>
       <div class="callout callout-tip">
-        <strong>Battery Tips:</strong> Use seamless 2- to 5-second loops at 1080p resolution to minimize memory footprint. If you need to conserve battery, click <em>Unset Live Wallpaper</em> in the menu bar to pause playback instantly.
+        <strong>If you want it stopped:</strong> click <em>Unset Live Wallpaper</em> in the menu bar. That clears the live wallpaper and restores the desktop picture.
       </div>
     </section>
 
@@ -300,7 +296,7 @@
     <section>
       <h2>Other Ways People Do It (and the Trade-Offs)</h2>
       <p>
-        Here is how the main methods compare as of November 2026:
+        Prices and requirements below are from each project's own page, as of Nov 2026. Check their site before you rely on them. A cell is &mdash; when that page did not state the fact. We could not verify a Mac app named WallFlow, so it is not listed.
       </p>
 
       <div class="table-responsive">
@@ -309,39 +305,46 @@
             <tr>
               <th>Method</th>
               <th>Price</th>
-              <th>Plays GIFs Directly?</th>
-              <th>Supported macOS</th>
-              <th>Trade-Offs</th>
+              <th>Plays GIF files?</th>
+              <th>macOS, as stated by them</th>
+              <th>Source</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><strong>Moonleaf</strong></td>
               <td>Free (MIT)</td>
-              <td>Yes (No converting)</td>
-              <td>macOS 12+ (Universal)</td>
-              <td>Free and open source; does not run interactive Wallpaper Engine scenes.</td>
+              <td>Yes. No converting step.</td>
+              <td>Requires macOS 12 or later. Tested here on macOS 26 Tahoe. Universal binary.</td>
+              <td>This site. It does not change the lock screen.</td>
             </tr>
             <tr>
-              <td><strong>Convert to MP4 + App</strong> (e.g. WallFlow)</td>
-              <td>Freemium</td>
-              <td>No (Requires conversion)</td>
-              <td>Often macOS 14+</td>
-              <td>Requires manual conversion step; leaves duplicate video files.</td>
+              <td>Convert the GIF to a video, then use a video wallpaper app</td>
+              <td>&mdash;</td>
+              <td>No. The GIF itself is not the wallpaper file.</td>
+              <td>&mdash;</td>
+              <td>We did not verify a specific converter app.</td>
             </tr>
             <tr>
-              <td><strong>Plash</strong></td>
-              <td>Free (OSS)</td>
-              <td>Yes (via HTML)</td>
-              <td>macOS 12+</td>
-              <td>Runs a WebKit web view on desktop; higher memory usage.</td>
+              <td><a href="https://sindresorhus.com/plash" target="_blank" rel="noopener">Plash</a></td>
+              <td>Free</td>
+              <td>No. It shows a website, not a GIF file.</td>
+              <td>The current direct download (2.17.2) requires macOS 26 or later. Older builds are listed for earlier macOS.</td>
+              <td>sindresorhus.com/plash, as of Nov 2026</td>
             </tr>
             <tr>
-              <td><strong>Paid Apps</strong> (Backdrop, Vivid Walls)</td>
-              <td>$10&ndash;$30 / Sub</td>
-              <td>Varies (mostly video)</td>
-              <td>Often macOS 15+</td>
-              <td>Paid software; frequently excludes older Intel Macs.</td>
+              <td><a href="https://vividwalls.app/" target="_blank" rel="noopener">Vivid Walls</a></td>
+              <td>Free download, 3-day trial, then $9.99 once.</td>
+              <td>Their site says it reads GIF files, plus video, web, and images.</td>
+              <td>macOS 14.0 or later, Apple Silicon.</td>
+              <td>vividwalls.app, as of Nov 2026</td>
+            </tr>
+            <tr>
+              <td><a href="https://cindori.com/backdrop" target="_blank" rel="noopener">Backdrop</a></td>
+              <td>Free to try with up to 3 watermarked wallpapers. Then $1.99/month, $14.99/year, or $29.99 lifetime (US; see their store).</td>
+              <td>&mdash;</td>
+              <td>macOS 15 Sequoia or later, per their product FAQ.</td>
+              <td>cindori.com/backdrop, as of Nov 2026</td>
             </tr>
           </tbody>
         </table>
@@ -380,7 +383,7 @@
 
       <div class="faq-card">
         <h3>Does Moonleaf work on Intel Macs?</h3>
-        <p>Yes. Moonleaf is a Universal binary for Intel (x86_64) and Apple Silicon Macs running macOS 12 Monterey or later.</p>
+        <p>The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe.</p>
       </div>
 
       <div class="faq-card">
@@ -390,12 +393,12 @@
 
       <div class="faq-card">
         <h3>Does an animated GIF wallpaper drain laptop battery?</h3>
-        <p>Animated wallpapers use slightly more power than static pictures, but Moonleaf's native Swift engine operates under 1% CPU on Apple Silicon to preserve battery life.</p>
+        <p>In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while an animated GIF was playing. That is one machine and one file, not a battery claim for every Mac.</p>
       </div>
 
       <div class="faq-card">
         <h3>Does the GIF wallpaper appear on the lock screen?</h3>
-        <p>No. Apple reserves the lock screen for system wallpapers. Moonleaf animates your desktop while your Mac is unlocked.</p>
+        <p>No. moonleaf animates the desktop only; it doesn't change the lock screen.</p>
       </div>
     </section>
 

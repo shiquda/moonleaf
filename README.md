@@ -46,7 +46,7 @@ Download the latest `moonleaf.dmg` from [GitHub Releases](https://github.com/shi
 
 > [!IMPORTANT]
 > **Upstream Maintenance Notice:** Upstream [`illufied/moonleaf`](https://github.com/illufied/moonleaf) (originally created by [naomisphere](https://github.com/illufied), frozen at `v4.0.0`) has been archived. **Its built-in legacy auto-updater no longer receives updates.**  
-> This fork ([`shiquda/moonleaf`](https://github.com/shiquda/moonleaf)) is the actively maintained line, providing bug fixes, macOS Sequoia & Tahoe support, Sparkle auto-updates, and Homebrew tap distribution.
+> This fork ([`shiquda/moonleaf`](https://github.com/shiquda/moonleaf)) is the actively maintained line, providing bug fixes, Sparkle auto-updates, and Homebrew tap distribution. It requires macOS 12 or later; tested on macOS 26 Tahoe.
 
 **Seamless, Non-destructive Upgrade:**
 1. Install the latest version via Homebrew (`brew install shiquda/moonleaf/moonleaf`) or download [`moonleaf.dmg`](https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg).
@@ -61,7 +61,7 @@ Download the latest `moonleaf.dmg` from [GitHub Releases](https://github.com/shi
 - **Dynamic Video & GIF Wallpapers:** Smooth playback of MP4, MOV, and GIF media with native AppKit and AVFoundation hardware-accelerated rendering.
 - **In-App Wallpaper Discovery:** Seamlessly browse, preview, and download thousands of high-res wallpapers from [Wallhaven](https://wallhaven.cc) and [Pexels](https://pexels.com).
 - **Status Bar & Quick Controls:** Convenient menu bar item for one-click shuffle, pausing playback, and quick settings.
-- **Lightweight & Native:** Pure Swift and AppKit architecture designed for low memory footprint and negligible CPU/battery consumption.
+- **Lightweight & Native:** Pure Swift and AppKit. We have not published a battery or CPU figure beyond one playback test on an M1 Pro running macOS 26.7.1.
 - **Sparkle Auto-Updates:** Verified, cryptographically signed automatic updates right inside the app.
 
 ---
