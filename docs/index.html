@@ -63,7 +63,7 @@
             "name": "Is moonleaf still maintained?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes, moonleaf is actively maintained. While the original upstream repository (illufied/moonleaf, formerly naomisphere/macpaper) was archived and frozen at v4.0.0, this official maintained fork (shiquda/moonleaf) continues active development with regular bug fixes, macOS Sequoia and Apple Silicon support, modern Homebrew packaging, and automated updates via Sparkle."
+              "text": "Yes, moonleaf is actively maintained. While the original upstream repository (illufied/moonleaf, formerly naomisphere/macpaper) was archived and frozen at v4.0.0, this official maintained fork (shiquda/moonleaf) continues active development with regular bug fixes, macOS Sequoia & Tahoe support, Apple Silicon and Intel support, modern Homebrew packaging, and automated updates via Sparkle."
             }
           },
           {
@@ -95,7 +95,7 @@
             "name": "Does Moonleaf support live video and GIF wallpapers?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. Moonleaf supports smooth playback for MP4, MOV, and animated GIF wallpapers. It includes intelligent battery-friendly auto-pausing when fullscreen applications are active."
+              "text": "Yes. Moonleaf supports smooth playback for MP4, MOV, and animated GIF wallpapers. It uses native hardware-accelerated AppKit and AVFoundation decoders with negligible CPU usage."
             }
           }
         ]
@@ -524,6 +524,7 @@
     </a>
     <div class="nav-links">
       <a href="#features">Features</a>
+      <a href="#guides">Guides</a>
       <a href="#upgrade">Migration</a>
       <a href="#faq">FAQ</a>
       <a href="https://github.com/shiquda/moonleaf" class="github-btn" target="_blank" rel="noopener">
@@ -562,10 +563,11 @@
       </div>
 
       <div class="meta-badges">
-        <span class="meta-badge">Universal (Apple Silicon & Intel)</span>
-        <span class="meta-badge">macOS 12.0+ (Monterey to Sequoia)</span>
+        <span class="meta-badge">Universal (Apple Silicon &amp; Intel)</span>
+        <span class="meta-badge">macOS 12.0+ (Tested on macOS 26 Tahoe)</span>
+        <span class="meta-badge">Signed &amp; Notarized</span>
         <span class="meta-badge">MIT License</span>
-        <span class="meta-badge">Free & Open Source</span>
+        <span class="meta-badge">Free &amp; Open Source</span>
       </div>
     </section>
 
@@ -590,9 +592,11 @@
 
         <div class="card">
           <div class="card-icon">🎬</div>
-          <h3>Video & GIF Playback</h3>
-          <p>Bring your desktop to life with silky smooth MP4, MOV, and GIF wallpapers. Smart battery-saving automatically pauses playback whenever apps are in fullscreen.</p>
-        </div>
+          <h3>Video &amp; GIF Playback</h3>
+          <p>Bring your desktop to life with silky smooth MP4, MOV, and GIF wallpapers using native hardware-accelerated playback.</p>
+          <p style="margin-top: 10px; font-size: 0.88rem;">
+            Guides: <a href="guides/gif-wallpaper-mac/" style="color: #79c0ff; text-decoration: underline;">Set GIF as Wallpaper</a> · <a href="guides/video-wallpaper-mac/" style="color: #79c0ff; text-decoration: underline;">Set Video as Wallpaper</a>
+          </p>
 
         <div class="card">
           <div class="card-icon">🌐</div>
@@ -652,17 +656,37 @@
       </div>
     </section>
 
+    <!-- Guides -->
+    <section id="guides" class="migration-box" style="margin-top: 50px;">
+      <h2>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#388bfd"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Guides &amp; Tutorials
+      </h2>
+      <p>Practical, step-by-step guides for customizing your macOS desktop wallpaper with Moonleaf.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 20px;">
+        <a href="guides/gif-wallpaper-mac/" style="display: block; padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s;">
+          <h3 style="font-size: 1.15rem; color: #79c0ff; margin-bottom: 8px;">How to Set a GIF as Wallpaper on Mac (Free, No Converting) &rarr;</h3>
+          <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">Learn why macOS only shows the first frame of a GIF and how to play animated GIF wallpapers natively with no conversion.</p>
+        </a>
+        <a href="guides/video-wallpaper-mac/" style="display: block; padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s;">
+          <h3 style="font-size: 1.15rem; color: #79c0ff; margin-bottom: 8px;">How to Set a Video as Wallpaper on Mac (Free, MP4 &amp; MOV) &rarr;</h3>
+          <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">Turn any MP4 or MOV clip into a live Mac wallpaper for free. Multi-monitor setups, menu bar controls, and no subscriptions.</p>
+        </a>
+      </div>
+    </section>
+
     <!-- FAQ -->
     <section id="faq" class="faq-container">
       <h2 class="section-title">Frequently Asked Questions</h2>
       <p class="section-desc">Answers to common questions about Moonleaf maintenance, installation, and capabilities.</p>
 
-      <div class="faq-item">
+      <div class="faq-item" id="faq-maintenance">
         <h3>Is moonleaf still maintained?</h3>
-        <p><strong>Yes, Moonleaf is actively maintained.</strong> While the original repository (<code>illufied/moonleaf</code>, originally <code>naomisphere/macpaper</code>) was archived after v4.0.0, this fork (<code>shiquda/moonleaf</code>) is actively maintained with bug fixes, multi-monitor stability patches, modern Homebrew packaging, and compatibility with the latest macOS versions.</p>
+        <p><strong>Yes, Moonleaf is actively maintained.</strong> While the original repository (<code>illufied/moonleaf</code>, originally <code>naomisphere/macpaper</code>) was archived after v4.0.0, this fork (<code>shiquda/moonleaf</code>) is actively maintained with bug fixes, multi-monitor stability patches, modern Homebrew packaging, and compatibility with the latest macOS versions including macOS 15 Sequoia and macOS 26 Tahoe.</p>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="faq-homebrew">
         <h3>How do I install Moonleaf with Homebrew?</h3>
         <p>You can install Moonleaf with a single command:<br>
           <code style="background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; display: inline-block; margin-top: 6px;">brew install shiquda/moonleaf/moonleaf</code><br>
@@ -670,19 +694,19 @@
         </p>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="faq-history">
         <h3>What happened to naomisphere / macpaper?</h3>
         <p>Moonleaf was originally named <strong>macpaper</strong> by creator naomisphere before being rebranded to moonleaf. Following the creator's archiving of the repository, this project was established to ensure ongoing maintenance, community pull request reviews, and continued macOS updates.</p>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="faq-battery">
         <h3>Does Moonleaf drain laptop battery?</h3>
-        <p>No. Moonleaf uses native AppKit rendering engines and automatically pauses video and GIF animations whenever a fullscreen app or game is active, or when screens sleep. When using static image shuffles, resource usage is virtually zero.</p>
+        <p>Moonleaf is engineered in native Swift and AppKit. Live video (MP4/MOV) and animated GIF playback utilizes hardware-accelerated AVFoundation and Core Animation pipelines with negligible CPU consumption (&lt;1% on Apple Silicon). When running static wallpaper shuffles, resource usage is virtually zero.</p>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="faq-gatekeeper">
         <h3>How do I bypass the macOS Gatekeeper quarantine prompt?</h3>
-        <p>Because Moonleaf is distributed as an open-source binary without an Apple Developer subscription, macOS may display a standard security prompt on first launch. You can either right-click the app in Finder and choose <strong>Open</strong>, or run:<br>
+        <p><strong>Official Moonleaf releases are code-signed with an Apple Developer ID and notarized by Apple.</strong> macOS Gatekeeper verifies the notarization ticket automatically, so Moonleaf opens directly on first launch. If you ever encounter a security prompt (e.g. after building from source or with strict custom security policies), you can right-click the app in Finder and choose <strong>Open</strong>, or run:<br>
           <code style="background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; display: inline-block; margin-top: 6px;">xattr -dr com.apple.quarantine /Applications/moonleaf.app</code>
         </p>
       </div>
@@ -690,12 +714,13 @@
   </main>
 
   <footer>
+    <p style="margin-bottom: 12px;">
+      <a href="guides/gif-wallpaper-mac/">GIF Wallpaper Guide</a> · <a href="guides/video-wallpaper-mac/">Video Wallpaper Guide</a>
+    </p>
     <p>
       Moonleaf is open-source software licensed under the <a href="https://github.com/shiquda/moonleaf/blob/main/LICENSE">MIT License</a>.<br>
       Originally created by <a href="https://github.com/illufied">naomisphere</a>. Actively maintained by <a href="https://github.com/shiquda">shiquda</a> and contributors.
     </p>
-  </footer>
-
   <script>
     function copyBrew() {
       navigator.clipboard.writeText("brew install shiquda/moonleaf/moonleaf").then(() => {
