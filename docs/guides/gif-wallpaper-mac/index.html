@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How to Set a GIF as Wallpaper on Mac (Free, No Converting)</title>
+  <meta name="description" content="macOS shows only a GIF's first frame. Here's why, and how to play GIF wallpapers on Mac for free with moonleaf. No MP4 converting, macOS 12+, Intel too.">
+  <link rel="canonical" href="https://shiquda.github.io/moonleaf/guides/gif-wallpaper-mac/">
+  <link rel="icon" type="image/png" href="../../icon.png">
+
+  <!-- OpenGraph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://shiquda.github.io/moonleaf/guides/gif-wallpaper-mac/">
+  <meta property="og:title" content="How to Set a GIF as Wallpaper on Mac (Free, No Converting)">
+  <meta property="og:description" content="macOS shows only a GIF's first frame. Here's why, and how to play GIF wallpapers on Mac for free with moonleaf. No MP4 converting, macOS 12+, Intel too.">
+  <meta property="og:image" content="https://shiquda.github.io/moonleaf/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How to Set a GIF as Wallpaper on Mac (Free, No Converting)">
+  <meta name="twitter:description" content="macOS shows only a GIF's first frame. Here's why, and how to play GIF wallpapers on Mac for free with moonleaf. No MP4 converting, macOS 12+, Intel too.">
+  <meta name="twitter:image" content="https://shiquda.github.io/moonleaf/og-image.png">
+
+  <link rel="stylesheet" href="../style.css">
+
+  <!-- JSON-LD Structured Data: Article & FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        "headline": "How to Set a GIF as Wallpaper on Mac (Free, No Converting)",
+        "description": "macOS shows only a GIF's first frame. Here's why, and how to play GIF wallpapers on Mac for free with moonleaf. No MP4 converting, macOS 12+, Intel too.",
+        "author": {
+          "@type": "Person",
+          "name": "shiquda",
+          "url": "https://github.com/shiquda"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "moonleaf",
+          "url": "https://shiquda.github.io/moonleaf/"
+        },
+        "datePublished": "2026-11-03",
+        "dateModified": "2026-11-03",
+        "mainEntityOfPage": "https://shiquda.github.io/moonleaf/guides/gif-wallpaper-mac/"
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Can you set a GIF as your wallpaper on a Mac?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Not with System Settings alone. macOS treats a GIF as a static picture and displays only its first frame. To animate it, you need an app like moonleaf that renders the animation on the desktop."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need to convert the GIF to an MP4 first?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. While many tools require converting GIFs to MP4 or MOV files, moonleaf decodes and plays .gif files directly."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does moonleaf work on Intel Macs?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I use different GIFs on multiple monitors?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Moonleaf detects multiple displays and lets you assign separate wallpapers to each screen."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Will an animated GIF wallpaper drain battery?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while an animated GIF was playing. That is one machine and one file, not a battery claim for every Mac."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does the GIF show on the lock screen?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. moonleaf animates the desktop only; it doesn't change the lock screen."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <div class="glow-top"></div>
+
+  <header>
+    <a href="../../" class="brand">
+      <img src="../../icon.png" alt="Moonleaf logo">
+      <span>moonleaf</span>
+    </a>
+    <div class="nav-links">
+      <a href="../../#features">Features</a>
+      <a href="../../#guides">Guides</a>
+      <a href="../../#upgrade">Migration</a>
+      <a href="../../#faq">FAQ</a>
+      <a href="https://github.com/shiquda/moonleaf" class="github-btn" target="_blank" rel="noopener">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <main class="guide-article">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../../">Home</a>
+      <span>&rsaquo;</span>
+      <a href="../../#guides">Guides</a>
+      <span>&rsaquo;</span>
+      <span>Set GIF as Wallpaper on Mac</span>
+    </nav>
+
+    <header class="guide-header">
+      <h1>How to Set a GIF as Your Wallpaper on Mac (No Converting)</h1>
+      <div class="guide-meta">
+        <span>Updated: November 3, 2026</span>
+        <span>&bull;</span>
+        <span>6 min read</span>
+        <span>&bull;</span>
+        <span class="guide-tag">macOS 12+ (Intel &amp; Apple Silicon)</span>
+        <span class="guide-tag">Free &amp; Open Source</span>
+      </div>
+    </header>
+
+    <!-- Answer-Ready Block -->
+    <section class="answer-ready-box" aria-label="Quick Answer">
+      <h3>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        Quick Answer
+      </h3>
+      <p>
+        <strong>Can you set a GIF as wallpaper on a Mac?</strong> Not with System Settings alone &mdash; macOS treats a GIF wallpaper as a still image and shows only its first frame. To make it move, you need an app that plays the animation on the desktop. Moonleaf is a free, open-source wallpaper manager that plays animated GIFs directly, so you don't have to convert them to MP4 first.
+      </p>
+      <p>
+        <strong>Does it work on older or Intel Macs?</strong> The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later; we tested it on macOS 26 Tahoe.
+      </p>
+      <span class="disclosure">Disclosure: Moonleaf is our open-source app. We built it to offer a free, honest wallpaper manager without subscriptions or paywalls.</span>
+    </section>
+
+    <section>
+      <h2>Why macOS Shows a GIF Wallpaper as a Still Image</h2>
+      <p>
+        If you have ever dragged an animated GIF into <strong>System Settings &rarr; Wallpaper</strong>, you already know the frustration: the graphic appears on your screen, but it remains completely frozen.
+      </p>
+      <p>
+        According to <a href="https://support.apple.com/guide/mac-help/change-desktop-picture-mchlp1103/mac" target="_blank" rel="noopener">Apple's official wallpaper documentation</a>, macOS is designed to render desktop pictures as static bitmaps. The operating system's background daemon, <code>WallpaperAgent</code>, reads the file, decodes only frame index 0, and paints that single snapshot onto the desktop context.
+      </p>
+      <p>
+        The remaining frames are not played. System Settings can show Apple's own Aerial wallpapers, but it does not play a GIF file you choose.
+      </p>
+    </section>
+
+    <section>
+      <h2>What You Can Do with macOS Alone</h2>
+      <p>
+        Without installing third-party utilities, your built-in options are limited:
+      </p>
+      <ul>
+        <li><strong>Export a still frame:</strong> Open the GIF in Preview, select your favorite frame, and export it as a static PNG.</li>
+        <li><strong>Use Apple's Aerials:</strong> Choose one of Apple's pre-packaged dynamic wallpapers or slow-motion aerial videos.</li>
+      </ul>
+      <p>
+        Neither method will animate your own GIF. To bring an actual looping GIF to life on your desktop, you need a lightweight helper application that draws the frames directly onto the desktop layer.
+      </p>
+    </section>
+
+    <section>
+      <h2>Set a GIF as Wallpaper with Moonleaf (Free)</h2>
+      <p>
+        Moonleaf is a native, MIT-licensed wallpaper manager for macOS. It decodes and plays <code>.gif</code> files directly without converting them to video first.
+      </p>
+
+      <h3>1. Install Moonleaf</h3>
+      <p>
+        Install Moonleaf via Homebrew or direct download:
+      </p>
+      <div class="callout callout-info">
+        <strong>Install via Homebrew:</strong>
+        <pre><code>brew install shiquda/moonleaf/moonleaf</code></pre>
+      </div>
+      <p>
+        You can also download <code>moonleaf.dmg</code> from <a href="https://github.com/shiquda/moonleaf/releases/latest" target="_blank" rel="noopener">GitHub Releases</a>. Official binaries are code-signed with an Apple Developer ID and notarized by Apple, allowing Gatekeeper to verify them cleanly on first launch.
+      </p>
+
+      <h3>2. Add Your GIF</h3>
+      <p>
+        Open Moonleaf from your Applications folder or menu bar. To add your animation:
+      </p>
+      <ol>
+        <li>Click <strong>+ add wallpaper</strong> in the top toolbar and select <strong>file</strong>.</li>
+        <li>Alternatively, <strong>drag and drop</strong> any <code>.gif</code> file from Finder directly into the manager window.</li>
+      </ol>
+
+      <figure class="guide-img">
+        <img src="../images/add-wallpaper-popover.png" alt="Moonleaf manager window showing the add wallpaper button and file popover">
+        <figcaption>Figure 1: Click "+ add wallpaper" in the Moonleaf toolbar or drop files directly into your library.</figcaption>
+      </figure>
+
+      <h3>3. Pick Your Display</h3>
+      <p>
+        Click on any wallpaper card to launch the <strong>Quick Preview overlay</strong>. You can see the animation looping in real time with an integrated clock preview before applying it.
+      </p>
+
+      <figure class="guide-img">
+        <img src="../images/gif-quick-preview.png" alt="Moonleaf Quick Preview overlay displaying animated GIF with clock">
+        <figcaption>Figure 2: Quick Preview displays the full-resolution animated GIF, file size, and desktop clock.</figcaption>
+      </figure>
+
+      <p>
+        To set the wallpaper:
+      </p>
+      <ol>
+        <li>Hover over the card and click the <strong>magic wand icon (Set Wallpaper)</strong>.</li>
+        <li>On multi-monitor setups, select <strong>All</strong> or pick a specific screen index (<strong>1</strong> or <strong>2</strong>).</li>
+        <li>The GIF begins playing immediately across your desktop.</li>
+      </ol>
+
+      <figure class="guide-img">
+        <img src="../images/gif-card-active.png" alt="Moonleaf active GIF card with controls and format badge">
+        <figcaption>Figure 3: An active GIF card shows a green checkmark, volume control, and format badge.</figcaption>
+      </figure>
+
+      <h3>4. Control Playback from the Menu Bar</h3>
+      <p>
+        Moonleaf runs quietly in your menu bar. Click the menu icon for quick controls:
+      </p>
+      <ul>
+        <li><strong>Shuffle Now:</strong> Instantly switch to another wallpaper in your library.</li>
+        <li><strong>Volume Slider:</strong> Control audio levels when mixing GIF and video wallpapers.</li>
+        <li><strong>Automatically start wallpaper on login:</strong> Keep your wallpaper running after reboot.</li>
+        <li><strong>Unset Live Wallpaper:</strong> Revert back to your stock static macOS background with one click.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Different GIFs on Each Monitor or Each Desktop</h2>
+      <p>
+        Moonleaf supports multi-monitor setups natively. When you connect an external display, Moonleaf detects it and lets you assign different GIF or video wallpapers to each monitor independently, or synchronize the same wallpaper across all screens.
+      </p>
+      <p>
+        For virtual desktops (macOS Spaces), animated wallpapers run as an AppKit window overlay positioned directly above the root desktop level. As a result, your animated GIF remains seamlessly visible as you swipe between Spaces.
+      </p>
+    </section>
+
+    <section>
+      <h2>Battery Life and Performance</h2>
+      <p>
+        An animated wallpaper does more work than a still picture. Moonleaf plays GIF frames with Core Animation. In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while an animated GIF was playing. That is one machine and one file. We did not measure battery life on other Macs.
+      </p>
+      <div class="callout callout-tip">
+        <strong>If you want it stopped:</strong> click <em>Unset Live Wallpaper</em> in the menu bar. That clears the live wallpaper and restores the desktop picture.
+      </div>
+    </section>
+
+    <section>
+      <h2>Prefer a Video? MP4 and MOV Work Too</h2>
+      <p>
+        If your wallpaper is already in video format, you don't need a separate app. Moonleaf plays MP4 and MOV videos natively alongside GIFs, leveraging hardware-accelerated AVFoundation decoding.
+      </p>
+      <p>
+        See our complete guide: <a href="../video-wallpaper-mac/"><strong>How to Set a Video as Wallpaper on Mac (Free, MP4 &amp; MOV) &rarr;</strong></a>
+      </p>
+    </section>
+
+    <section>
+      <h2>Where to Find GIF Wallpapers</h2>
+      <ul>
+        <li><strong>Pixel Art &amp; Lo-Fi Loops:</strong> Communities like <code>r/PixelArt</code> and <code>r/Cinemagraphs</code> provide beautiful seamless loops.</li>
+        <li><strong>Giphy &amp; Independent Creators:</strong> Search for looping animations, and always support artists on Ko-fi or Patreon.</li>
+        <li><strong>Built-In Wallhaven Browser:</strong> Moonleaf includes integrated browsing for Wallhaven, offering thousands of curated high-resolution static wallpapers.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Other Ways People Do It (and the Trade-Offs)</h2>
+      <p>
+        Prices and requirements below are from each project's own page, as of Nov 2026. Check their site before you rely on them. A cell is &mdash; when that page did not state the fact. We could not verify a Mac app named WallFlow, so it is not listed.
+      </p>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Price</th>
+              <th>Plays GIF files?</th>
+              <th>macOS, as stated by them</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Moonleaf</strong></td>
+              <td>Free (MIT)</td>
+              <td>Yes. No converting step.</td>
+              <td>Requires macOS 12 or later. Tested here on macOS 26 Tahoe. Universal binary.</td>
+              <td>This site. It does not change the lock screen.</td>
+            </tr>
+            <tr>
+              <td>Convert the GIF to a video, then use a video wallpaper app</td>
+              <td>&mdash;</td>
+              <td>No. The GIF itself is not the wallpaper file.</td>
+              <td>&mdash;</td>
+              <td>We did not verify a specific converter app.</td>
+            </tr>
+            <tr>
+              <td><a href="https://sindresorhus.com/plash" target="_blank" rel="noopener">Plash</a></td>
+              <td>Free</td>
+              <td>No. It shows a website, not a GIF file.</td>
+              <td>The current direct download (2.17.2) requires macOS 26 or later. Older builds are listed for earlier macOS.</td>
+              <td>sindresorhus.com/plash, as of Nov 2026</td>
+            </tr>
+            <tr>
+              <td><a href="https://vividwalls.app/" target="_blank" rel="noopener">Vivid Walls</a></td>
+              <td>Free download, 3-day trial, then $9.99 once.</td>
+              <td>Their site says it reads GIF files, plus video, web, and images.</td>
+              <td>macOS 14.0 or later, Apple Silicon.</td>
+              <td>vividwalls.app, as of Nov 2026</td>
+            </tr>
+            <tr>
+              <td><a href="https://cindori.com/backdrop" target="_blank" rel="noopener">Backdrop</a></td>
+              <td>Free to try with up to 3 watermarked wallpapers. Then $1.99/month, $14.99/year, or $29.99 lifetime (US; see their store).</td>
+              <td>&mdash;</td>
+              <td>macOS 15 Sequoia or later, per their product FAQ.</td>
+              <td>cindori.com/backdrop, as of Nov 2026</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Troubleshooting</h2>
+      <h3>1. GIF is not moving</h3>
+      <p>
+        Confirm that Moonleaf is running in your menu bar. If closed, macOS displays the native static wallpaper. Click the menu icon and ensure your wallpaper is selected.
+      </p>
+      <h3>2. Gatekeeper prompt on first launch</h3>
+      <p>
+        Official releases are signed and notarized by Apple. If custom security policies flag the app, right-click <code>moonleaf.app</code> and choose <strong>Open</strong>, or run:
+      </p>
+      <pre><code>xattr -dr com.apple.quarantine /Applications/moonleaf.app</code></pre>
+      <h3>3. Wallpaper resets after reboot</h3>
+      <p>
+        Click the Moonleaf menu bar icon and ensure <strong>Automatically start wallpaper on login</strong> is enabled.
+      </p>
+    </section>
+
+    <section class="faq-section">
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-card">
+        <h3>Can you set a GIF as your wallpaper on Mac without third-party apps?</h3>
+        <p>No. macOS System Settings parses GIF files as static images and displays only the first frame. A dedicated wallpaper manager like Moonleaf is required to animate the loop.</p>
+      </div>
+
+      <div class="faq-card">
+        <h3>Do I need to convert my GIF to an MP4 first?</h3>
+        <p>No. Moonleaf decodes and plays raw <code>.gif</code> files natively. You do not need to convert them to video.</p>
+      </div>
+
+      <div class="faq-card">
+        <h3>Does Moonleaf work on Intel Macs?</h3>
+        <p>The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe.</p>
+      </div>
+
+      <div class="faq-card">
+        <h3>Can I set different wallpapers on multiple monitors?</h3>
+        <p>Yes. Moonleaf detects all connected displays and allows independent wallpaper assignment per monitor.</p>
+      </div>
+
+      <div class="faq-card">
+        <h3>Does an animated GIF wallpaper drain laptop battery?</h3>
+        <p>In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while an animated GIF was playing. That is one machine and one file, not a battery claim for every Mac.</p>
+      </div>
+
+      <div class="faq-card">
+        <h3>Does the GIF wallpaper appear on the lock screen?</h3>
+        <p>No. moonleaf animates the desktop only; it doesn't change the lock screen.</p>
+      </div>
+    </section>
+
+    <!-- Footer CTA Banner -->
+    <div class="cta-banner">
+      <h2>Ready to Animate Your Mac Desktop?</h2>
+      <p>Download Moonleaf today. Free, open source, and lightweight with no watermarks or subscriptions.</p>
+      <div class="cta-buttons">
+        <a href="https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg" class="btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download moonleaf.dmg
+        </a>
+        <div class="btn-secondary" onclick="navigator.clipboard.writeText('brew install shiquda/moonleaf/moonleaf'); alert('Copied brew command to clipboard!');">
+          brew install shiquda/moonleaf/moonleaf
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p style="margin-bottom: 12px;">
+      <a href="../../">Moonleaf Homepage</a> &bull;
+      <a href="../video-wallpaper-mac/">Video Wallpaper Guide</a> &bull;
+      <a href="https://github.com/shiquda/moonleaf">GitHub Repository</a>
+    </p>
+    <p>
+      Moonleaf is open-source software licensed under the <a href="https://github.com/shiquda/moonleaf/blob/main/LICENSE">MIT License</a>.<br>
+      Originally created by <a href="https://github.com/illufied">naomisphere</a>. Actively maintained by <a href="https://github.com/shiquda">shiquda</a> and contributors.
+    </p>
+  </footer>
+</body>
+</html>

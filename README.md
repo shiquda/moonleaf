@@ -37,7 +37,7 @@ brew install shiquda/moonleaf/moonleaf
 Download the latest `moonleaf.dmg` from [GitHub Releases](https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg), open the disk image, and drag `moonleaf.app` into `/Applications`.
 
 **System Requirements:**
-- macOS **12** *(Monterey)*, **13** *(Ventura)*, **14** *(Sonoma)*, **15** *(Sequoia)* or later
+- macOS **12** *(Monterey)* or later (tested on macOS **26** *Tahoe*)
 - Universal binary: native on **Apple Silicon** (`arm64`) and **Intel** (`x86_64`)
 
 ---
@@ -46,7 +46,7 @@ Download the latest `moonleaf.dmg` from [GitHub Releases](https://github.com/shi
 
 > [!IMPORTANT]
 > **Upstream Maintenance Notice:** Upstream [`illufied/moonleaf`](https://github.com/illufied/moonleaf) (originally created by [naomisphere](https://github.com/illufied), frozen at `v4.0.0`) has been archived. **Its built-in legacy auto-updater no longer receives updates.**  
-> This fork ([`shiquda/moonleaf`](https://github.com/shiquda/moonleaf)) is the actively maintained line, providing bug fixes, macOS Sequoia & Sonoma support, Sparkle auto-updates, and Homebrew tap distribution.
+> This fork ([`shiquda/moonleaf`](https://github.com/shiquda/moonleaf)) is the actively maintained line, providing bug fixes, Sparkle auto-updates, and Homebrew tap distribution. It requires macOS 12 or later; tested on macOS 26 Tahoe.
 
 **Seamless, Non-destructive Upgrade:**
 1. Install the latest version via Homebrew (`brew install shiquda/moonleaf/moonleaf`) or download [`moonleaf.dmg`](https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg).
@@ -58,10 +58,10 @@ Download the latest `moonleaf.dmg` from [GitHub Releases](https://github.com/shi
 ## ✨ Features
 
 - **Multi-Monitor & Spaces Independence:** Set individual wallpapers per display or per macOS Space (virtual desktop). Shuffle and cycle them independently.
-- **Dynamic Video & GIF Wallpapers:** Smooth playback of MP4, MOV, and GIF media with smart battery-friendly auto-pausing when fullscreen applications are active.
+- **Dynamic Video & GIF Wallpapers:** Smooth playback of MP4, MOV, and GIF media with native AppKit and AVFoundation hardware-accelerated rendering.
 - **In-App Wallpaper Discovery:** Seamlessly browse, preview, and download thousands of high-res wallpapers from [Wallhaven](https://wallhaven.cc) and [Pexels](https://pexels.com).
 - **Status Bar & Quick Controls:** Convenient menu bar item for one-click shuffle, pausing playback, and quick settings.
-- **Lightweight & Native:** Pure Swift and AppKit architecture designed for low memory footprint and negligible CPU/battery consumption.
+- **Lightweight & Native:** Pure Swift and AppKit. We have not published a battery or CPU figure beyond one playback test on an M1 Pro running macOS 26.7.1.
 - **Sparkle Auto-Updates:** Verified, cryptographically signed automatic updates right inside the app.
 
 ---
@@ -90,10 +90,15 @@ Translation corrections and new languages are welcome via pull request: update o
   ```
   Sparkle is fetched automatically from its official release archive (digest-checked) into `.build/`, so the first build needs network access.
 
+## 📖 Guides
+
+- [How to Set a GIF as Wallpaper on Mac (Free, No Converting)](https://shiquda.github.io/moonleaf/guides/gif-wallpaper-mac/)
+- [How to Set a Video as Wallpaper on Mac (Free, MP4 & MOV)](https://shiquda.github.io/moonleaf/guides/video-wallpaper-mac/)
+
 ## 🛠️ Troubleshooting
 
-### Quarantine
-If macOS displays a security prompt stating the application is from an unidentified developer, right-click `moonleaf.app` and choose **Open**, or run the following in Terminal:
+### Quarantine & Gatekeeper
+Official releases are signed with an Apple Developer ID and notarized by Apple. macOS Gatekeeper automatically verifies the notarization ticket on first launch. If you build from source or macOS displays a quarantine prompt under custom security policies, right-click `moonleaf.app` in Finder and choose **Open**, or run:
 ```bash
 xattr -dr com.apple.quarantine /Applications/moonleaf.app
 ```
