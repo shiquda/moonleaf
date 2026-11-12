@@ -10,7 +10,7 @@ Sparkle is fetched from its official release archive (digest-pinned in `fetch-sp
 ## Runtime ownership
 
 - `macpaperService.shared` owns library selection, filters, volume and rotation state. Views and the status menu use the same instance.
-- `PlaybackCoordinator` owns per-desktop apply, pause, rotation, playlists and usage history. `SpaceBinding` is the display-plus-Space identity shared with glasswp. The engine binds one overlay window to a Space and does not join every Space. Overlay success is a matching request id, path, and time; Space changes refresh that identity before the menu or an apply.
+- `PlaybackCoordinator` owns per-desktop apply, pause, rotation, playlists and usage history. `SpaceBinding` is the display-plus-Space identity shared with glasswp. The engine binds one overlay window to a Space and does not join every Space. Each desktop keeps its own unconfirmed overlay request. Overlay success is a matching request id, path, and time; a cleared desktop or a newer apply ignores a late report. Space changes refresh that identity before the menu or an apply.
 - `MoonleafConfig.swift` is compiled into both moonleaf and glasswp. It provides the typed settings model and serialized config access under `~/.config/moonleaf`; the library remains under `~/.local/share/paper/wallpaper`.
 - Legacy configuration is migrated once without deleting the original data. The app and engine share an on-disk completion marker and an interprocess migration lock; old preferences migration flags remain valid. Known config symlinks are replaced atomically; unknown JSON fields survive settings updates.
 - Startup file reads and service persistence run off the main thread. Volume writes are coalesced over 150 ms.

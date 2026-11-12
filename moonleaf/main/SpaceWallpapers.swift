@@ -31,8 +31,14 @@ enum SpaceWallpapers {
 
     // MARK: - Desktops
 
+    /// Tests substitute desktop facts. Production leaves this nil.
+    static var spacesOverride: [Space]?
+    /// Tests record assignments instead of writing the system store.
+    static var assignOverride: (([Space: String]) -> Bool)?
+
     /// Every desktop of every online screen, in Mission Control order.
     static func liveSpaces() -> [Space] {
+        if let spacesOverride { return spacesOverride }
         guard let skyLight = skyLight,
               let connectionSymbol = dlsym(skyLight, "SLSMainConnectionID"),
               let copySymbol = dlsym(skyLight, "SLSCopyManagedDisplaySpaces") else { return [] }
@@ -64,6 +70,7 @@ enum SpaceWallpapers {
     /// again, so wallpapers written for the desktops that are not on screen
     /// show up straight away.
     static func reload() {
+        guard spacesOverride == nil, assignOverride == nil else { return }
         DispatchQueue.global(qos: .utility).async {
             let task = Process()
             task.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
@@ -111,6 +118,7 @@ enum SpaceWallpapers {
     /// Points the given desktops at their wallpaper.
     @discardableResult
     static func assign(_ wallpapers: [Space: String]) -> Bool {
+        if let assignOverride { return assignOverride(wallpapers) }
         guard !wallpapers.isEmpty, var store = readStore() else { return false }
 
         let idle = idleTemplate(in: store)

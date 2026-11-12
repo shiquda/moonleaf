@@ -92,6 +92,11 @@ final class SpaceOverlayController {
                       let managedID = facts.first(where: {
                           $0.displayUUID == displayUUID && $0.spaceUUID == target.spaceUUID
                       })?.managedID else {
+                    if let index = windows.firstIndex(where: { $0.targetKey == target.key && $0.displayUUID == displayUUID }) {
+                        windows[index].player.setDrawingPaused(true)
+                        windows[index].player.window.orderOut(nil)
+                        windows[index].bound = false
+                    }
                     boundAll = false
                     drawing = false
                     reasons.append("space-bind-failed")

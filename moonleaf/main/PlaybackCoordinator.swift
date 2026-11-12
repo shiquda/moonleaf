@@ -59,7 +59,7 @@ final class PlaybackCoordinator: ObservableObject {
         NSWorkspace.didWakeNotification,
         NSWorkspace.activeSpaceDidChangeNotification,
     ]
-    var pending: PendingOverlay?
+    var pendingByTarget: [String: PendingOverlay] = [:]
     private var rotationTimer: DispatchSourceTimer?
 
     private init() {
@@ -171,7 +171,7 @@ final class PlaybackCoordinator: ObservableObject {
                 origin: origin
             )
             if kind.usesSpaceBoundOverlay {
-                pending = PendingOverlay(
+                let request = PendingOverlay(
                     requestID: UUID().uuidString,
                     requestedAt: Date(),
                     path: path,
@@ -186,6 +186,9 @@ final class PlaybackCoordinator: ObservableObject {
                     stamp: stamp,
                     touchRotationClock: touchRotationClock
                 )
+                for key in request.keys {
+                    pendingByTarget[key] = request
+                }
                 statusMessage = nil
                 pushAssignments(recordHistory: false)
                 return false
@@ -207,6 +210,9 @@ final class PlaybackCoordinator: ObservableObject {
             guard !appliedKeys.isEmpty else {
                 statusMessage = NSLocalizedString("apply_none", comment: "")
                 return false
+            }
+            for key in appliedKeys {
+                pendingByTarget.removeValue(forKey: key)
             }
             if recordHistory {
                 snapshot.history = HistoryLogic.appending(
@@ -331,6 +337,7 @@ final class PlaybackCoordinator: ObservableObject {
         pushAssignments(recordHistory: false)
     }
     func clearTarget(_ key: String) {
+        pendingByTarget.removeValue(forKey: key)
         catalog.mutate { file in
             file.sessions.removeAll { $0.targetKey == key }
         }
@@ -367,7 +374,7 @@ final class PlaybackCoordinator: ObservableObject {
 
     func rotateDueSessions(now: Date = Date()) {
         let libraryShuffle = UserDefaults.standard.bool(forKey: "moonleaf_shuffleEnabled")
-        let held = Set(pending?.keys ?? [])
+        let held = Set(pendingByTarget.keys)
         for session in catalog.snapshot().sessions where !held.contains(session.targetKey) && RotationSchedule.isDue(
             listKind: session.listKind,
             rotationEnabled: session.rotationEnabled,
@@ -774,20 +781,18 @@ final class PlaybackCoordinator: ObservableObject {
                 pauseReason: session.pauseReason
             )
         }
-        if let pending {
-            for key in pending.keys where FileManager.default.fileExists(atPath: pending.path) {
-                let kind = MediaKind.from(path: pending.path)
-                if kind.usesSpaceBoundOverlay { needsPlayer = true }
-                file.targets[key] = PlaybackAssignment(
-                    path: pending.path,
-                    kind: kind.rawValue,
-                    paused: false,
-                    manualPause: false,
-                    pauseReason: nil,
-                    requestID: pending.requestID,
-                    requestedAt: pending.requestedAt
-                )
-            }
+        for (key, request) in pendingByTarget where FileManager.default.fileExists(atPath: request.path) {
+            let kind = MediaKind.from(path: request.path)
+            if kind.usesSpaceBoundOverlay { needsPlayer = true }
+            file.targets[key] = PlaybackAssignment(
+                path: request.path,
+                kind: kind.rawValue,
+                paused: false,
+                manualPause: false,
+                pauseReason: nil,
+                requestID: request.requestID,
+                requestedAt: request.requestedAt
+            )
         }
         SpaceBinding.writeAssignments(file)
         if needsPlayer {
@@ -802,56 +807,76 @@ final class PlaybackCoordinator: ObservableObject {
 
     func acceptReported(_ file: PlaybackStateFile?) {
         playerState = file?.targets ?? [:]
-        guard let pending, let file else { return }
-        let sawRequest = file.targets.values.contains { $0.requestID == pending.requestID }
-        if file.updatedAt.timeIntervalSince(pending.requestedAt) < -1 && !sawRequest { return }
-        var succeeded: [String] = []
-        var failed: [String] = []
-        var waiting = false
-        for key in pending.keys {
-            guard let state = file.targets[key] else {
-                if sawRequest { failed.append(key) } else { waiting = true }
-                continue
-            }
-            if ApplyCommit.overlaySucceeded(
-                requestID: pending.requestID,
-                path: pending.path,
-                requestedAt: pending.requestedAt,
-                reportedRequestID: state.requestID,
-                reportedPath: state.path,
-                reportedAt: state.requestedAt,
-                bound: state.bound,
-                reason: state.reason
-            ) {
-                succeeded.append(key)
-            } else if ApplyCommit.overlayFailed(
-                requestID: pending.requestID,
-                path: pending.path,
-                requestedAt: pending.requestedAt,
-                reportedRequestID: state.requestID,
-                reportedPath: state.path,
-                reportedAt: state.requestedAt,
-                bound: state.bound,
-                reason: state.reason
-            ) {
-                failed.append(key)
-            } else {
-                waiting = true
-            }
+        guard let file, !pendingByTarget.isEmpty else { return }
+        var unique: [String: PendingOverlay] = [:]
+        for request in pendingByTarget.values {
+            unique[request.requestID] = request
         }
-        if waiting { return }
-        if !succeeded.isEmpty {
-            commitOverlay(pending, keys: succeeded)
+        var failed = false
+        var committed = false
+        for request in unique.values {
+            let keys = request.keys.filter { pendingByTarget[$0]?.requestID == request.requestID }
+            guard !keys.isEmpty else { continue }
+            let sawRequest = file.targets.values.contains { $0.requestID == request.requestID }
+            if file.updatedAt.timeIntervalSince(request.requestedAt) < -1 && !sawRequest { continue }
+            var succeeded: [String] = []
+            var rejected: [String] = []
+            var waiting = false
+            for key in keys {
+                guard let state = file.targets[key] else {
+                    if sawRequest { rejected.append(key) } else { waiting = true }
+                    continue
+                }
+                if ApplyCommit.overlaySucceeded(
+                    requestID: request.requestID,
+                    path: request.path,
+                    requestedAt: request.requestedAt,
+                    reportedRequestID: state.requestID,
+                    reportedPath: state.path,
+                    reportedAt: state.requestedAt,
+                    bound: state.bound,
+                    reason: state.reason
+                ) {
+                    succeeded.append(key)
+                } else if ApplyCommit.overlayFailed(
+                    requestID: request.requestID,
+                    path: request.path,
+                    requestedAt: request.requestedAt,
+                    reportedRequestID: state.requestID,
+                    reportedPath: state.path,
+                    reportedAt: state.requestedAt,
+                    bound: state.bound,
+                    reason: state.reason
+                ) {
+                    rejected.append(key)
+                } else {
+                    waiting = true
+                }
+            }
+            if waiting { continue }
+            if !succeeded.isEmpty {
+                commitOverlay(request, keys: succeeded)
+                committed = true
+            }
+            for key in keys where pendingByTarget[key]?.requestID == request.requestID {
+                pendingByTarget.removeValue(forKey: key)
+            }
+            if !rejected.isEmpty { failed = true }
         }
-        self.pending = nil
-        statusMessage = failed.isEmpty ? nil : NSLocalizedString("bind_failed", comment: "")
-        if canTouchApp {
+        if failed {
+            statusMessage = NSLocalizedString("bind_failed", comment: "")
+        } else if pendingByTarget.isEmpty {
+            statusMessage = nil
+        }
+        if committed, canTouchApp {
             pushAssignments(recordHistory: false)
             publishCurrentPath()
         }
     }
 
     private func commitOverlay(_ pending: PendingOverlay, keys: [String]) {
+        let keys = keys.filter { pendingByTarget[$0]?.requestID == pending.requestID }
+        guard !keys.isEmpty else { return }
         catalog.mutate { file in
             for key in keys {
                 var session = file.sessions.first(where: { $0.targetKey == key }) ?? TargetSession(
