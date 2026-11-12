@@ -40,6 +40,7 @@ struct SettingsView: View {
 
     @State private var scalingMode: String = "fill"
     @State private var videoFilter: String = "none"
+    @State private var headerWidth: CGFloat = 600
 
     private let updater = Updater.shared
 
@@ -71,19 +72,44 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             if embedded {
                 GlassToolbar {
-                    PageHeader(title: NSLocalizedString("page_settings", comment: "Settings")) {
-                        HStack(spacing: 8) {
-                            ForEach(SettingsTab.allCases, id: \.self) { tab in
-                                tabButton(
-                                    title: tab.title,
-                                    icon: tab.icon,
-                                    isSelected: selectedTab == tab
-                                ) {
-                                    withAnimation(.easeInOut(duration: 0.15)) { selectedTab = tab }
+                    let compactHeader = headerWidth < 680
+                    let tabsRow = HStack(spacing: 6) {
+                        ForEach(SettingsTab.allCases, id: \.self) { tab in
+                            tabButton(
+                                title: tab.title,
+                                icon: tab.icon,
+                                isSelected: selectedTab == tab
+                            ) {
+                                withAnimation(.easeInOut(duration: 0.15)) { selectedTab = tab }
+                            }
+                            .fixedSize()
+                        }
+                    }
+                    Color.clear
+                        .frame(height: compactHeader ? 82 : 42)
+                        .overlay(alignment: .leading) {
+                            if compactHeader {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(NSLocalizedString("page_settings", comment: "Settings"))
+                                        .font(Font(font_loader.bold(size: 22)))
+                                        .foregroundStyle(.primary.opacity(0.92))
+                                    tabsRow
+                                }
+                            } else {
+                                HStack(spacing: 12) {
+                                    Text(NSLocalizedString("page_settings", comment: "Settings"))
+                                        .font(Font(font_loader.bold(size: 22)))
+                                        .foregroundStyle(.primary.opacity(0.92))
+                                    Spacer(minLength: 8)
+                                    tabsRow
                                 }
                             }
                         }
-                    }
+                        .background(WidthReader { width in
+                            if abs(headerWidth - width) > 4 {
+                                headerWidth = width
+                            }
+                        })
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 12)

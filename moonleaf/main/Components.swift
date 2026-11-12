@@ -24,6 +24,7 @@ struct RippleButton<Label: View>: View {
 
 struct FavoriteButton: View {
     let isFavorite: Bool
+    var size: CGFloat = 28
     let action: () -> Void
 
     @State private var isHovered = false
@@ -37,18 +38,32 @@ struct FavoriteButton: View {
             }
             action()
         }) {
-            Image(systemName: isFavorite ? "star.fill" : "star")
-                .font(Font(font_loader.bold(size: 14)))
-                .foregroundStyle(isFavorite ? .yellow : .white)
-                .shadow(color: .black.opacity(0.4), radius: 2, x: 0, y: 1)
-                .scaleEffect(bounce ? 1.4 : (isHovered ? 1.15 : 1.0))
-                .frame(width: 32, height: 32)
-                .background {
-                    Circle()
-                        .fill(.black.opacity(isFavorite ? 0.6 : 0.35))
-                }
+            ZStack {
+                Circle()
+                    .fill(.regularMaterial)
+                    .frame(width: size, height: size)
+                    .overlay {
+                        Circle()
+                            .fill(isFavorite ? MoonleafPalette.yellow : Color.black.opacity(0.45))
+                            .padding(2)
+                    }
+                    .overlay {
+                        Circle()
+                            .stroke(Color.white.opacity(isHovered ? 0.55 : 0.25), lineWidth: 0.8)
+                    }
+
+                Image(systemName: isFavorite ? "star.fill" : "star")
+                    .font(.system(size: size * 0.44, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.28), radius: 1, x: 0, y: 1)
+                    .scaleEffect(bounce ? 1.25 : (isHovered ? 1.08 : 1.0))
+            }
+            .frame(width: max(size, 32), height: max(size, 32))
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .help(NSLocalizedString(isFavorite ? "unfavorite_toggle" : "favorite_toggle", comment: ""))
+        .accessibilityLabel(NSLocalizedString(isFavorite ? "unfavorite_toggle" : "favorite_toggle", comment: ""))
         .onHover { hovering in withAnimation(.easeOut(duration: 0.15)) { isHovered = hovering } }
     }
 }
@@ -294,8 +309,30 @@ enum MoonleafPalette {
         endPoint: .bottomTrailing
     )
     static let amber = Color(red: 0.92, green: 0.68, blue: 0.32)
-    static let mint = Color(red: 0.36, green: 0.78, blue: 0.56)
-    static let rose = Color(red: 0.90, green: 0.40, blue: 0.44)
+    static let yellow = Color(red: 0.95, green: 0.73, blue: 0.14)
+    static let mint = Color(red: 0.24, green: 0.75, blue: 0.52)
+    static let blue = Color(red: 0.24, green: 0.52, blue: 0.94)
+    static let mutedBlue = Color(red: 0.35, green: 0.53, blue: 0.78)
+    static let rose = Color(red: 0.88, green: 0.30, blue: 0.34)
+}
+
+struct WidthReader: View {
+    let onChange: (CGFloat) -> Void
+
+    var body: some View {
+        GeometryReader { geo in
+            Color.clear
+                .preference(key: WidthPreferenceKey.self, value: geo.size.width)
+        }
+        .onPreferenceChange(WidthPreferenceKey.self, perform: onChange)
+    }
+}
+
+private struct WidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 1000
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
 }
 
 struct GlassPanel<Content: View>: View {
@@ -311,6 +348,12 @@ struct GlassPanel<Content: View>: View {
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(useUltraThin ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.regularMaterial))
+                    .overlay {
+                        if !useUltraThin {
+                            RoundedRectangle(cornerRadius: cornerRadius)
+                                .fill(Color(nsColor: .windowBackgroundColor).opacity(0.32))
+                        }
+                    }
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .stroke(Color.primary.opacity(strokeOpacity), lineWidth: 0.8)
@@ -440,15 +483,20 @@ struct PrimaryGradientButton: View {
                         .opacity(0.85)
                 }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(isDisabled ? Color.secondary : Color.white)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(MoonleafPalette.primaryGradient)
+                    .fill(isDisabled ? AnyShapeStyle(Color.primary.opacity(0.08)) : AnyShapeStyle(MoonleafPalette.primaryGradient))
                     .brightness(isHovered && !isDisabled ? 0.06 : 0)
+                    .overlay {
+                        if isDisabled {
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.primary.opacity(0.1), lineWidth: 0.8)
+                        }
+                    }
             }
-            .opacity(isDisabled ? 0.45 : 1.0)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
@@ -458,36 +506,138 @@ struct PrimaryGradientButton: View {
     }
 }
 
+enum CircleActionStyle {
+    case neutral
+    case darkFrosted
+    case filled(Color)
+
+    static let edit = CircleActionStyle.filled(MoonleafPalette.mint)
+    static let download = CircleActionStyle.filled(MoonleafPalette.blue)
+    static let delete = CircleActionStyle.filled(MoonleafPalette.rose)
+    static let playback = CircleActionStyle.filled(MoonleafPalette.periwinkle)
+    static let finder = CircleActionStyle.filled(MoonleafPalette.mutedBlue)
+    static let removeList = CircleActionStyle.filled(MoonleafPalette.amber)
+    static let success = CircleActionStyle.filled(MoonleafPalette.mint)
+}
+
 struct CircleIconButton: View {
     let icon: String
-    var size: CGFloat = 30
+    var size: CGFloat = 28
     var tint: Color = .primary
+    var style: CircleActionStyle = .neutral
     var isDisabled: Bool = false
+    var helpText: String? = nil
+    var accessibilityLabelText: String? = nil
     let action: () -> Void
 
     @State private var isHovered = false
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: size * 0.42, weight: .medium))
-                .foregroundStyle(isDisabled ? Color.secondary.opacity(0.5) : tint.opacity(0.9))
-                .frame(width: size, height: size)
-                .background {
+        let button = Button(action: action) {
+            ZStack {
+                switch style {
+                case .neutral:
                     Circle()
-                        .fill(.regularMaterial.opacity(isHovered && !isDisabled ? 0.95 : 0.72))
+                        .fill(.regularMaterial)
+                        .frame(width: size, height: size)
                         .overlay {
                             Circle()
-                                .stroke(Color.primary.opacity(isHovered && !isDisabled ? 0.24 : 0.12), lineWidth: 1)
+                                .fill(Color(nsColor: .windowBackgroundColor).opacity(isHovered && !isDisabled ? 0.35 : 0.18))
                         }
+                        .overlay {
+                            Circle()
+                                .stroke(Color.primary.opacity(isHovered && !isDisabled ? 0.28 : 0.14), lineWidth: 1)
+                        }
+                    Image(systemName: icon)
+                        .font(.system(size: size * 0.43, weight: .semibold))
+                        .foregroundStyle(isDisabled ? Color.secondary.opacity(0.5) : tint.opacity(0.9))
+                case .darkFrosted:
+                    Circle()
+                        .fill(.regularMaterial)
+                        .frame(width: size, height: size)
+                        .overlay {
+                            Circle()
+                                .fill(Color.black.opacity(isHovered && !isDisabled ? 0.65 : 0.48))
+                                .padding(2)
+                        }
+                        .overlay {
+                            Circle()
+                                .stroke(Color.white.opacity(isHovered && !isDisabled ? 0.5 : 0.24), lineWidth: 0.8)
+                        }
+                    Image(systemName: icon)
+                        .font(.system(size: size * 0.43, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(isDisabled ? 0.45 : 0.95))
+                case .filled(let fill):
+                    Circle()
+                        .fill(.regularMaterial)
+                        .frame(width: size, height: size)
+                        .overlay {
+                            Circle()
+                                .fill(isDisabled ? Color.primary.opacity(0.08) : fill.opacity(isHovered ? 1.0 : 0.90))
+                                .padding(2)
+                        }
+                        .overlay {
+                            Circle()
+                                .stroke(isDisabled ? Color.primary.opacity(0.14) : Color.white.opacity(isHovered ? 0.55 : 0.22), lineWidth: 0.8)
+                        }
+                    Image(systemName: icon)
+                        .font(.system(size: size * 0.43, weight: .bold))
+                        .foregroundStyle(isDisabled ? Color.secondary.opacity(0.8) : Color.white.opacity(0.98))
+                        .shadow(color: isDisabled ? .clear : .black.opacity(0.22), radius: 1, x: 0, y: 0.5)
                 }
-                .scaleEffect(isHovered && !isDisabled ? 1.05 : 1.0)
+            }
+            .frame(width: max(size, 30), height: max(size, 30))
+            .contentShape(Circle())
+            .opacity(isDisabled ? 0.5 : 1.0)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
         .onHover { hovering in
-            withAnimation(.easeOut(duration: 0.15)) { isHovered = hovering }
+            withAnimation(.easeOut(duration: 0.14)) { isHovered = hovering }
         }
+
+        if let helpText, let accessibilityLabelText {
+            button.help(helpText).accessibilityLabel(accessibilityLabelText)
+        } else if let helpText {
+            button.help(helpText).accessibilityLabel(helpText)
+        } else if let accessibilityLabelText {
+            button.accessibilityLabel(accessibilityLabelText)
+        } else {
+            button
+        }
+    }
+}
+
+struct CircleMenuLabel: View {
+    var icon: String = "ellipsis"
+    var size: CGFloat = 28
+    var darkFrosted: Bool = false
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(.regularMaterial)
+                .frame(width: size, height: size)
+                .overlay {
+                    if darkFrosted {
+                        Circle()
+                            .fill(Color.black.opacity(0.48))
+                            .padding(2)
+                    } else {
+                        Circle()
+                            .fill(Color(nsColor: .windowBackgroundColor).opacity(0.22))
+                    }
+                }
+                .overlay {
+                    Circle()
+                        .stroke(darkFrosted ? Color.white.opacity(0.24) : Color.primary.opacity(0.14), lineWidth: 0.9)
+                }
+            Image(systemName: icon)
+                .font(.system(size: size * 0.43, weight: .semibold))
+                .foregroundStyle(darkFrosted ? Color.white.opacity(0.95) : Color.primary.opacity(0.85))
+        }
+        .frame(width: max(size, 30), height: max(size, 30))
+        .contentShape(Circle())
     }
 }
 

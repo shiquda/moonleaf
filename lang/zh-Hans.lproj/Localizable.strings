@@ -191,6 +191,8 @@
 "filter_all" = "全部";
 "kind_still" = "图片";
 "kind_video" = "视频";
+"kind_folder" = "文件夹";
+"volume_control" = "音量";
 "history_timeline" = "时间线";
 "history_enabled" = "记录使用";
 "history_count" = "最近 %d 次 · 最多保留 %d 次";

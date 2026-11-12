@@ -156,6 +156,8 @@ struct tabButton: View {
                     .foregroundStyle(isSelected ? MoonleafPalette.periwinkle : Color.secondary)
                 Text(title)
                     .font(Font(isSelected ? font_loader.bold(size: 14) : font_loader.regular(size: 14)))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: !fullWidth, vertical: false)
                 if fullWidth {
                     Spacer(minLength: 0)
                 }

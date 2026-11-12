@@ -87,7 +87,7 @@ struct UsagePage: View {
     @State private var showDisplayPopover = false
     @State private var showSpacePopover = false
     @State private var showKindPopover = false
-
+    @State private var historyWidth: CGFloat = 600
     var body: some View {
         VStack(spacing: 0) {
             GlassToolbar {
@@ -265,67 +265,52 @@ struct UsagePage: View {
                     }
                     .disabled(playback.history.isEmpty)
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.primary.opacity(0.85))
-                        .frame(width: 30, height: 30)
-                        .background {
-                            Circle()
-                                .fill(.regularMaterial.opacity(0.75))
-                                .overlay { Circle().stroke(Color.primary.opacity(0.12), lineWidth: 1) }
-                        }
+                    CircleMenuLabel()
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
                 .fixedSize()
             }
             .padding(.horizontal, 4)
 
-            GlassPanel(cornerRadius: 16, padding: 12) {
-                HStack(spacing: 8) {
-                    GlassSearchField(
-                        placeholder: NSLocalizedString("search_name", comment: ""),
-                        text: $query
-                    )
-                    .frame(minWidth: 140, maxWidth: 260)
+            GlassPanel(cornerRadius: 16, padding: 12, useUltraThin: false) {
+                let compactFilter = historyWidth < 680
+                Color.clear
+                    .frame(height: compactFilter ? 78 : 34)
+                    .overlay {
+                        if compactFilter {
+                            VStack(alignment: .leading, spacing: 8) {
+                                GlassSearchField(
+                                    placeholder: NSLocalizedString("search_name", comment: ""),
+                                    text: $query
+                                )
+                                HStack(spacing: 8) {
+                                    historyDisplayChip
+                                    historySpaceChip
+                                    historyKindChip
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                        } else {
+                            HStack(spacing: 8) {
+                                GlassSearchField(
+                                    placeholder: NSLocalizedString("search_name", comment: ""),
+                                    text: $query
+                                )
+                                .frame(minWidth: 140, maxWidth: 260)
 
-                    ChipButton(
-                        title: displayFilter.isEmpty ? NSLocalizedString("filter_display", comment: "") : displayFilter,
-                        icon: "display",
-                        trailingIcon: "chevron.down",
-                        isActive: !displayFilter.isEmpty
-                    ) {
-                        showDisplayPopover.toggle()
+                                historyDisplayChip
+                                historySpaceChip
+                                historyKindChip
+                                Spacer(minLength: 0)
+                            }
+                        }
                     }
-                    .popover(isPresented: $showDisplayPopover, arrowEdge: .bottom) {
-                        displayPopoverContent
-                    }
-
-                    ChipButton(
-                        title: selectedSpaceTitle,
-                        icon: "macwindow",
-                        trailingIcon: "chevron.down",
-                        isActive: !spaceFilter.isEmpty
-                    ) {
-                        showSpacePopover.toggle()
-                    }
-                    .popover(isPresented: $showSpacePopover, arrowEdge: .bottom) {
-                        spacePopoverContent
-                    }
-
-                    ChipButton(
-                        title: selectedKindTitle,
-                        icon: "line.3.horizontal.decrease.circle",
-                        trailingIcon: "chevron.down",
-                        isActive: kindFilter != "all"
-                    ) {
-                        showKindPopover.toggle()
-                    }
-                    .popover(isPresented: $showKindPopover, arrowEdge: .bottom) {
-                        kindPopoverContent
-                    }
-
-                    Spacer(minLength: 0)
-                }
+                    .background(WidthReader { width in
+                        if abs(historyWidth - width) > 4 {
+                            historyWidth = width
+                        }
+                    })
             }
 
             if filteredHistory.isEmpty {
@@ -445,6 +430,50 @@ struct UsagePage: View {
         case "video": return NSLocalizedString("kind_video", comment: "")
         case "gif": return "GIF"
         default: return NSLocalizedString("filter_kind", comment: "")
+        }
+    }
+    private var historyDisplayChip: some View {
+        ChipButton(
+            title: displayFilter.isEmpty ? NSLocalizedString("filter_display", comment: "") : displayFilter,
+            icon: "display",
+            trailingIcon: "chevron.down",
+            isActive: !displayFilter.isEmpty
+        ) {
+            showDisplayPopover.toggle()
+        }
+        .fixedSize()
+        .popover(isPresented: $showDisplayPopover, arrowEdge: .bottom) {
+            displayPopoverContent
+        }
+    }
+
+    private var historySpaceChip: some View {
+        ChipButton(
+            title: selectedSpaceTitle,
+            icon: "macwindow",
+            trailingIcon: "chevron.down",
+            isActive: !spaceFilter.isEmpty
+        ) {
+            showSpacePopover.toggle()
+        }
+        .fixedSize()
+        .popover(isPresented: $showSpacePopover, arrowEdge: .bottom) {
+            spacePopoverContent
+        }
+    }
+
+    private var historyKindChip: some View {
+        ChipButton(
+            title: selectedKindTitle,
+            icon: "line.3.horizontal.decrease.circle",
+            trailingIcon: "chevron.down",
+            isActive: kindFilter != "all"
+        ) {
+            showKindPopover.toggle()
+        }
+        .fixedSize()
+        .popover(isPresented: $showKindPopover, arrowEdge: .bottom) {
+            kindPopoverContent
         }
     }
 
@@ -569,40 +598,43 @@ private struct DesktopTargetCard: View {
             HStack(spacing: 8) {
                 CircleIconButton(
                     icon: isPaused ? "play.fill" : "pause.fill",
-                    isDisabled: unavailable || session == nil
+                    style: .playback,
+                    isDisabled: unavailable || session == nil,
+                    helpText: isPaused ? NSLocalizedString("pause_resume", comment: "") : NSLocalizedString("pause_toggle", comment: "")
                 ) {
                     playback.setPaused(!isPaused, targetKey: target.key)
                 }
-                .help(isPaused ? NSLocalizedString("pause_resume", comment: "") : NSLocalizedString("pause_toggle", comment: ""))
 
                 CircleIconButton(
                     icon: "forward.end.fill",
-                    isDisabled: unavailable || session == nil
+                    style: .playback,
+                    isDisabled: unavailable || session == nil,
+                    helpText: NSLocalizedString("next_item", comment: "")
                 ) {
                     playback.next(targetKey: target.key)
                 }
-                .help(NSLocalizedString("next_item", comment: ""))
 
                 CircleIconButton(
                     icon: "info.circle",
-                    isDisabled: session?.path == nil
+                    style: .neutral,
+                    isDisabled: session?.path == nil,
+                    helpText: NSLocalizedString("detail_open", comment: "")
                 ) {
                     if let path = session?.path {
                         onOpenDetail(path)
                     }
                 }
-                .help(NSLocalizedString("detail_open", comment: ""))
 
                 CircleIconButton(
                     icon: "folder",
-                    isDisabled: session?.path == nil
+                    style: .finder,
+                    isDisabled: session?.path == nil,
+                    helpText: NSLocalizedString("reveal_finder", comment: "")
                 ) {
                     if let path = session?.path {
                         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
                     }
                 }
-                .help(NSLocalizedString("reveal_finder", comment: ""))
-
                 Spacer()
 
                 Menu {
@@ -662,17 +694,10 @@ private struct DesktopTargetCard: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.primary.opacity(0.85))
-                        .frame(width: 30, height: 30)
-                        .background {
-                            Circle()
-                                .fill(.regularMaterial.opacity(0.75))
-                                .overlay { Circle().stroke(Color.primary.opacity(0.12), lineWidth: 1) }
-                        }
+                    CircleMenuLabel()
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
                 .fixedSize()
                 .disabled(session == nil)
             }
@@ -680,7 +705,11 @@ private struct DesktopTargetCard: View {
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 16)
-                .fill(.regularMaterial.opacity(0.68))
+                .fill(.regularMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(nsColor: .windowBackgroundColor).opacity(0.32))
+                }
                 .overlay {
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(
@@ -776,8 +805,14 @@ private struct HistoryRowView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 6) {
-                if isHovered, let path = resolvedPath, fileExists {
-                    CircleIconButton(icon: "wand.and.stars") {
+                let canAct = resolvedPath != nil && fileExists
+                CircleIconButton(
+                    icon: "wand.and.stars",
+                    style: .playback,
+                    isDisabled: !canAct,
+                    helpText: NSLocalizedString("apply_current_keep_rotation", comment: "")
+                ) {
+                    if let path = resolvedPath, fileExists {
                         _ = playback.apply(
                             path: path,
                             name: event.assetName,
@@ -789,13 +824,22 @@ private struct HistoryRowView: View {
                             recordHistory: true
                         )
                     }
-                    .help(NSLocalizedString("apply_current_keep_rotation", comment: ""))
+                }
+                .opacity(isHovered && canAct ? 1 : 0)
+                .allowsHitTesting(isHovered && canAct)
 
-                    CircleIconButton(icon: "info.circle") {
+                CircleIconButton(
+                    icon: "info.circle",
+                    style: .neutral,
+                    isDisabled: !canAct,
+                    helpText: NSLocalizedString("detail_open", comment: "")
+                ) {
+                    if let path = resolvedPath, fileExists {
                         onOpenDetail(path)
                     }
-                    .help(NSLocalizedString("detail_open", comment: ""))
                 }
+                .opacity(isHovered && canAct ? 1 : 0)
+                .allowsHitTesting(isHovered && canAct)
 
                 Menu {
                     if let path = resolvedPath, fileExists {
@@ -860,27 +904,24 @@ private struct HistoryRowView: View {
                         playback.removeHistory(event.id)
                     }
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.primary.opacity(0.85))
-                        .frame(width: 30, height: 30)
-                        .background {
-                            Circle()
-                                .fill(.regularMaterial.opacity(0.75))
-                                .overlay { Circle().stroke(Color.primary.opacity(0.12), lineWidth: 1) }
-                        }
+                    CircleMenuLabel()
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
                 .fixedSize()
             }
         }
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 16)
-                .fill(.regularMaterial.opacity(isHovered ? 0.85 : 0.65))
+                .fill(.regularMaterial)
                 .overlay {
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.primary.opacity(isHovered ? 0.18 : 0.1), lineWidth: 0.8)
+                        .fill(Color(nsColor: .windowBackgroundColor).opacity(isHovered ? 0.22 : 0.34))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.primary.opacity(isHovered ? 0.20 : 0.10), lineWidth: 0.8)
                 }
         }
         .onHover { hovering in
@@ -907,28 +948,29 @@ struct PlaylistsPage: View {
     @State private var renameText = ""
     @State private var draggingAssetID: UUID?
     @State private var detailPath: String?
+    @State private var pageWidth: CGFloat = 600
+    @State private var showPlaylistPickerPopover = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            sidebarColumn
-
-            if let list = playback.playlists.first(where: { $0.id == selectedID }) {
-                playlistDetail(list)
+        let compactLayout = pageWidth < 680
+        Group {
+            if compactLayout {
+                VStack(alignment: .leading, spacing: 12) {
+                    compactSelectorBar
+                    detailOrEmpty
+                }
             } else {
-                GlassPanel(cornerRadius: 20, padding: 20) {
-                    GlassEmptyState(
-                        icon: "music.note.list",
-                        title: playback.playlists.isEmpty
-                            ? NSLocalizedString("playlists_empty", comment: "")
-                            : NSLocalizedString("playlist_pick", comment: ""),
-                        subtitle: playback.playlists.isEmpty
-                            ? NSLocalizedString("playlists_empty_desc", comment: "")
-                            : nil
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                HStack(alignment: .top, spacing: 16) {
+                    sidebarColumn
+                    detailOrEmpty
                 }
             }
         }
+        .background(WidthReader { width in
+            if abs(pageWidth - width) > 4 {
+                pageWidth = width
+            }
+        })
         .padding(.horizontal, 24)
         .padding(.top, 12)
         .padding(.bottom, 16)
@@ -944,8 +986,105 @@ struct PlaylistsPage: View {
         .sheet(item: detailBinding) { item in
             AssetDetailSheet(path: item.path)
         }
+        .alert(NSLocalizedString("playlist_delete_title", comment: ""), isPresented: $confirmDelete) {
+            Button(NSLocalizedString("playlist_delete", comment: ""), role: .destructive) {
+                if let id = selectedID {
+                    playback.deletePlaylist(id)
+                    selectedID = playback.playlists.first?.id
+                }
+            }
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) {}
+        } message: {
+            Text(NSLocalizedString("playlist_delete_message", comment: ""))
+        }
     }
 
+    @ViewBuilder
+    private var detailOrEmpty: some View {
+        if let list = playback.playlists.first(where: { $0.id == selectedID }) {
+            playlistDetail(list)
+        } else {
+            GlassPanel(cornerRadius: 20, padding: 20) {
+                GlassEmptyState(
+                    icon: "music.note.list",
+                    title: playback.playlists.isEmpty
+                        ? NSLocalizedString("playlists_empty", comment: "")
+                        : NSLocalizedString("playlist_pick", comment: ""),
+                    subtitle: playback.playlists.isEmpty
+                        ? NSLocalizedString("playlists_empty_desc", comment: "")
+                        : nil
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    private var compactSelectorBar: some View {
+        GlassPanel(cornerRadius: 16, padding: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    let currentList = playback.playlists.first(where: { $0.id == selectedID })
+                    ChipButton(
+                        title: currentList?.name ?? NSLocalizedString("playlist_pick", comment: ""),
+                        icon: "music.note.list",
+                        trailingIcon: "chevron.down",
+                        isActive: currentList != nil,
+                        isDisabled: playback.playlists.isEmpty
+                    ) {
+                        showPlaylistPickerPopover.toggle()
+                    }
+                    .popover(isPresented: $showPlaylistPickerPopover, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(playback.playlists) { list in
+                                PopoverMenuItem(
+                                    title: list.name,
+                                    subtitle: "\(list.assetIDs.count)",
+                                    isSelected: selectedID == list.id
+                                ) {
+                                    selectedID = list.id
+                                    showPlaylistPickerPopover = false
+                                }
+                            }
+                        }
+                        .padding(8)
+                        .frame(width: 220)
+                    }
+
+                    TextField(NSLocalizedString("playlist_name", comment: ""), text: $newName)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(.regularMaterial.opacity(0.8))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                                }
+                        }
+                        .onSubmit(createCurrentPlaylist)
+
+                    PrimaryGradientButton(
+                        title: NSLocalizedString("playlist_create", comment: ""),
+                        icon: "plus",
+                        isDisabled: newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                        action: createCurrentPlaylist
+                    )
+
+                    if let id = selectedID, playback.playlists.contains(where: { $0.id == id }) {
+                        CircleIconButton(
+                            icon: "trash",
+                            style: .delete,
+                            helpText: NSLocalizedString("playlist_delete", comment: "")
+                        ) {
+                            confirmDelete = true
+                        }
+                    }
+                }
+            }
+        }
+    }
     private var detailBinding: Binding<PathItem?> {
         Binding(
             get: { detailPath.map(PathItem.init) },
@@ -1012,19 +1151,10 @@ struct PlaylistsPage: View {
                     ) {
                         confirmDelete = true
                     }
-                    .alert(NSLocalizedString("playlist_delete_title", comment: ""), isPresented: $confirmDelete) {
-                        Button(NSLocalizedString("playlist_delete", comment: ""), role: .destructive) {
-                            playback.deletePlaylist(id)
-                            selectedID = playback.playlists.first?.id
-                        }
-                        Button(NSLocalizedString("cancel", comment: ""), role: .cancel) {}
-                    } message: {
-                        Text(NSLocalizedString("playlist_delete_message", comment: ""))
-                    }
                 }
             }
         }
-        .frame(width: 268)
+        .frame(width: 244)
     }
 
     private func createCurrentPlaylist() {
@@ -1068,10 +1198,10 @@ struct PlaylistsPage: View {
                                             .padding(.vertical, 4)
                                             .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.08)))
                                             .onSubmit { commitRename(list) }
-                                        CircleIconButton(icon: "checkmark", size: 26, tint: MoonleafPalette.mint) {
+                                        CircleIconButton(icon: "checkmark", size: 26, style: .success, helpText: NSLocalizedString("done", comment: "")) {
                                             commitRename(list)
                                         }
-                                        CircleIconButton(icon: "xmark", size: 26, tint: MoonleafPalette.rose) {
+                                        CircleIconButton(icon: "xmark", size: 26, style: .neutral, helpText: NSLocalizedString("cancel", comment: "")) {
                                             isRenaming = false
                                         }
                                     }
@@ -1081,7 +1211,7 @@ struct PlaylistsPage: View {
                                             .font(Font(font_loader.bold(size: 22)))
                                             .foregroundStyle(.primary.opacity(0.92))
                                             .lineLimit(1)
-                                        CircleIconButton(icon: "pencil", size: 26) {
+                                        CircleIconButton(icon: "pencil", size: 26, style: .edit, helpText: NSLocalizedString("library_rename", comment: "")) {
                                             renameText = list.name
                                             isRenaming = true
                                         }
@@ -1095,79 +1225,92 @@ struct PlaylistsPage: View {
                             Spacer()
                         }
 
-                        HStack(spacing: 8) {
-                            ChipButton(
-                                title: list.order == "random"
-                                    ? NSLocalizedString("order_random", comment: "")
-                                    : NSLocalizedString("order_sequential", comment: ""),
-                                icon: list.order == "random" ? "shuffle" : "arrow.right",
-                                trailingIcon: "chevron.down"
-                            ) {
-                                showOrderPopover.toggle()
-                            }
-                            .popover(isPresented: $showOrderPopover, arrowEdge: .bottom) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    PopoverMenuItem(
-                                        title: NSLocalizedString("order_sequential", comment: ""),
-                                        icon: "arrow.right",
-                                        isSelected: list.order != "random"
-                                    ) {
-                                        playback.updatePlaylistSettings(list.id, order: "sequential", interval: list.interval)
-                                        showOrderPopover = false
-                                    }
-                                    PopoverMenuItem(
-                                        title: NSLocalizedString("order_random", comment: ""),
-                                        icon: "shuffle",
-                                        isSelected: list.order == "random"
-                                    ) {
-                                        playback.updatePlaylistSettings(list.id, order: "random", interval: list.interval)
-                                        showOrderPopover = false
-                                    }
+                        let orderChip = ChipButton(
+                            title: list.order == "random"
+                                ? NSLocalizedString("order_random", comment: "")
+                                : NSLocalizedString("order_sequential", comment: ""),
+                            icon: list.order == "random" ? "shuffle" : "arrow.right",
+                            trailingIcon: "chevron.down"
+                        ) {
+                            showOrderPopover.toggle()
+                        }
+                        .popover(isPresented: $showOrderPopover, arrowEdge: .bottom) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                PopoverMenuItem(
+                                    title: NSLocalizedString("order_sequential", comment: ""),
+                                    icon: "arrow.right",
+                                    isSelected: list.order != "random"
+                                ) {
+                                    playback.updatePlaylistSettings(list.id, order: "sequential", interval: list.interval)
+                                    showOrderPopover = false
                                 }
-                                .padding(8)
-                                .frame(width: 170)
-                            }
-
-                            let currentInterval = macpaperService.ShuffleInterval(rawValue: list.interval)?.displayName
-                                ?? macpaperService.ShuffleInterval.oneHour.displayName
-                            ChipButton(
-                                title: currentInterval,
-                                icon: "timer",
-                                trailingIcon: "chevron.down"
-                            ) {
-                                showIntervalPopover.toggle()
-                            }
-                            .popover(isPresented: $showIntervalPopover, arrowEdge: .bottom) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    ForEach(macpaperService.ShuffleInterval.allCases, id: \.rawValue) { interval in
-                                        PopoverMenuItem(
-                                            title: interval.displayName,
-                                            isSelected: list.interval == interval.rawValue
-                                        ) {
-                                            playback.updatePlaylistSettings(list.id, order: list.order, interval: interval.rawValue)
-                                            showIntervalPopover = false
-                                        }
-                                    }
+                                PopoverMenuItem(
+                                    title: NSLocalizedString("order_random", comment: ""),
+                                    icon: "shuffle",
+                                    isSelected: list.order == "random"
+                                ) {
+                                    playback.updatePlaylistSettings(list.id, order: "random", interval: list.interval)
+                                    showOrderPopover = false
                                 }
-                                .padding(8)
-                                .frame(width: 170)
                             }
-
-                            Spacer(minLength: 8)
-
-                            PrimaryGradientButton(
-                                title: NSLocalizedString("playlist_assign", comment: ""),
-                                icon: "desktopcomputer",
-                                trailingIcon: "chevron.down",
-                                isDisabled: playback.targets.isEmpty
-                            ) {
-                                showTargetPopover.toggle()
-                            }
-                            .popover(isPresented: $showTargetPopover, arrowEdge: .bottom) {
-                                targetPopover(for: list)
-                            }
+                            .padding(8)
+                            .frame(width: 170)
                         }
 
+                        let currentInterval = macpaperService.ShuffleInterval(rawValue: list.interval)?.displayName
+                            ?? macpaperService.ShuffleInterval.oneHour.displayName
+                        let intervalChip = ChipButton(
+                            title: currentInterval,
+                            icon: "timer",
+                            trailingIcon: "chevron.down"
+                        ) {
+                            showIntervalPopover.toggle()
+                        }
+                        .popover(isPresented: $showIntervalPopover, arrowEdge: .bottom) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ForEach(macpaperService.ShuffleInterval.allCases, id: \.rawValue) { interval in
+                                    PopoverMenuItem(
+                                        title: interval.displayName,
+                                        isSelected: list.interval == interval.rawValue
+                                    ) {
+                                        playback.updatePlaylistSettings(list.id, order: list.order, interval: interval.rawValue)
+                                        showIntervalPopover = false
+                                    }
+                                }
+                            }
+                            .padding(8)
+                            .frame(width: 170)
+                        }
+
+                        let assignBtn = PrimaryGradientButton(
+                            title: NSLocalizedString("playlist_assign", comment: ""),
+                            icon: "desktopcomputer",
+                            trailingIcon: "chevron.down",
+                            isDisabled: playback.targets.isEmpty
+                        ) {
+                            showTargetPopover.toggle()
+                        }
+                        .popover(isPresented: $showTargetPopover, arrowEdge: .bottom) {
+                            targetPopover(for: list)
+                        }
+
+                        if pageWidth < 680 {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 8) {
+                                    orderChip
+                                    intervalChip
+                                    Spacer(minLength: 0)
+                                }
+                                assignBtn
+                            }
+                        } else {
+                            HStack(spacing: 8) {
+                                orderChip
+                                intervalChip
+                                Spacer(minLength: 8)
+                                assignBtn
+                            }
+                        }
                         if let assignError {
                             InlineBanner(message: assignError) {
                                 self.assignError = nil
@@ -1394,10 +1537,14 @@ private struct PlaylistItemRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 6) {
-                if isHovered {
-                    CircleIconButton(icon: "trash", tint: MoonleafPalette.rose, action: onRemove)
-                        .help(NSLocalizedString("playlist_remove_item", comment: ""))
-                }
+                CircleIconButton(
+                    icon: "minus.circle",
+                    style: .removeList,
+                    helpText: NSLocalizedString("playlist_remove_item", comment: ""),
+                    action: onRemove
+                )
+                .opacity(isHovered ? 1 : 0)
+                .allowsHitTesting(isHovered)
 
                 Menu {
                     Button(NSLocalizedString("playlist_up", comment: ""), action: onMoveUp)
@@ -1414,30 +1561,26 @@ private struct PlaylistItemRow: View {
                     Divider()
                     Button(NSLocalizedString("playlist_remove_item", comment: ""), role: .destructive, action: onRemove)
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.primary.opacity(0.85))
-                        .frame(width: 30, height: 30)
-                        .background {
-                            Circle()
-                                .fill(.regularMaterial.opacity(0.75))
-                                .overlay { Circle().stroke(Color.primary.opacity(0.12), lineWidth: 1) }
-                        }
+                    CircleMenuLabel()
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
                 .fixedSize()
             }
         }
         .padding(10)
         .background {
             RoundedRectangle(cornerRadius: 14)
-                .fill(.regularMaterial.opacity(isHovered ? 0.85 : 0.65))
+                .fill(.regularMaterial)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.primary.opacity(isHovered ? 0.18 : 0.1), lineWidth: 0.8)
+                        .fill(Color(nsColor: .windowBackgroundColor).opacity(isHovered ? 0.22 : 0.34))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.primary.opacity(isHovered ? 0.20 : 0.10), lineWidth: 0.8)
                 }
         }
-        .opacity(fileExists ? 1.0 : 0.68)
         .onHover { hovering in
             withAnimation(.easeOut(duration: 0.15)) { isHovered = hovering }
         }
@@ -1519,7 +1662,7 @@ struct AssetDetailSheet: View {
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 12) {
                     Text(titleText)
                         .font(Font(font_loader.bold(size: 18)))
@@ -1541,116 +1684,141 @@ struct AssetDetailSheet: View {
                         action: { service.toggleFavorite(wallpaperModel) }
                     )
 
-                    CircleIconButton(icon: "xmark", size: 32) {
+                    CircleIconButton(
+                        icon: "xmark",
+                        size: 30,
+                        style: .neutral,
+                        helpText: NSLocalizedString("done", comment: "")
+                    ) {
                         dismiss()
                     }
                 }
+                .padding(.horizontal, 22)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
 
-                MediaThumb(
-                    path: path,
-                    size: CGSize(width: 440, height: 220),
-                    cornerRadius: 16
-                )
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        MediaThumb(
+                            path: path,
+                            size: CGSize(width: 440, height: 176),
+                            cornerRadius: 16
+                        )
 
-                LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
-                    spacing: 10
-                ) {
-                    factCell(
-                        label: NSLocalizedString("asset_details_format", comment: ""),
-                        value: formatDisplay
-                    )
-                    factCell(
-                        label: NSLocalizedString("asset_details_resolution", comment: ""),
-                        value: pixelSize.isEmpty ? NSLocalizedString("detail_unknown", comment: "") : pixelSize
-                    )
-                    factCell(
-                        label: NSLocalizedString("asset_details_size", comment: ""),
-                        value: byteSize.isEmpty ? NSLocalizedString("detail_unknown", comment: "") : byteSize
-                    )
-                    factCell(
-                        label: NSLocalizedString("asset_details_source", comment: ""),
-                        value: sourceDisplay
-                    )
-                    factCell(
-                        label: NSLocalizedString("asset_details_location", comment: ""),
-                        value: locationDisplay
-                    )
-                }
+                        LazyVGrid(
+                            columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                            spacing: 10
+                        ) {
+                            factCell(
+                                label: NSLocalizedString("asset_details_format", comment: ""),
+                                value: formatDisplay
+                            )
+                            factCell(
+                                label: NSLocalizedString("asset_details_resolution", comment: ""),
+                                value: pixelSize.isEmpty ? NSLocalizedString("detail_unknown", comment: "") : pixelSize
+                            )
+                            factCell(
+                                label: NSLocalizedString("asset_details_size", comment: ""),
+                                value: byteSize.isEmpty ? NSLocalizedString("detail_unknown", comment: "") : byteSize
+                            )
+                            factCell(
+                                label: NSLocalizedString("asset_details_source", comment: ""),
+                                value: sourceDisplay
+                            )
+                            factCell(
+                                label: NSLocalizedString("asset_details_location", comment: ""),
+                                value: locationDisplay
+                            )
+                        }
 
-                HStack(spacing: 8) {
-                    Text(path)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack(spacing: 8) {
+                            Text(path)
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
 
-                    CircleIconButton(
-                        icon: copiedPath ? "checkmark" : "doc.on.doc",
-                        size: 28,
-                        tint: copiedPath ? MoonleafPalette.mint : .primary
-                    ) {
-                        copy(path)
-                        copiedPath = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedPath = false }
-                    }
+                            CircleIconButton(
+                                icon: copiedPath ? "checkmark" : "doc.on.doc",
+                                size: 28,
+                                style: copiedPath ? .success : .neutral,
+                                helpText: NSLocalizedString("copy_path", comment: "")
+                            ) {
+                                copy(path)
+                                copiedPath = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedPath = false }
+                            }
 
-                    CircleIconButton(icon: "folder", size: 28, isDisabled: !fileExists) {
-                        reveal(path)
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(.regularMaterial.opacity(0.65))
-                        .overlay { RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
-                }
-
-                let lists = playback.membershipNames(path: path)
-                HStack(spacing: 6) {
-                    if lists.isEmpty {
-                        Text(NSLocalizedString("detail_no_lists", comment: ""))
-                            .font(.system(size: 12, weight: .regular, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 6) {
-                                ForEach(lists, id: \.self) { name in
-                                    StatusPill(text: name, icon: "list.bullet", tint: MoonleafPalette.periwinkle)
+                            CircleIconButton(
+                                icon: "folder",
+                                size: 28,
+                                style: .finder,
+                                isDisabled: !fileExists,
+                                helpText: NSLocalizedString("reveal_finder", comment: "")
+                            ) {
+                                reveal(path)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.regularMaterial)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(nsColor: .windowBackgroundColor).opacity(0.28))
                                 }
+                                .overlay { RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+                        }
+
+                        let lists = playback.membershipNames(path: path)
+                        HStack(spacing: 6) {
+                            if lists.isEmpty {
+                                Text(NSLocalizedString("detail_no_lists", comment: ""))
+                                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        ForEach(lists, id: \.self) { name in
+                                            StatusPill(text: name, icon: "list.bullet", tint: MoonleafPalette.periwinkle)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(minLength: 4)
+
+                            if !playback.playlists.isEmpty && fileExists {
+                                Menu {
+                                    ForEach(playback.playlists) { list in
+                                        Button(list.name) {
+                                            playback.addToPlaylist(paths: [path], playlistID: list.id)
+                                        }
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 10, weight: .semibold))
+                                        Text(NSLocalizedString("browse_add_to_playlist", comment: ""))
+                                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background {
+                                        RoundedRectangle(cornerRadius: 9)
+                                            .fill(.regularMaterial.opacity(0.8))
+                                            .overlay { RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.12), lineWidth: 0.8) }
+                                    }
+                                }
+                                .menuStyle(.borderlessButton)
+                                .fixedSize()
                             }
                         }
                     }
-
-                    Spacer(minLength: 4)
-
-                    if !playback.playlists.isEmpty && fileExists {
-                        Menu {
-                            ForEach(playback.playlists) { list in
-                                Button(list.name) {
-                                    playback.addToPlaylist(paths: [path], playlistID: list.id)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 10, weight: .semibold))
-                                Text(NSLocalizedString("browse_add_to_playlist", comment: ""))
-                                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background {
-                                RoundedRectangle(cornerRadius: 9)
-                                    .fill(.regularMaterial.opacity(0.8))
-                                    .overlay { RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.12), lineWidth: 0.8) }
-                            }
-                        }
-                        .menuStyle(.borderlessButton)
-                        .fixedSize()
-                    }
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 4)
                 }
 
                 HStack(spacing: 10) {
@@ -1690,11 +1858,13 @@ struct AssetDetailSheet: View {
                         }
                     }
                 }
+                .padding(.horizontal, 22)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
             }
-            .padding(22)
         }
         .frame(width: 484)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(minHeight: 420, idealHeight: 540, maxHeight: 560)
         .onAppear(perform: loadFacts)
     }
 

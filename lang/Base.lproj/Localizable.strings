@@ -191,6 +191,8 @@
 "filter_all" = "All";
 "kind_still" = "Still";
 "kind_video" = "Video";
+"kind_folder" = "Folder";
+"volume_control" = "Volume";
 "history_timeline" = "Timeline";
 "history_enabled" = "Record usage";
 "history_count" = "Last %d · up to %d kept";

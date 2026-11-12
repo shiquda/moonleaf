@@ -623,24 +623,38 @@ struct BrowseWallpaperCard: View {
             }
         } label: {
             ZStack {
+                Circle()
+                    .fill(.regularMaterial)
+                    .frame(width: 30, height: 30)
+                    .overlay {
+                        Circle()
+                            .fill(isDownloaded ? MoonleafPalette.mint : (isDownloading ? Color.black.opacity(0.55) : MoonleafPalette.blue))
+                            .padding(2)
+                    }
+                    .overlay {
+                        Circle()
+                            .stroke(Color.white.opacity(0.28), lineWidth: 0.8)
+                    }
                 if isDownloaded {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(Font(font_loader.regular(size: 20)))
-                        .foregroundColor(.green)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
                 } else if isDownloading {
                     ProgressView()
-                        .scaleEffect(0.7)
+                        .scaleEffect(0.6)
                         .brightness(1)
                 } else {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .font(Font(font_loader.regular(size: 20)))
-                        .foregroundColor(.white)
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
                 }
             }
-            .padding(8)
-            .background(Circle().fill(Color.black.opacity(0.6)))
+            .frame(width: 32, height: 32)
+            .contentShape(Circle())
         }
         .buttonStyle(PlainButtonStyle())
+        .help(NSLocalizedString(isDownloaded ? "browse_saved" : "browse_save", comment: ""))
+        .accessibilityLabel(NSLocalizedString(isDownloaded ? "browse_saved" : "browse_save", comment: ""))
         .disabled(isDownloading || isDownloaded || (!item.isVideo && item.downloadURL == nil))
         .popover(isPresented: $showQualityPopover, arrowEdge: .bottom) {
             VStack(alignment: .leading, spacing: 6) {

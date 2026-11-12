@@ -24,7 +24,7 @@ struct ManagerView: View {
     @State private var isSelecting = false
     @State private var selectedPaths = Set<String>()
     @State private var detailPath: String?
-
+    @State private var toolbarWidth: CGFloat = 600
     private struct DetailPathItem: Identifiable {
         let path: String
         var id: String { path }
@@ -90,295 +90,362 @@ struct ManagerView: View {
     }
 
     private var toolbarView: some View {
-        HStack(spacing: 6) {
-            Button(action: { showAddPopover.toggle() }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .bold))
-                    Text("add wallpaper")
-                        .font(Font(font_loader.bold(size: 13)))
-                        .lineLimit(1)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .medium))
-                        .opacity(0.8)
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(LinearGradient(colors: [Color(red: 0.42, green: 0.47, blue: 0.85), Color(red: 0.32, green: 0.37, blue: 0.75)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                }
-            }
-            .buttonStyle(.plain)
-            .fixedSize()
-            .popover(isPresented: $showAddPopover, arrowEdge: .bottom) {
-                VStack(spacing: 4) {
-                    Button(action: {
-                        importingFolder = false
-                        showAddPopover = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            show_importer = true
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "doc.fill")
-                            Text("file")
-                            Spacer()
-                        }
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.001)))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: {
-                        importingFolder = true
-                        showAddPopover = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            show_importer = true
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "folder.fill")
-                            Text("folder")
-                            Spacer()
-                        }
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.001)))
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(8)
-                .frame(width: 160)
-            }
-
-            GlassSearchField(
-                placeholder: NSLocalizedString("search_name", comment: ""),
-                text: $nameQuery
-            )
-            .frame(minWidth: 90, maxWidth: 220)
-            ChipButton(
-                title: NSLocalizedString("library_select", comment: ""),
-                icon: isSelecting ? "checkmark.circle.fill" : "checkmark.circle",
-                isActive: isSelecting
-            ) {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    isSelecting.toggle()
-                    if !isSelecting {
-                        selectedPaths.removeAll()
-                    }
-                }
-            }
-            .fixedSize()
-
-            Spacer(minLength: 0)
-            if let currentWp = service.current_wp {
-                Button(action: { showWpActionsDropdown.toggle() }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 13))
-                        Text(NSLocalizedString("active_label", comment: "Active"))
-                            .font(.system(size: 13, weight: .semibold))
-                            .lineLimit(1)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(showWpActionsDropdown ? 0.15 : 0.05)))
-                }
-                .fixedSize()
-                .buttonStyle(.plain)
-                .popover(isPresented: $showWpActionsDropdown, arrowEdge: .bottom) {
-                    VStack(spacing: 4) {
-                        if !isStillWallpaper(currentWp) {
-                            Button(action: { service.wp_doPersist(!service.wp_is_agent); showWpActionsDropdown = false }) {
-                                HStack {
-                                    Image(systemName: service.wp_is_agent ? "checkmark.circle.fill" : "circle")
-                                    Text(NSLocalizedString("persist", comment: ""))
-                                    Spacer()
-                                }
-                                .font(.system(size: 13, weight: .medium))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.001)))
+        let compactToolbar = toolbarWidth < 740
+        return Color.clear
+            .frame(height: compactToolbar ? 96 : 56)
+            .overlay {
+                Group {
+                    if compactToolbar {
+                        VStack(spacing: 8) {
+                            HStack(spacing: 8) {
+                                addButton
+                                searchFieldControl
+                                    .frame(minWidth: 120, maxWidth: .infinity)
+                                selectChipButton
                             }
-                            .buttonStyle(.plain)
+                            HStack(spacing: 8) {
+                                activeActionsButton
+                                favoriteFilterButton
+                                filterButton
+                                sortButton
+                                Spacer(minLength: 0)
+                                refreshButton
+                            }
                         }
-                        Button(action: { service.unset_wp(); showWpActionsDropdown = false }) {
+                    } else {
+                        HStack(spacing: 8) {
+                            addButton
+                            searchFieldControl
+                                .frame(minWidth: 120, maxWidth: 230)
+                            selectChipButton
+                            Spacer(minLength: 4)
+                            activeActionsButton
+                            favoriteFilterButton
+                            filterButton
+                            sortButton
+                            refreshButton
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background {
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(.regularMaterial)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 22)
+                                .fill(Color(nsColor: .windowBackgroundColor).opacity(0.28))
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 22)
+                                .stroke(Color.primary.opacity(0.1), lineWidth: 0.6)
+                        }
+                }
+            }
+            .background(WidthReader { width in
+                if abs(toolbarWidth - width) > 4 {
+                    toolbarWidth = width
+                }
+            })
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
+    }
+
+    private var addButton: some View {
+        Button(action: { showAddPopover.toggle() }) {
+            HStack(spacing: 6) {
+                Image(systemName: "plus")
+                    .font(.system(size: 12, weight: .bold))
+                Text("add wallpaper")
+                    .font(Font(font_loader.bold(size: 13)))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .medium))
+                    .opacity(0.8)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(MoonleafPalette.primaryGradient)
+            }
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .popover(isPresented: $showAddPopover, arrowEdge: .bottom) {
+            VStack(spacing: 4) {
+                Button(action: {
+                    importingFolder = false
+                    showAddPopover = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        show_importer = true
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "doc.fill")
+                        Text("file")
+                        Spacer()
+                    }
+                    .font(.system(size: 13, weight: .medium))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.001)))
+                }
+                .buttonStyle(.plain)
+
+                Button(action: {
+                    importingFolder = true
+                    showAddPopover = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        show_importer = true
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "folder.fill")
+                        Text("folder")
+                        Spacer()
+                    }
+                    .font(.system(size: 13, weight: .medium))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.001)))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(8)
+            .frame(width: 160)
+        }
+    }
+
+    private var searchFieldControl: some View {
+        GlassSearchField(
+            placeholder: NSLocalizedString("search_name", comment: ""),
+            text: $nameQuery
+        )
+    }
+
+    private var selectChipButton: some View {
+        ChipButton(
+            title: NSLocalizedString("library_select", comment: ""),
+            icon: isSelecting ? "checkmark.circle.fill" : "checkmark.circle",
+            isActive: isSelecting
+        ) {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isSelecting.toggle()
+                if !isSelecting {
+                    selectedPaths.removeAll()
+                }
+            }
+        }
+        .fixedSize()
+    }
+
+    @ViewBuilder
+    private var activeActionsButton: some View {
+        if let currentWp = service.current_wp {
+            Button(action: { showWpActionsDropdown.toggle() }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 13))
+                    Text(NSLocalizedString("active_label", comment: "Active"))
+                        .font(.system(size: 13, weight: .semibold))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(showWpActionsDropdown ? 0.15 : 0.05)))
+            }
+            .fixedSize()
+            .buttonStyle(.plain)
+            .popover(isPresented: $showWpActionsDropdown, arrowEdge: .bottom) {
+                VStack(spacing: 4) {
+                    if !isStillWallpaper(currentWp) {
+                        Button(action: { service.wp_doPersist(!service.wp_is_agent); showWpActionsDropdown = false }) {
                             HStack {
-                                Image(systemName: "xmark.circle")
-                                    .foregroundStyle(.red)
-                                Text(NSLocalizedString("unset_current", comment: ""))
-                                    .foregroundStyle(.red)
+                                Image(systemName: service.wp_is_agent ? "checkmark.circle.fill" : "circle")
+                                Text(NSLocalizedString("persist", comment: ""))
                                 Spacer()
                             }
                             .font(.system(size: 13, weight: .medium))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.red.opacity(0.05)))
+                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.001)))
                         }
                         .buttonStyle(.plain)
                     }
-                    .padding(8)
-                    .frame(width: 170)
-                }
-            }
-
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) { showFavoritesOnly.toggle() }
-            }) {
-                HStack(spacing: 6) {
-                    Image(systemName: showFavoritesOnly ? "star.fill" : "star")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(showFavoritesOnly ? .yellow : .secondary)
-                    if showFavoritesOnly {
-                        Text(NSLocalizedString("favorites_filter", comment: ""))
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                            .foregroundStyle(.primary)
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(.regularMaterial.opacity(showFavoritesOnly ? 0.9 : 0.5))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(showFavoritesOnly ? Color.yellow.opacity(0.4) : Color.primary.opacity(0.15), lineWidth: 1)
-                        }
-                }
-            }
-            .buttonStyle(.plain)
-
-            Button(action: { showFilterDropdown.toggle() }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(NSLocalizedString("filter", comment: "Filter"))
-                        .font(.system(size: 13, weight: .semibold))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(showFilterDropdown ? 0.15 : 0.05)))
-            }
-            .buttonStyle(.plain)
-            .popover(isPresented: $showFilterDropdown, arrowEdge: .bottom) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(NSLocalizedString("show_types", comment: "Show"))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.top, 4)
-
-                    Button(action: {
-                        service.showVideos.toggle()
-                        service.saveSettings()
-                        service.fetch_wallpapers()
-                    }) {
+                    Button(action: { service.unset_wp(); showWpActionsDropdown = false }) {
                         HStack {
-                            Text(NSLocalizedString("show_videos", comment: "Videos"))
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(service.showVideos ? .primary : .secondary)
+                            Image(systemName: "xmark.circle")
+                                .foregroundStyle(.red)
+                            Text(NSLocalizedString("unset_current", comment: ""))
+                                .foregroundStyle(.red)
                             Spacer()
-                            if service.showVideos {
+                        }
+                        .font(.system(size: 13, weight: .medium))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.red.opacity(0.05)))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(8)
+                .frame(width: 170)
+            }
+        }
+    }
+
+    private var favoriteFilterButton: some View {
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.2)) { showFavoritesOnly.toggle() }
+        }) {
+            HStack(spacing: 6) {
+                Image(systemName: showFavoritesOnly ? "star.fill" : "star")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(showFavoritesOnly ? .yellow : .secondary)
+                if showFavoritesOnly {
+                    Text(NSLocalizedString("favorites_filter", comment: ""))
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundStyle(.primary)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(.regularMaterial.opacity(showFavoritesOnly ? 0.9 : 0.5))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(showFavoritesOnly ? Color.yellow.opacity(0.4) : Color.primary.opacity(0.15), lineWidth: 1)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .help(NSLocalizedString("favorites_filter", comment: ""))
+    }
+
+    private var filterButton: some View {
+        Button(action: { showFilterDropdown.toggle() }) {
+            HStack(spacing: 6) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.system(size: 13, weight: .semibold))
+                Text(NSLocalizedString("filter", comment: "Filter"))
+                    .font(.system(size: 13, weight: .semibold))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(showFilterDropdown ? 0.15 : 0.05)))
+        }
+        .fixedSize()
+        .buttonStyle(.plain)
+        .popover(isPresented: $showFilterDropdown, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(NSLocalizedString("show_types", comment: "Show"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 4)
+
+                Button(action: {
+                    service.showVideos.toggle()
+                    service.saveSettings()
+                    service.fetch_wallpapers()
+                }) {
+                    HStack {
+                        Text(NSLocalizedString("show_videos", comment: "Videos"))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(service.showVideos ? .primary : .secondary)
+                        Spacer()
+                        if service.showVideos {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(service.showVideos ? 0.08 : 0.001)))
+                }
+                .buttonStyle(.plain)
+
+                Button(action: {
+                    service.showImages.toggle()
+                    service.saveSettings()
+                    service.fetch_wallpapers()
+                }) {
+                    HStack {
+                        Text(NSLocalizedString("show_images", comment: "Images"))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(service.showImages ? .primary : .secondary)
+                        Spacer()
+                        if service.showImages {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(service.showImages ? 0.08 : 0.001)))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(8)
+            .frame(width: 160)
+        }
+    }
+
+    private var sortButton: some View {
+        Button(action: { showSortDropdown.toggle() }) {
+            HStack(spacing: 6) {
+                Text(service.localSort.displayName)
+                    .font(.system(size: 13, weight: .semibold))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(showSortDropdown ? 0.15 : 0.05)))
+        }
+        .fixedSize()
+        .buttonStyle(.plain)
+        .popover(isPresented: $showSortDropdown, arrowEdge: .bottom) {
+            VStack(spacing: 4) {
+                ForEach(macpaperService.LocalSortMode.allCases, id: \.self) { mode in
+                    Button(action: { service.setLocalSort(mode); showSortDropdown = false }) {
+                        HStack {
+                            Text(mode.displayName)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(service.localSort == mode ? .primary : .secondary)
+                            Spacer()
+                            if service.localSort == mode {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 11, weight: .semibold))
                             }
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(service.showVideos ? 0.08 : 0.001)))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: {
-                        service.showImages.toggle()
-                        service.saveSettings()
-                        service.fetch_wallpapers()
-                    }) {
-                        HStack {
-                            Text(NSLocalizedString("show_images", comment: "Images"))
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(service.showImages ? .primary : .secondary)
-                            Spacer()
-                            if service.showImages {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 11, weight: .semibold))
-                            }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(service.showImages ? 0.08 : 0.001)))
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(service.localSort == mode ? 0.08 : 0.001)))
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(8)
-                .frame(width: 160)
             }
-
-            Button(action: { showSortDropdown.toggle() }) {
-                HStack(spacing: 6) {
-                    Text(service.localSort.displayName)
-                        .font(.system(size: 13, weight: .semibold))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(showSortDropdown ? 0.15 : 0.05)))
-            }
-            .buttonStyle(.plain)
-            .popover(isPresented: $showSortDropdown, arrowEdge: .bottom) {
-                VStack(spacing: 4) {
-                    ForEach(macpaperService.LocalSortMode.allCases, id: \.self) { mode in
-                        Button(action: { service.setLocalSort(mode); showSortDropdown = false }) {
-                            HStack {
-                                Text(mode.displayName)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(service.localSort == mode ? .primary : .secondary)
-                                Spacer()
-                                if service.localSort == mode {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 11, weight: .semibold))
-                                }
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(service.localSort == mode ? 0.08 : 0.001)))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(8)
-                .frame(width: 160)
-            }
-
-            Button(action: { service.fetch_wallpapers() }) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 14, weight: .medium))
-                    .padding(10)
-                    .frame(height: 34)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.08)))
-            }
-            .buttonStyle(.plain)
+            .padding(8)
+            .frame(width: 160)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background {
-            RoundedRectangle(cornerRadius: 22)
-                .fill(.ultraThinMaterial.opacity(0.9))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 22)
-                        .stroke(.primary.opacity(0.1), lineWidth: 0.5)
-                }
+    }
+
+    private var refreshButton: some View {
+        Button(action: { service.fetch_wallpapers() }) {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 14, weight: .medium))
+                .padding(10)
+                .frame(height: 34)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.08)))
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
+        .fixedSize()
+        .buttonStyle(.plain)
     }
 
     private func show_settings() {
@@ -597,7 +664,6 @@ struct ManagerView: View {
                         }
                     }
                     .environmentObject(service)
-                    .frame(height: 260)
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .scale(scale: 0.8).combined(with: .offset(y: 20))),
                         removal: .opacity.combined(with: .scale(scale: 0.8))
@@ -614,7 +680,7 @@ struct ManagerView: View {
     }
 
     private var multiSelectBar: some View {
-        GlassPanel(cornerRadius: 18, padding: 12) {
+        GlassPanel(cornerRadius: 18, padding: 12, useUltraThin: false) {
             HStack(spacing: 12) {
                 StatusPill(
                     text: String(format: NSLocalizedString("library_selected", comment: ""), selectedPaths.count),

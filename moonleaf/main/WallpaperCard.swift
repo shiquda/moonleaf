@@ -36,7 +36,7 @@ struct WallpaperCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .center, spacing: 8) {
+        VStack(alignment: .center, spacing: 10) {
             previewSection
                 .frame(maxWidth: .infinity)
                 .onTapGesture {
@@ -49,7 +49,7 @@ struct WallpaperCard: View {
                     }
                 }
             infoSection
-                .frame(height: 50)
+                .frame(height: 56, alignment: .top)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -61,22 +61,31 @@ struct WallpaperCard: View {
                 }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 260)
-        .padding(12)
+        .padding(14)
         .background {
             RoundedRectangle(cornerRadius: 22)
-                .fill(.regularMaterial.opacity(0.8))
+                .fill(.regularMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(Color(nsColor: .windowBackgroundColor).opacity(0.38))
+                }
                 .overlay {
                     RoundedRectangle(cornerRadius: 22)
                         .stroke(
                             isMultiSelected ? MoonleafPalette.periwinkle :
-                            cardIsSelected ? MoonleafPalette.periwinkle.opacity(0.75) :
-                            isActive ? Color.primary.opacity(0.4) : Color.primary.opacity(0.1),
-                            lineWidth: isMultiSelected ? 2.5 : (cardIsSelected ? 2.5 : (isActive ? 2 : 1))
+                            cardIsSelected ? MoonleafPalette.periwinkle.opacity(0.8) :
+                            isActive ? MoonleafPalette.periwinkle.opacity(0.55) :
+                            Color.primary.opacity(isHovered ? 0.24 : 0.12),
+                            lineWidth: (isMultiSelected || cardIsSelected) ? 2.2 : (isActive ? 1.8 : 1)
                         )
                 }
         }
-        .scaleEffect(isHovered ? 1.02 : 1.0)
+        .shadow(
+            color: .black.opacity(isHovered ? 0.14 : 0.04),
+            radius: isHovered ? 10 : 4,
+            x: 0,
+            y: isHovered ? 4 : 2
+        )
         .onAppear {
             service.refreshScreenCount()
         }
@@ -89,7 +98,7 @@ struct WallpaperCard: View {
             }
         }
         .onHover { hovering in
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            withAnimation(.easeOut(duration: 0.18)) {
                 isHovered = hovering
             }
         }
@@ -171,21 +180,15 @@ struct WallpaperCard: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 184)
+        .frame(height: 176)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(
                     isMultiSelected ? MoonleafPalette.periwinkle.opacity(0.75) :
-                    isActive ? Color.primary.opacity(0.4) : Color.primary.opacity(0.1),
-                    lineWidth: (isActive || isMultiSelected) ? 2 : 1
+                    isActive ? Color.primary.opacity(0.35) : Color.primary.opacity(0.1),
+                    lineWidth: (isActive || isMultiSelected) ? 1.8 : 1
                 )
-        }
-        .scaleEffect(isHovered ? 1.02 : 1.0)
-        .onHover { hovering in
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                isHovered = hovering
-            }
         }
     }
 
@@ -222,22 +225,14 @@ struct WallpaperCard: View {
             Button(NSLocalizedString("library_export", comment: "")) { onExport() }
             Button(NSLocalizedString("history_remove", comment: ""), role: .destructive) { onDelete() }
         } label: {
-            Image(systemName: "ellipsis")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white)
-                .frame(width: 28, height: 28)
-                .contentShape(Circle())
+            CircleMenuLabel(darkFrosted: true)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .tint(.white)
-        .frame(width: 28, height: 28)
-        .background {
-            Circle()
-                .fill(Color.black.opacity(0.58))
-                .overlay { Circle().stroke(Color.white.opacity(0.3), lineWidth: 0.8) }
-        }
+        .frame(width: 30, height: 30)
         .fixedSize()
+        .help(NSLocalizedString("detail_open", comment: ""))
     }
 
     private var overlayControls: some View {
@@ -253,21 +248,27 @@ struct WallpaperCard: View {
             )
 
             VStack {
-                HStack {
+                HStack(spacing: 6) {
                     if isActive {
-                        Circle()
-                            .fill(.green.opacity(0.9))
-                            .frame(width: 24, height: 24)
-                            .overlay {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
-                            .background {
-                                Circle()
-                                    .fill(.regularMaterial)
-                                    .frame(width: 28, height: 28)
-                            }
+                        ZStack {
+                            Circle()
+                                .fill(.regularMaterial)
+                                .frame(width: 28, height: 28)
+                                .overlay {
+                                    Circle()
+                                        .fill(MoonleafPalette.mint)
+                                        .padding(2)
+                                }
+                                .overlay {
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.28), lineWidth: 0.8)
+                                }
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                        .frame(width: 30, height: 30)
+                        .accessibilityLabel(NSLocalizedString("active_label", comment: ""))
                     }
 
                     FavoriteButton(
@@ -275,81 +276,40 @@ struct WallpaperCard: View {
                         action: { service.toggleFavorite(wallpaper) }
                     )
 
-                    Spacer()
+                    Spacer(minLength: 4)
 
-                    if isActive && !isStillWallpaper {
-                        VolumeSlider(service: service, style: .card)
-                            .scaleEffect(0.85)
-                            .transition(.asymmetric(
-                                insertion: .scale(scale: 0.8).combined(with: .opacity),
-                                removal: .scale(scale: 0.8).combined(with: .opacity)
-                            ))
-                    }
-
-                    Spacer()
-
-                    HStack(spacing: 8) {
-                        Button(action: {
+                    HStack(spacing: 5) {
+                        CircleIconButton(
+                            icon: "pencil",
+                            style: .edit,
+                            helpText: NSLocalizedString("library_rename", comment: "")
+                        ) {
                             isEditing = true
-                        }) {
-                            Circle()
-                                .fill(.mint.opacity(0.9))
-                                .frame(width: 24, height: 24)
-                                .overlay {
-                                    Image(systemName: "pencil")
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundStyle(.white)
-                                }
-                                .background {
-                                    Circle()
-                                        .fill(.regularMaterial)
-                                        .frame(width: 28, height: 28)
-                                }
                         }
-                        .buttonStyle(.plain)
 
-                        Button(action: onExport) {
-                            Circle()
-                                .fill(.blue.opacity(0.9))
-                                .frame(width: 24, height: 24)
-                                .overlay {
-                                    Image(systemName: "arrow.down.circle")
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundStyle(.white)
-                                }
-                                .background {
-                                    Circle()
-                                        .fill(.regularMaterial)
-                                        .frame(width: 28, height: 28)
-                                }
+                        CircleIconButton(
+                            icon: "arrow.down.circle",
+                            style: .download,
+                            helpText: NSLocalizedString("library_export", comment: "")
+                        ) {
+                            onExport()
                         }
-                        .buttonStyle(.plain)
 
-                        Button(action: onDelete) {
-                            Circle()
-                                .fill(.red.opacity(0.9))
-                                .frame(width: 24, height: 24)
-                                .overlay {
-                                    Image(systemName: "trash")
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundStyle(.white)
-                                }
-                                .background {
-                                    Circle()
-                                        .fill(.regularMaterial)
-                                        .frame(width: 28, height: 28)
-                                }
+                        CircleIconButton(
+                            icon: "trash",
+                            style: .delete,
+                            helpText: NSLocalizedString("history_remove", comment: "")
+                        ) {
+                            onDelete()
                         }
-                        .buttonStyle(.plain)
 
                         cardActionMenu
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
+                .padding(.horizontal, 10)
+                .padding(.top, 10)
 
                 Spacer()
-
                 if !isActive {
                     if service.screenCount > 1 && !isStillWallpaper {
                         VStack(spacing: 6) {
@@ -444,11 +404,15 @@ struct WallpaperCard: View {
                         )
                         .padding(.bottom, 12)
                     }
+                } else if isActive && !isStillWallpaper {
+                    VolumeSlider(service: service, style: .card)
+                        .padding(.bottom, 10)
+                        .transition(.opacity.combined(with: .scale(scale: 0.92)))
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 184)
+        .frame(height: 176)
     }
 
     private var infoSection: some View {
@@ -488,33 +452,39 @@ struct WallpaperCard: View {
             } else {
                 Text(wallpaper.name)
                     .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundStyle(.primary.opacity(0.9))
+                    .foregroundStyle(.primary.opacity(0.92))
                     .lineLimit(2)
+                    .truncationMode(.middle)
+                    .help(wallpaper.name)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack {
+            Spacer(minLength: 0)
+
+            HStack(spacing: 6) {
                 let ext = (wallpaper.path as NSString).pathExtension.lowercased()
 
-                let fileType = wallpaper.isFolder ? "folder" :
-                            ["mp4", "mov"].contains(ext) ? "video" :
-                            ext == "gif" ? "gif" :
-                            ["jpg", "jpeg", "png"].contains(ext) ? "image" : "unknown"
-
-                Text(fileType)
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background {
-                        Capsule()
-                            .fill(Color.brown.opacity(0.3))
+                let fileType: String = {
+                    if wallpaper.isFolder {
+                        return NSLocalizedString("kind_folder", comment: "")
+                    } else if ["mp4", "mov"].contains(ext) {
+                        return NSLocalizedString("kind_video", comment: "")
+                    } else if ext == "gif" {
+                        return "GIF"
+                    } else if ["jpg", "jpeg", "png"].contains(ext) {
+                        return NSLocalizedString("kind_still", comment: "")
+                    } else {
+                        return NSLocalizedString("detail_unknown", comment: "")
                     }
+                }()
+
+                StatusPill(text: fileType, muted: true)
 
                 Spacer()
 
                 Text(ByteCountFormatter.string(fromByteCount: wallpaper.fileSize, countStyle: .file))
                     .font(.system(size: 11, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary.opacity(0.8))
+                    .foregroundStyle(.secondary.opacity(0.85))
             }
         }
     }
