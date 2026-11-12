@@ -20,6 +20,9 @@ struct ManagerView: View {
     @State private var showSortDropdown = false
     @State private var showWpActionsDropdown = false
     @Binding var previewTarget: PreviewTarget?
+    @State private var nameQuery = ""
+    @State private var selectedPaths = Set<String>()
+    @State private var playlistID = ""
 
     private static let supportedExtensions: Set<String> = ["mp4", "mov", "gif", "jpg", "jpeg", "png"]
 
@@ -404,6 +407,31 @@ struct ManagerView: View {
                 }
             }
 
+            HStack(spacing: 8) {
+                TextField(NSLocalizedString("search_name", comment: ""), text: $nameQuery)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 280)
+                Text(String(format: NSLocalizedString("library_selected", comment: ""), selectedPaths.count))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Picker(NSLocalizedString("playlist_pick", comment: ""), selection: $playlistID) {
+                    Text(NSLocalizedString("playlist_pick", comment: "")).tag("")
+                    ForEach(PlaybackCoordinator.shared.playlists) { list in
+                        Text(list.name).tag(list.id.uuidString)
+                    }
+                }
+                .frame(width: 180)
+                Button(NSLocalizedString("playlist_add_selected", comment: "")) {
+                    guard let id = UUID(uuidString: playlistID) else { return }
+                    PlaybackCoordinator.shared.addToPlaylist(paths: Array(selectedPaths), playlistID: id)
+                    selectedPaths.removeAll()
+                }
+                .disabled(playlistID.isEmpty || selectedPaths.isEmpty)
+                Spacer()
+            }
+            .padding(.horizontal, 32)
+            .padding(.top, 12)
+
             ZStack {
                 if service.isLoading {
                     loadingView
@@ -497,9 +525,10 @@ struct ManagerView: View {
             ]
 
             LazyVGrid(columns: columns, alignment: .center, spacing: 30) {
-                let displayed = showFavoritesOnly
+                let needle = nameQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                let displayed = (showFavoritesOnly
                     ? service.wallpapers.filter { service.isFavorite($0) }
-                    : service.wallpapers
+                    : service.wallpapers).filter { needle.isEmpty || $0.name.lowercased().contains(needle) || $0.path.lowercased().contains(needle) }
                 ForEach(Array(displayed.enumerated()), id: \.element.id) { index, wallpaper in
                     WallpaperCard(
                         wallpaper: wallpaper,
@@ -539,6 +568,23 @@ struct ManagerView: View {
                             }
                         }
                     )
+                    .contextMenu {
+                        if !wallpaper.isFolder {
+                            Button(NSLocalizedString("apply_current", comment: "")) { service.set_wp(wallpaper) }
+                            Button(NSLocalizedString("apply_display", comment: "")) {
+                                if let uuid = SpaceBinding.currentDisplayUUID() {
+                                    service.applyToDisplayDesktops(wallpaper, displayUUID: uuid, confirmedCrossDisplay: false)
+                                }
+                            }
+                            Button(selectedPaths.contains(wallpaper.path) ? NSLocalizedString("library_unselect", comment: "") : NSLocalizedString("library_select", comment: "")) {
+                                if selectedPaths.contains(wallpaper.path) {
+                                    selectedPaths.remove(wallpaper.path)
+                                } else {
+                                    selectedPaths.insert(wallpaper.path)
+                                }
+                            }
+                        }
+                    }
                     .environmentObject(service)
                     .frame(width: 300, height: 260)
                     .transition(.asymmetric(

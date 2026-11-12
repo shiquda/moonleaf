@@ -116,7 +116,7 @@ struct WallpaperCard: View {
                     .foregroundStyle(.secondary)
             }
 
-            if isHovered || isActive {
+            if !wallpaper.isFolder {
                 overlayControls
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .scale(scale: 0.9)),

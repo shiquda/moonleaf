@@ -38,6 +38,11 @@ protocol WallpaperItem: Identifiable {
     var authorURL: URL? { get }
     var itemURL: URL? { get }
 }
+struct BrowseVideoChoice: Equatable, Identifiable {
+    var id: String { url.absoluteString }
+    var label: String
+    var url: URL
+}
 
 struct AnyWallpaper: Identifiable {
     let id: String
@@ -50,6 +55,7 @@ struct AnyWallpaper: Identifiable {
     let authorURL: URL?
     let itemURL: URL?
     let provider: WallpaperProvider
+    let videoChoices: [BrowseVideoChoice]
 
     init<T: WallpaperItem>(_ item: T, provider: WallpaperProvider) {
         self.id = item.id
@@ -62,6 +68,7 @@ struct AnyWallpaper: Identifiable {
         self.authorURL = item.authorURL
         self.itemURL = item.itemURL
         self.provider = provider
+        self.videoChoices = (item as? PexelsVideoWrapper)?.choices ?? []
     }
 }
 
@@ -306,14 +313,15 @@ struct PexelsVideoWrapper: WallpaperItem {
     var width: Int { video.width }
     var height: Int { video.height }
     var previewURL: URL? { URL(string: video.image) }
-    var downloadURL: URL? {
-        let sorted = video.video_files.sorted {
-            ($0.width ?? 0) * ($0.height ?? 0) > ($1.width ?? 0) * ($1.height ?? 0)
+    var downloadURL: URL? { nil }
+    var choices: [BrowseVideoChoice] {
+        video.video_files.compactMap { file in
+            guard let url = URL(string: file.link) else { return nil }
+            let quality = file.quality?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let size = "\(file.width ?? 0)×\(file.height ?? 0)"
+            let label = (quality?.isEmpty == false) ? "\(quality!) \(size)" : size
+            return BrowseVideoChoice(label: label, url: url)
         }
-        if let best = sorted.first, let url = URL(string: best.link) {
-            return url
-        }
-        return nil
     }
     var isVideo: Bool { true }
     var authorName: String? { video.user?.name }

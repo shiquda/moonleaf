@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selectedTab: TabSelection = .wallpapers
+    @ObservedObject private var navigation = AppNavigation.shared
     private let version_label_alpha: Double = 0.6
     @State private var previewTarget: PreviewTarget?
     @AppStorage("glassBackground") private var glassBackground = false
@@ -91,16 +91,14 @@ struct ContentView: View {
                         }
                         .buttonStyle(.plain)
 
-                        ForEach(TabSelection.allCases, id: \.self) { tab in
-                            tabButton(
-                                title: tab.title,
-                                icon: tab.icon,
-                                isSelected: selectedTab == tab,
-                                action: {
-                                    withAnimation(.easeInOut(duration: 0.3)) { selectedTab = tab }
-                                }
-                            )
+                        Button {
+                            navigation.page = .settings
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .frame(width: 36, height: 36)
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(AppPage.settings.title)
                     }
                 }
                 .padding(.horizontal, 32)
@@ -108,18 +106,25 @@ struct ContentView: View {
                 .background(bg(useGlass: glassBackground))
                 .padding(.horizontal, 16)
 
-                ZStack {
+                HStack(spacing: 0) {
+                    SidebarView()
+                    Divider()
                     Group {
-                        switch selectedTab {
-                        case .wallpapers:
+                        switch navigation.page {
+                        case .usage:
+                            UsagePage()
+                        case .library:
                             ManagerView(previewTarget: $previewTarget)
-                        case .browse:
+                        case .playlists:
+                            PlaylistsPage()
+                        case .discover:
                             BrowseView(previewTarget: $previewTarget)
+                        case .settings:
+                            SettingsView()
                         }
                     }
-                    .transition(.opacity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .focusable(false)
 

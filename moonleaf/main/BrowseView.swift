@@ -582,10 +582,10 @@ struct BrowseWallpaperCard: View {
             Text(item.id)
                 .font(Font(font_loader.regular(size: 12)))
                 .lineLimit(1)
-
             Text("\(item.width)x\(item.height)")
                 .font(Font(font_loader.regular(size: 10)))
                 .foregroundColor(.secondary)
+            saveControl
         }
         .contentShape(Rectangle())
         .onHover { hovering in
@@ -604,32 +604,30 @@ struct BrowseWallpaperCard: View {
         }
     }
 
-    private var downloadButton: some View {
-        Button(action: {
-            if !isDownloaded {
-                downloadWallpaper()
-            }
-        }) {
-            ZStack {
-                if isDownloaded {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(Font(font_loader.regular(size: 20)))
-                        .foregroundColor(.green)
-                } else if isDownloading {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .brightness(1)
-                } else {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .font(Font(font_loader.regular(size: 20)))
-                        .foregroundColor(.white)
+    private var saveControl: some View {
+        Group {
+            if item.isVideo {
+                Menu(NSLocalizedString("browse_save_quality", comment: "")) {
+                    if item.videoChoices.isEmpty {
+                        Text(NSLocalizedString("browse_no_quality", comment: ""))
+                    }
+                    ForEach(item.videoChoices) { choice in
+                        Button(choice.label) { downloadWallpaper(from: choice.url) }
+                    }
                 }
+                .disabled(isDownloading || isDownloaded || item.videoChoices.isEmpty)
+            } else {
+                Button(isDownloaded ? NSLocalizedString("browse_saved", comment: "") : NSLocalizedString("browse_save", comment: "")) {
+                    if let url = item.downloadURL { downloadWallpaper(from: url) }
+                }
+                .disabled(isDownloading || isDownloaded || item.downloadURL == nil)
             }
-            .padding(8)
-            .background(Circle().fill(Color.black.opacity(0.6)))
         }
-        .buttonStyle(PlainButtonStyle())
-        .disabled(isDownloading || isDownloaded)
+        .font(Font(font_loader.regular(size: 11)))
+    }
+
+    private var downloadButton: some View {
+        saveControl
     }
 
     private func checkIfDownloaded() {
@@ -681,10 +679,8 @@ struct BrowseWallpaperCard: View {
         imageTask?.resume()
     }
 
-    private func downloadWallpaper(retryCount: Int = 0) {
-        guard let downloadURL = item.downloadURL else { return }
-
-        let wpStorageDir = macpaperService.wp_storage_dir
+    private func downloadWallpaper(from downloadURL: URL, retryCount: Int = 0) {
+        let wpStorageDir = PlaybackCoordinator.shared.saveDirectory()
 
         do {
             try FileManager.default.createDirectory(at: wpStorageDir, withIntermediateDirectories: true)
@@ -710,7 +706,7 @@ struct BrowseWallpaperCard: View {
                 if error != nil {
                     if retryCount < 2 {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            self.downloadWallpaper(retryCount: retryCount + 1)
+                            self.downloadWallpaper(from: downloadURL, retryCount: retryCount + 1)
                         }
                     }
                     return
@@ -725,6 +721,12 @@ struct BrowseWallpaperCard: View {
                         try? FileManager.default.removeItem(at: destinationURL)
                     }
                     try FileManager.default.moveItem(at: tempURL, to: destinationURL)
+                    LibraryCatalog.shared.ensureAsset(
+                        path: destinationURL.path,
+                        name: destinationURL.deletingPathExtension().lastPathComponent,
+                        source: "library",
+                        origin: self.item.provider.rawValue
+                    )
 
                     DispatchQueue.main.async {
                         self.isDownloaded = true

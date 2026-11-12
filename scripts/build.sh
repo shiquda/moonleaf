@@ -156,7 +156,7 @@ if [[ "$BUILD_ALL" == true ]]; then
         -framework AppKit -framework AVFoundation \
         -framework MediaToolbox -framework Accelerate \
         -O \
-        glasswp/glasswp.swift moonleaf/main/MoonleafConfig.swift \
+        glasswp/glasswp.swift glasswp/SpaceOverlay.swift moonleaf/main/MoonleafConfig.swift moonleaf/main/CatalogLogic.swift moonleaf/main/SpaceBinding.swift \
         -o "$MACOS_DIR/glasswp_amd64"
 
     echo "compiled glasswp (amd64) (1/3)"
@@ -167,7 +167,7 @@ if [[ "$BUILD_ALL" == true ]]; then
         -framework AppKit -framework AVFoundation \
         -framework MediaToolbox -framework Accelerate \
         -O \
-        glasswp/glasswp.swift moonleaf/main/MoonleafConfig.swift \
+        glasswp/glasswp.swift glasswp/SpaceOverlay.swift moonleaf/main/MoonleafConfig.swift moonleaf/main/CatalogLogic.swift moonleaf/main/SpaceBinding.swift \
         -o "$MACOS_DIR/glasswp_arm64"
 
     echo "compiled glasswp (arm64) (2/3)"
@@ -184,7 +184,7 @@ else
         -framework AppKit -framework AVFoundation \
         -framework MediaToolbox -framework Accelerate \
         -O \
-        glasswp/glasswp.swift moonleaf/main/MoonleafConfig.swift \
+        glasswp/glasswp.swift glasswp/SpaceOverlay.swift moonleaf/main/MoonleafConfig.swift moonleaf/main/CatalogLogic.swift moonleaf/main/SpaceBinding.swift \
         -o "$BIN_DIR/glasswp"
 
     echo "compiled glasswp ($HOST_ARCH)"

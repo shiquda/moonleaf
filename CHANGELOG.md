@@ -5,6 +5,19 @@ All notable changes to **Moonleaf** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Wallpapers are applied to a desktop, which is one display plus one Space, instead of one overlay across every Space.
+- Usage history keeps the latest 1000 successful applies, with a recent view and a timeline.
+- The menu bar can switch the current desktop to a playlist.
+- The library can search by name and add a selection to a playlist without changing what is playing.
+- Discover saves a chosen file into the library. Pexels video quality is chosen before saving.
+
+### Changed
+- Separate wallpapers per desktop cannot be turned off.
+- New downloads use the current library folder. A future save folder applies only to later downloads.
+
 ## [4.1.1] - 2026-10-23
 
 ### Added
