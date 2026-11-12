@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Each playlist rotates on its own interval even when library shuffle is off.
 - Each desktop keeps its own unconfirmed video request. Clearing a desktop or applying a new wallpaper invalidates the old request, so a late engine report cannot restore it.
 - A failed Space lookup pauses and hides a player that was already open.
+- A failed bind republishes the last committed wallpaper, so the engine no longer retries the rejected one.
 
 ## [4.1.1] - 2026-10-23
 

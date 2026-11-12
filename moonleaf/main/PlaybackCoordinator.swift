@@ -60,6 +60,8 @@ final class PlaybackCoordinator: ObservableObject {
         NSWorkspace.activeSpaceDidChangeNotification,
     ]
     var pendingByTarget: [String: PendingOverlay] = [:]
+    /// Tests capture the assignment file instead of writing the shared one.
+    var assignmentsSink: ((PlaybackAssignmentFile) -> Void)?
     private var rotationTimer: DispatchSourceTimer?
 
     private init() {
@@ -764,7 +766,7 @@ final class PlaybackCoordinator: ObservableObject {
     }
 
     private func pushAssignments(recordHistory: Bool) {
-        guard canTouchApp else { return }
+        guard canTouchApp || assignmentsSink != nil else { return }
         _ = recordHistory
         var file = PlaybackAssignmentFile(revision: Int(Date().timeIntervalSince1970), separateSpaces: separateSpaces, targets: [:])
         let snapshot = catalog.snapshot()
@@ -793,6 +795,10 @@ final class PlaybackCoordinator: ObservableObject {
                 requestID: request.requestID,
                 requestedAt: request.requestedAt
             )
+        }
+        if let assignmentsSink {
+            assignmentsSink(file)
+            return
         }
         SpaceBinding.writeAssignments(file)
         if needsPlayer {
@@ -868,8 +874,10 @@ final class PlaybackCoordinator: ObservableObject {
         } else if pendingByTarget.isEmpty {
             statusMessage = nil
         }
-        if committed, canTouchApp {
+        if committed || failed {
             pushAssignments(recordHistory: false)
+        }
+        if committed, canTouchApp {
             publishCurrentPath()
         }
     }

@@ -61,6 +61,7 @@ struct PlaybackChecks {
         testConcurrentDueTargets(playback)
         testClearDropsLateReceipt(playback)
         testNewApplySupersedesReceipt(playback)
+        testBindFailureRestoresEngine(playback)
 
         if Check.failed == 0 {
             print("playback behavior checks passed")
@@ -378,5 +379,87 @@ struct PlaybackChecks {
             )]
         ))
         Check.expect(playback.sessions.first { $0.targetKey == key }?.path == still.path, "a late video receipt does not replace the still")
+    }
+
+    static func testBindFailureRestoresEngine(_ playback: PlaybackCoordinator) {
+        let key = "d:DISPLAY-ROLLBACK|s:space-a"
+        let old = FileManager.default.temporaryDirectory.appendingPathComponent("moonleaf-rollback-old-\(UUID().uuidString).mp4")
+        let rejected = FileManager.default.temporaryDirectory.appendingPathComponent("moonleaf-rollback-new-\(UUID().uuidString).mp4")
+        try? Data().write(to: old)
+        try? Data().write(to: rejected)
+        var captured: [PlaybackAssignmentFile] = []
+        playback.assignmentsSink = { captured.append($0) }
+        defer {
+            playback.assignmentsSink = nil
+            try? FileManager.default.removeItem(at: old)
+            try? FileManager.default.removeItem(at: rejected)
+        }
+        LibraryCatalog.shared.mutate { file in
+            file.sessions = [session(key: key, path: old.path, kind: "library", interval: "5", last: nil)]
+            file.history = []
+        }
+        playback.reloadForChecks()
+        let when = Date()
+        let request = PendingOverlay(
+            requestID: "rejected-request",
+            requestedAt: when,
+            path: rejected.path,
+            assetID: UUID(),
+            assetName: "rejected",
+            keys: [key],
+            origin: "manual",
+            playlistID: nil,
+            playlistName: nil,
+            recordHistory: true,
+            stopRotation: true,
+            stamp: nil,
+            touchRotationClock: false
+        )
+        playback.pendingByTarget[key] = request
+        captured = []
+        playback.acceptReported(PlaybackStateFile(
+            updatedAt: when.addingTimeInterval(1),
+            targets: [key: PlaybackTargetState(
+                path: rejected.path, playing: false, paused: true,
+                reason: "space-bind-failed", bound: false,
+                requestID: request.requestID, requestedAt: when
+            )]
+        ))
+        Check.expect(playback.pendingByTarget[key] == nil, "a failed request is closed")
+        Check.expect(playback.sessions.first { $0.targetKey == key }?.path == old.path, "a failed request keeps the old session")
+        Check.expect(captured.last != nil, "a failed request republishes the assignment file")
+        Check.expect(captured.last?.targets[key]?.path == old.path, "the engine is told to restore the old wallpaper")
+        Check.expect(captured.last?.targets[key]?.requestID != request.requestID, "the engine no longer holds the rejected request")
+
+        LibraryCatalog.shared.mutate { $0.sessions = [] }
+        playback.reloadForChecks()
+        let second = PendingOverlay(
+            requestID: "rejected-again",
+            requestedAt: when,
+            path: rejected.path,
+            assetID: UUID(),
+            assetName: "rejected",
+            keys: [key],
+            origin: "manual",
+            playlistID: nil,
+            playlistName: nil,
+            recordHistory: true,
+            stopRotation: true,
+            stamp: nil,
+            touchRotationClock: false
+        )
+        playback.pendingByTarget[key] = second
+        captured = []
+        playback.acceptReported(PlaybackStateFile(
+            updatedAt: when.addingTimeInterval(1),
+            targets: [key: PlaybackTargetState(
+                path: rejected.path, playing: false, paused: true,
+                reason: "space-bind-failed", bound: false,
+                requestID: second.requestID, requestedAt: when
+            )]
+        ))
+        Check.expect(playback.pendingByTarget[key] == nil, "a failed request without a previous wallpaper is closed")
+        Check.expect(captured.last != nil, "a failed request without a previous wallpaper republishes the assignment file")
+        Check.expect(captured.last?.targets.keys.contains(key) == false, "a failed target with no previous wallpaper leaves the engine file")
     }
 }
