@@ -11,12 +11,16 @@ struct WallpaperCard: View {
     let wallpaper: endup_wp
     let isActive: Bool
     let cardIsSelected: Bool
+    var isMultiSelectMode: Bool = false
+    var isMultiSelected: Bool = false
     let onSelect: () -> Void
     let onTap: () -> Void
     let onDelete: () -> Void
     let onRename: (String) -> Void
     let onExport: () -> Void
     let onQuickPreview: () -> Void
+    var onToggleMultiSelect: (() -> Void)? = nil
+    var onOpenDetail: (() -> Void)? = nil
 
     @State private var isHovered = false
     @State private var isEditing = false
@@ -24,6 +28,7 @@ struct WallpaperCard: View {
     @State private var showScreenPicker = false
     @FocusState private var isNameFocused: Bool
     @EnvironmentObject private var service: macpaperService
+    @ObservedObject private var playback = PlaybackCoordinator.shared
 
     private var isStillWallpaper: Bool {
         let ext = (wallpaper.path as NSString).pathExtension.lowercased()
@@ -35,7 +40,9 @@ struct WallpaperCard: View {
             previewSection
                 .frame(maxWidth: .infinity)
                 .onTapGesture {
-                    if wallpaper.isFolder {
+                    if isMultiSelectMode && !wallpaper.isFolder {
+                        onToggleMultiSelect?()
+                    } else if wallpaper.isFolder {
                         onTap()
                     } else {
                         onQuickPreview()
@@ -46,10 +53,15 @@ struct WallpaperCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    onTap()
+                    if isMultiSelectMode && !wallpaper.isFolder {
+                        onToggleMultiSelect?()
+                    } else {
+                        onTap()
+                    }
                 }
         }
-        .frame(width: 300, height: 260)
+        .frame(maxWidth: .infinity)
+        .frame(height: 260)
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 22)
@@ -57,9 +69,10 @@ struct WallpaperCard: View {
                 .overlay {
                     RoundedRectangle(cornerRadius: 22)
                         .stroke(
-                            cardIsSelected ? Color.blue.opacity(0.6) :
+                            isMultiSelected ? MoonleafPalette.periwinkle :
+                            cardIsSelected ? MoonleafPalette.periwinkle.opacity(0.75) :
                             isActive ? Color.primary.opacity(0.4) : Color.primary.opacity(0.1),
-                            lineWidth: cardIsSelected ? 3 : (isActive ? 2 : 1)
+                            lineWidth: isMultiSelected ? 2.5 : (cardIsSelected ? 2.5 : (isActive ? 2 : 1))
                         )
                 }
         }
@@ -96,9 +109,9 @@ struct WallpaperCard: View {
                         .foregroundStyle(.secondary.opacity(0.8))
                 }
             } else if ["gif", "jpg", "jpeg", "png"].contains(ext) {
-                LazyImagePreview(path: wallpaper.path)
+                LazyImagePreview(path: wallpaper.path, targetSize: NSSize(width: 320, height: 200))
             } else if ["mp4", "mov"].contains(ext) {
-                videoPreview(videoURL: URL(fileURLWithPath: wallpaper.path))
+                videoPreview(videoURL: URL(fileURLWithPath: wallpaper.path), targetSize: NSSize(width: 320, height: 200))
                     .clipped()
                     .overlay {
                         Image(systemName: "play.circle.fill")
@@ -117,22 +130,55 @@ struct WallpaperCard: View {
             }
 
             if !wallpaper.isFolder {
-                overlayControls
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.9)),
-                        removal: .opacity.combined(with: .scale(scale: 1.1))
-                    ))
+                if isMultiSelectMode {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            ZStack {
+                                Circle()
+                                    .fill(isMultiSelected ? MoonleafPalette.periwinkle : Color.black.opacity(0.35))
+                                    .frame(width: 26, height: 26)
+                                    .overlay {
+                                        Circle()
+                                            .stroke(.white.opacity(0.8), lineWidth: 1.5)
+                                    }
+                                if isMultiSelected {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                            .padding(10)
+                        }
+                        Spacer()
+                    }
+                } else if isHovered || isActive || cardIsSelected {
+                    overlayControls
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.9)),
+                            removal: .opacity.combined(with: .scale(scale: 1.1))
+                        ))
+                } else {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            cardActionMenu
+                                .padding(10)
+                        }
+                        Spacer()
+                    }
+                }
             }
         }
-        .frame(width: 276, height: 184)
+        .frame(maxWidth: .infinity)
+        .frame(height: 184)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(
-                    isActive
-                        ? Color.primary.opacity(0.4)
-                        : Color.primary.opacity(0.1),
-                    lineWidth: isActive ? 2 : 1
+                    isMultiSelected ? MoonleafPalette.periwinkle.opacity(0.75) :
+                    isActive ? Color.primary.opacity(0.4) : Color.primary.opacity(0.1),
+                    lineWidth: (isActive || isMultiSelected) ? 2 : 1
                 )
         }
         .scaleEffect(isHovered ? 1.02 : 1.0)
@@ -141,6 +187,57 @@ struct WallpaperCard: View {
                 isHovered = hovering
             }
         }
+    }
+
+    private var cardActionMenu: some View {
+        Menu {
+            Button(NSLocalizedString("apply_current", comment: "")) { onSelect() }
+            Button(NSLocalizedString("apply_display", comment: "")) {
+                if let uuid = SpaceBinding.currentDisplayUUID() {
+                    service.applyToDisplayDesktops(wallpaper, displayUUID: uuid, confirmedCrossDisplay: false)
+                }
+            }
+            if let onOpenDetail {
+                Button(NSLocalizedString("detail_open", comment: "")) { onOpenDetail() }
+            }
+            Button(service.isFavorite(wallpaper) ? NSLocalizedString("unfavorite_toggle", comment: "") : NSLocalizedString("favorite_toggle", comment: "")) {
+                service.toggleFavorite(wallpaper)
+            }
+            if !playback.playlists.isEmpty {
+                Menu(NSLocalizedString("browse_add_to_playlist", comment: "")) {
+                    ForEach(playback.playlists) { list in
+                        Button(list.name) {
+                            playback.addToPlaylist(paths: [wallpaper.path], playlistID: list.id)
+                        }
+                    }
+                }
+            }
+            if let onToggleMultiSelect {
+                Button(isMultiSelected ? NSLocalizedString("library_unselect", comment: "") : NSLocalizedString("library_select", comment: "")) {
+                    onToggleMultiSelect()
+                }
+            }
+            Divider()
+            Button(NSLocalizedString("library_rename", comment: "")) { isEditing = true }
+            Button(NSLocalizedString("library_export", comment: "")) { onExport() }
+            Button(NSLocalizedString("history_remove", comment: ""), role: .destructive) { onDelete() }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 28, height: 28)
+                .contentShape(Circle())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .tint(.white)
+        .frame(width: 28, height: 28)
+        .background {
+            Circle()
+                .fill(Color.black.opacity(0.58))
+                .overlay { Circle().stroke(Color.white.opacity(0.3), lineWidth: 0.8) }
+        }
+        .fixedSize()
     }
 
     private var overlayControls: some View {
@@ -244,6 +341,8 @@ struct WallpaperCard: View {
                                 }
                         }
                         .buttonStyle(.plain)
+
+                        cardActionMenu
                     }
                 }
                 .padding(.horizontal, 12)
@@ -348,7 +447,8 @@ struct WallpaperCard: View {
                 }
             }
         }
-        .frame(width: 276, height: 184)
+        .frame(maxWidth: .infinity)
+        .frame(height: 184)
     }
 
     private var infoSection: some View {

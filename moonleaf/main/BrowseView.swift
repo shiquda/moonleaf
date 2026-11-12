@@ -294,17 +294,15 @@ struct BrowseView: View {
                 }
             }
 
-            Button(action: {
+            PrimaryGradientButton(
+                title: NSLocalizedString("browse_apply", comment: "Apply Filters"),
+                icon: "checkmark"
+            ) {
                 activeResolutionFilter = selectedResolution
                 currentPage = 1
                 loadWallpapers()
                 showFilters = false
-            }) {
-                Text(NSLocalizedString("browse_apply", comment: "Apply Filters"))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
             }
-            .buttonStyle(.borderedProminent)
         }
     }
 
@@ -335,7 +333,7 @@ struct BrowseView: View {
 
     private var contentView: some View {
         ScrollView {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: 3), spacing: 20) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 220, maximum: 300), spacing: 20)], spacing: 20) {
                 ForEach(filteredWallpapers) { wallpaper in
                     BrowseWallpaperCard(item: wallpaper, onPreview: { openPreview(for: wallpaper) })
                         .onAppear {
@@ -486,52 +484,54 @@ struct BrowseWallpaperCard: View {
     @State private var isHovered = false
     @State private var isDownloading = false
     @State private var isDownloaded = false
+    @State private var savedFilePath: String?
+    @State private var showQualityPopover = false
     @State private var downloadProgress: Double = 0
     @State private var downloadTask: URLSessionDownloadTask?
     @State private var progressObservation: NSKeyValueObservation?
     @State private var imageTask: URLSessionDataTask?
+    @ObservedObject private var playback = PlaybackCoordinator.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack {
-                if let image = image {
-                    Image(nsImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(height: 200)
-                        .clipped()
-                } else {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(height: 200)
-
-                    if isLoading {
-                        ProgressView()
+                Color.gray.opacity(0.18)
+                    .frame(height: 200)
+                    .overlay {
+                        if let image = image {
+                            Image(nsImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        }
                     }
+                    .clipped()
+
+                if image == nil && isLoading {
+                    ProgressView()
                 }
 
                 if item.isVideo {
                     VStack {
                         HStack {
-                            Spacer()
                             Image(systemName: "play.circle.fill")
-                                .font(.title)
-                                .foregroundColor(.white)
+                                .font(.system(size: 20))
+                                .foregroundColor(.white.opacity(0.9))
                                 .shadow(radius: 2)
+                            Spacer()
                         }
                         Spacer()
                     }
-                    .padding(8)
+                    .padding(10)
                 }
 
-                if isHovered {
+                if isHovered || isDownloading || isDownloaded || showQualityPopover {
                     VStack {
                         HStack {
                             Spacer()
                             downloadButton
                         }
                         Spacer()
-                        if item.provider == .pexels {
+                        if isHovered && item.provider == .pexels {
                             HStack {
                                 if let author = item.authorName, let url = item.authorURL {
                                     Button(action: { NSWorkspace.shared.open(url) }) {
@@ -579,13 +579,22 @@ struct BrowseWallpaperCard: View {
             .contentShape(Rectangle())
             .onTapGesture { onPreview() }
 
-            Text(item.id)
-                .font(Font(font_loader.regular(size: 12)))
-                .lineLimit(1)
-            Text("\(item.width)x\(item.height)")
-                .font(Font(font_loader.regular(size: 10)))
-                .foregroundColor(.secondary)
-            saveControl
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.id)
+                        .font(Font(font_loader.regular(size: 12)))
+                        .lineLimit(1)
+
+                    Text("\(item.width)x\(item.height)")
+                        .font(Font(font_loader.regular(size: 10)))
+                        .foregroundColor(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+
+            if isDownloaded, let savedPath = savedFilePath {
+                savedActionsRow(path: savedPath)
+            }
         }
         .contentShape(Rectangle())
         .onHover { hovering in
@@ -604,40 +613,169 @@ struct BrowseWallpaperCard: View {
         }
     }
 
-    private var saveControl: some View {
-        Group {
+    private var downloadButton: some View {
+        Button {
+            if isDownloaded || isDownloading { return }
             if item.isVideo {
-                Menu(NSLocalizedString("browse_save_quality", comment: "")) {
-                    if item.videoChoices.isEmpty {
-                        Text(NSLocalizedString("browse_no_quality", comment: ""))
-                    }
-                    ForEach(item.videoChoices) { choice in
-                        Button(choice.label) { downloadWallpaper(from: choice.url) }
-                    }
-                }
-                .disabled(isDownloading || isDownloaded || item.videoChoices.isEmpty)
-            } else {
-                Button(isDownloaded ? NSLocalizedString("browse_saved", comment: "") : NSLocalizedString("browse_save", comment: "")) {
-                    if let url = item.downloadURL { downloadWallpaper(from: url) }
-                }
-                .disabled(isDownloading || isDownloaded || item.downloadURL == nil)
+                showQualityPopover.toggle()
+            } else if let url = item.downloadURL {
+                downloadWallpaper(from: url)
             }
+        } label: {
+            ZStack {
+                if isDownloaded {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(Font(font_loader.regular(size: 20)))
+                        .foregroundColor(.green)
+                } else if isDownloading {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .brightness(1)
+                } else {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(Font(font_loader.regular(size: 20)))
+                        .foregroundColor(.white)
+                }
+            }
+            .padding(8)
+            .background(Circle().fill(Color.black.opacity(0.6)))
         }
-        .font(Font(font_loader.regular(size: 11)))
+        .buttonStyle(PlainButtonStyle())
+        .disabled(isDownloading || isDownloaded || (!item.isVideo && item.downloadURL == nil))
+        .popover(isPresented: $showQualityPopover, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(NSLocalizedString("browse_save_quality", comment: ""))
+                    .font(Font(font_loader.bold(size: 13)))
+                    .foregroundStyle(.primary.opacity(0.9))
+                    .padding(.horizontal, 8)
+                    .padding(.top, 2)
+
+                if item.videoChoices.isEmpty {
+                    Text(NSLocalizedString("browse_no_quality", comment: ""))
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                } else {
+                    ForEach(item.videoChoices) { choice in
+                        PopoverMenuItem(
+                            title: choice.label,
+                            subtitle: NSLocalizedString("detail_unknown", comment: ""),
+                            icon: "arrow.down.circle"
+                        ) {
+                            showQualityPopover = false
+                            downloadWallpaper(from: choice.url)
+                        }
+                    }
+                }
+            }
+            .padding(8)
+            .frame(width: 220)
+        }
     }
 
-    private var downloadButton: some View {
-        saveControl
+    private func savedActionsRow(path: String) -> some View {
+        HStack(spacing: 6) {
+            savedCapsuleButton(
+                title: NSLocalizedString("browse_view_in_library", comment: ""),
+                icon: "square.grid.2x2"
+            ) {
+                macpaperService.shared.fetch_wallpapers()
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    AppNavigation.shared.page = .library
+                }
+            }
+
+            if !playback.playlists.isEmpty {
+                Menu {
+                    ForEach(playback.playlists) { list in
+                        Button(list.name) {
+                            playback.addToPlaylist(paths: [path], playlistID: list.id)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "text.badge.plus")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text(NSLocalizedString("browse_add_to_playlist", comment: ""))
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(.primary.opacity(0.85))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background {
+                        Capsule()
+                            .fill(.regularMaterial.opacity(0.8))
+                            .overlay { Capsule().stroke(Color.primary.opacity(0.14), lineWidth: 0.8) }
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
+
+            savedCapsuleButton(
+                title: NSLocalizedString("browse_apply_current", comment: ""),
+                icon: "wand.and.stars",
+                tint: MoonleafPalette.periwinkle
+            ) {
+                _ = playback.apply(
+                    path: path,
+                    name: nil,
+                    scope: .currentDesktop,
+                    displayUUID: SpaceBinding.currentDisplayUUID(),
+                    stopRotation: true,
+                    origin: "manual",
+                    confirmedCrossDisplay: false,
+                    recordHistory: true
+                )
+            }
+        }
+    }
+
+    private func savedCapsuleButton(
+        title: String,
+        icon: String,
+        tint: Color? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(tint ?? .primary.opacity(0.85))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background {
+                Capsule()
+                    .fill(tint.map { AnyShapeStyle($0.opacity(0.16)) } ?? AnyShapeStyle(.regularMaterial.opacity(0.8)))
+                    .overlay {
+                        Capsule().stroke((tint ?? Color.primary).opacity(tint == nil ? 0.14 : 0.35), lineWidth: 0.8)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func checkIfDownloaded() {
-        guard let downloadURL = item.downloadURL else { return }
-        let wpStorageDir = macpaperService.wp_storage_dir
-        let fileName = "\(item.id)-\(downloadURL.lastPathComponent)"
-        let destinationURL = wpStorageDir.appendingPathComponent(fileName)
-
-        if FileManager.default.fileExists(atPath: destinationURL.path) {
-            isDownloaded = true
+        let candidateURLs: [URL] = item.isVideo
+            ? (item.videoChoices.map(\.url) + [item.downloadURL].compactMap { $0 })
+            : [item.downloadURL].compactMap { $0 }
+        let candidateDirs = [PlaybackCoordinator.shared.saveDirectory(), macpaperService.wp_storage_dir]
+        for dir in candidateDirs {
+            for url in candidateURLs {
+                let fileName = "\(item.id)-\(url.lastPathComponent)"
+                let destinationURL = dir.appendingPathComponent(fileName)
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    isDownloaded = true
+                    savedFilePath = destinationURL.path
+                    return
+                }
+            }
         }
     }
 
@@ -690,6 +828,7 @@ struct BrowseWallpaperCard: View {
 
             if FileManager.default.fileExists(atPath: destinationURL.path) {
                 isDownloaded = true
+                savedFilePath = destinationURL.path
                 return
             }
 
@@ -730,6 +869,7 @@ struct BrowseWallpaperCard: View {
 
                     DispatchQueue.main.async {
                         self.isDownloaded = true
+                        self.savedFilePath = destinationURL.path
                         NotificationCenter.default.post(
                             name: NSNotification.Name("WallpaperDownloadCompleted"),
                             object: nil

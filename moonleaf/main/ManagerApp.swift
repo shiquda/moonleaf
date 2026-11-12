@@ -21,9 +21,21 @@ struct ManagerView: View {
     @State private var showWpActionsDropdown = false
     @Binding var previewTarget: PreviewTarget?
     @State private var nameQuery = ""
+    @State private var isSelecting = false
     @State private var selectedPaths = Set<String>()
-    @State private var playlistID = ""
+    @State private var detailPath: String?
 
+    private struct DetailPathItem: Identifiable {
+        let path: String
+        var id: String { path }
+    }
+
+    private var detailBinding: Binding<DetailPathItem?> {
+        Binding(
+            get: { detailPath.map(DetailPathItem.init) },
+            set: { detailPath = $0?.path }
+        )
+    }
     private static let supportedExtensions: Set<String> = ["mp4", "mov", "gif", "jpg", "jpeg", "png"]
 
     var body: some View {
@@ -45,10 +57,21 @@ struct ManagerView: View {
                 .transition(.opacity)
                 .zIndex(1)
             }
+
+            if isSelecting || !selectedPaths.isEmpty {
+                multiSelectBar
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(2)
+            }
         }
         .animation(.easeInOut(duration: 0.3), value: service.selected_wp?.id)
+        .animation(.easeInOut(duration: 0.2), value: isSelecting)
+        .animation(.easeInOut(duration: 0.2), value: selectedPaths.count)
         .onAppear {
             service.fetch_wallpapers()
+        }
+        .sheet(item: detailBinding) { item in
+            AssetDetailSheet(path: item.path)
         }
         .fileImporter(
             isPresented: $show_importer,
@@ -67,28 +90,28 @@ struct ManagerView: View {
     }
 
     private var toolbarView: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 6) {
             Button(action: { showAddPopover.toggle() }) {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                     Text("add wallpaper")
                         .font(Font(font_loader.bold(size: 13)))
-                    Spacer()
+                        .lineLimit(1)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10, weight: .medium))
                         .opacity(0.8)
                 }
                 .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .frame(width: 175)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
                 .background {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(LinearGradient(colors: [Color(red: 0.42, green: 0.47, blue: 0.85), Color(red: 0.32, green: 0.37, blue: 0.75)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 }
             }
             .buttonStyle(.plain)
+            .fixedSize()
             .popover(isPresented: $showAddPopover, arrowEdge: .bottom) {
                 VStack(spacing: 4) {
                     Button(action: {
@@ -133,33 +156,40 @@ struct ManagerView: View {
                 .frame(width: 160)
             }
 
-            Button(action: { show_settings() }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 13, weight: .medium))
-                    Text(NSLocalizedString("mgr_settings", comment: "settings"))
-                        .font(.system(size: 13, weight: .medium))
+            GlassSearchField(
+                placeholder: NSLocalizedString("search_name", comment: ""),
+                text: $nameQuery
+            )
+            .frame(minWidth: 90, maxWidth: 220)
+            ChipButton(
+                title: NSLocalizedString("library_select", comment: ""),
+                icon: isSelecting ? "checkmark.circle.fill" : "checkmark.circle",
+                isActive: isSelecting
+            ) {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isSelecting.toggle()
+                    if !isSelecting {
+                        selectedPaths.removeAll()
+                    }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.08)))
             }
-            .buttonStyle(.plain)
+            .fixedSize()
 
-            Spacer()
-
+            Spacer(minLength: 0)
             if let currentWp = service.current_wp {
                 Button(action: { showWpActionsDropdown.toggle() }) {
                     HStack(spacing: 6) {
                         Image(systemName: "slider.horizontal.3")
                             .font(.system(size: 13))
-                        Text("Active Wallpaper")
+                        Text(NSLocalizedString("active_label", comment: "Active"))
                             .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
                     }
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 8)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(showWpActionsDropdown ? 0.15 : 0.05)))
                 }
+                .fixedSize()
                 .buttonStyle(.plain)
                 .popover(isPresented: $showWpActionsDropdown, arrowEdge: .bottom) {
                     VStack(spacing: 4) {
@@ -337,8 +367,8 @@ struct ManagerView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 32)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .background {
             RoundedRectangle(cornerRadius: 22)
                 .fill(.ultraThinMaterial.opacity(0.9))
@@ -348,7 +378,7 @@ struct ManagerView: View {
                 }
         }
         .padding(.horizontal, 24)
-        .padding(.top, 16)
+        .padding(.top, 12)
     }
 
     private func show_settings() {
@@ -407,31 +437,7 @@ struct ManagerView: View {
                 }
             }
 
-            HStack(spacing: 8) {
-                TextField(NSLocalizedString("search_name", comment: ""), text: $nameQuery)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 280)
-                Text(String(format: NSLocalizedString("library_selected", comment: ""), selectedPaths.count))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Picker(NSLocalizedString("playlist_pick", comment: ""), selection: $playlistID) {
-                    Text(NSLocalizedString("playlist_pick", comment: "")).tag("")
-                    ForEach(PlaybackCoordinator.shared.playlists) { list in
-                        Text(list.name).tag(list.id.uuidString)
-                    }
-                }
-                .frame(width: 180)
-                Button(NSLocalizedString("playlist_add_selected", comment: "")) {
-                    guard let id = UUID(uuidString: playlistID) else { return }
-                    PlaybackCoordinator.shared.addToPlaylist(paths: Array(selectedPaths), playlistID: id)
-                    selectedPaths.removeAll()
-                }
-                .disabled(playlistID.isEmpty || selectedPaths.isEmpty)
-                Spacer()
-            }
-            .padding(.horizontal, 32)
-            .padding(.top, 12)
-
+            // Search and multi-select moved into toolbarView and floating multiSelectBar
             ZStack {
                 if service.isLoading {
                     loadingView
@@ -519,12 +525,10 @@ struct ManagerView: View {
     private var gridView: some View {
         ScrollView {
             let columns = [
-                GridItem(.fixed(300), spacing: 30),
-                GridItem(.fixed(300), spacing: 30),
-                GridItem(.fixed(300), spacing: 30)
+                GridItem(.adaptive(minimum: 260, maximum: 310), spacing: 24)
             ]
 
-            LazyVGrid(columns: columns, alignment: .center, spacing: 30) {
+            LazyVGrid(columns: columns, alignment: .center, spacing: 24) {
                 let needle = nameQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                 let displayed = (showFavoritesOnly
                     ? service.wallpapers.filter { service.isFavorite($0) }
@@ -534,6 +538,8 @@ struct ManagerView: View {
                         wallpaper: wallpaper,
                         isActive: service.current_wp == wallpaper.path,
                         cardIsSelected: service.selected_wp?.id == wallpaper.id,
+                        isMultiSelectMode: isSelecting,
+                        isMultiSelected: selectedPaths.contains(wallpaper.path),
                         onSelect: {
                             withAnimation(.easeInOut(duration: 0.3)) { service.set_wp(wallpaper) }
                         },
@@ -566,6 +572,12 @@ struct ManagerView: View {
                                     detail: ByteCountFormatter.string(fromByteCount: wallpaper.fileSize, countStyle: .file)
                                 )
                             }
+                        },
+                        onToggleMultiSelect: {
+                            toggleSelection(for: wallpaper.path)
+                        },
+                        onOpenDetail: {
+                            detailPath = wallpaper.path
                         }
                     )
                     .contextMenu {
@@ -576,28 +588,95 @@ struct ManagerView: View {
                                     service.applyToDisplayDesktops(wallpaper, displayUUID: uuid, confirmedCrossDisplay: false)
                                 }
                             }
+                            Button(NSLocalizedString("detail_open", comment: "")) {
+                                detailPath = wallpaper.path
+                            }
                             Button(selectedPaths.contains(wallpaper.path) ? NSLocalizedString("library_unselect", comment: "") : NSLocalizedString("library_select", comment: "")) {
-                                if selectedPaths.contains(wallpaper.path) {
-                                    selectedPaths.remove(wallpaper.path)
-                                } else {
-                                    selectedPaths.insert(wallpaper.path)
-                                }
+                                toggleSelection(for: wallpaper.path)
                             }
                         }
                     }
                     .environmentObject(service)
-                    .frame(width: 300, height: 260)
+                    .frame(height: 260)
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .scale(scale: 0.8).combined(with: .offset(y: 20))),
                         removal: .opacity.combined(with: .scale(scale: 0.8))
                     ))
-                    .animation(.easeOut(duration: 0.4).delay(Double(index) * 0.1), value: service.wallpapers.count)
+                    .animation(.easeOut(duration: 0.4).delay(Double(min(index, 12)) * 0.05), value: service.wallpapers.count)
                 }
             }
-            .padding(32)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
         }
         .onDrop(of: [.fileURL, .directory], isTargeted: $file_drag) { providers in
             drop_handle(providers)
+        }
+    }
+
+    private var multiSelectBar: some View {
+        GlassPanel(cornerRadius: 18, padding: 12) {
+            HStack(spacing: 12) {
+                StatusPill(
+                    text: String(format: NSLocalizedString("library_selected", comment: ""), selectedPaths.count),
+                    icon: "checkmark.circle.fill",
+                    tint: MoonleafPalette.periwinkle
+                )
+
+                Menu {
+                    if PlaybackCoordinator.shared.playlists.isEmpty {
+                        Text(NSLocalizedString("playlist_none", comment: ""))
+                    } else {
+                        ForEach(PlaybackCoordinator.shared.playlists) { list in
+                            Button(list.name) {
+                                PlaybackCoordinator.shared.addToPlaylist(paths: Array(selectedPaths), playlistID: list.id)
+                                selectedPaths.removeAll()
+                                isSelecting = false
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "text.badge.plus")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(NSLocalizedString("playlist_add_selected", comment: ""))
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .tint(.white)
+                .background {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(MoonleafPalette.primaryGradient)
+                }
+                .opacity(selectedPaths.isEmpty ? 0.45 : 1.0)
+                .fixedSize()
+                .disabled(selectedPaths.isEmpty)
+
+                ChipButton(title: NSLocalizedString("cancel", comment: "")) {
+                    selectedPaths.removeAll()
+                    isSelecting = false
+                }
+            }
+        }
+        .fixedSize()
+        .padding(.bottom, 20)
+        .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+    }
+
+    private func toggleSelection(for path: String) {
+        if !isSelecting {
+            isSelecting = true
+        }
+        if selectedPaths.contains(path) {
+            selectedPaths.remove(path)
+        } else {
+            selectedPaths.insert(path)
         }
     }
 

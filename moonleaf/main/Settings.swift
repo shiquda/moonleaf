@@ -7,6 +7,7 @@
 
 import SwiftUI
 struct SettingsView: View {
+    var embedded: Bool = false
     @EnvironmentObject private var service: macpaperService
     @State private var selectedTab: SettingsTab = .general
     @State private var apiKey = ""
@@ -36,14 +37,14 @@ struct SettingsView: View {
     @State private var visualizer_barCount: Int = 64
     @State private var visualizer_maxHeight: Double = 0.5
     @State private var visualizer_minHeight: Double = 4.0
-    
+
     @State private var scalingMode: String = "fill"
     @State private var videoFilter: String = "none"
 
     private let updater = Updater.shared
 
     enum SettingsTab: CaseIterable, Identifiable, Hashable {
-        case general, manager, playback
+        case general, manager, playback, storage
 
         var id: Self { self }
 
@@ -52,6 +53,7 @@ struct SettingsView: View {
             case .general: return NSLocalizedString("settings_general", comment: "General")
             case .manager: return NSLocalizedString("settings_manager", comment: "Manager")
             case .playback: return NSLocalizedString("settings_playback", comment: "Playback")
+            case .storage: return NSLocalizedString("settings_storage", comment: "Storage")
             }
         }
 
@@ -60,68 +62,74 @@ struct SettingsView: View {
             case .general: return "gearshape"
             case .manager: return "macwindow"
             case .playback: return "play.circle"
+            case .storage: return "internaldrive"
             }
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 16) {
-                Image(systemName: "gearshape.fill")
-                    .font(Font(font_loader.regular(size: 24)))
-                    .foregroundStyle(.blue)
-
-                Text(NSLocalizedString("settings", comment: "Settings"))
-                    .font(Font(font_loader.bold(size: 22)))
-
-                Spacer()
-            }
-            .padding(.horizontal, 28)
-            .padding(.top, 24)
-            .padding(.bottom, 20)
-
-            HStack(spacing: 12) {
-                ForEach(SettingsTab.allCases, id: \.self) { tab in
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.15)) { selectedTab = tab }
-                    }) {
+            if embedded {
+                GlassToolbar {
+                    PageHeader(title: NSLocalizedString("page_settings", comment: "Settings")) {
                         HStack(spacing: 8) {
-                            Image(systemName: tab.icon)
-                                .font(Font(font_loader.regular(size: 13)))
-                            Text(tab.title)
-                                .font(Font(font_loader.regular(size: 13)))
+                            ForEach(SettingsTab.allCases, id: \.self) { tab in
+                                tabButton(
+                                    title: tab.title,
+                                    icon: tab.icon,
+                                    isSelected: selectedTab == tab
+                                ) {
+                                    withAnimation(.easeInOut(duration: 0.15)) { selectedTab = tab }
+                                }
+                            }
                         }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(selectedTab == tab ? Color.blue : Color.clear)
-                        )
-                        .foregroundStyle(selectedTab == tab ? .white : .secondary)
                     }
-                    .buttonStyle(.plain)
                 }
-                Spacer()
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+            } else {
+                VStack(spacing: 14) {
+                    PageHeader(title: NSLocalizedString("settings", comment: "Settings")) {
+                        EmptyView()
+                    }
+                    HStack(spacing: 8) {
+                        ForEach(SettingsTab.allCases, id: \.self) { tab in
+                            tabButton(
+                                title: tab.title,
+                                icon: tab.icon,
+                                isSelected: selectedTab == tab
+                            ) {
+                                withAnimation(.easeInOut(duration: 0.15)) { selectedTab = tab }
+                            }
+                        }
+                        Spacer()
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
             }
-            .padding(.horizontal, 28)
-            .padding(.bottom, 16)
-
-            Divider().padding(.horizontal, 20)
 
             ScrollView(.vertical, showsIndicators: true) {
-                VStack(spacing: 24) {
+                VStack(spacing: 20) {
                     switch selectedTab {
                     case .general: generalSettings
                     case .manager: managerSettings
                     case .playback: playbackSettings
+                    case .storage: StorageSettingsSection()
                     }
                 }
-                .padding(.horizontal, 28)
-                .padding(.vertical, 24)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
             }
         }
-        .frame(minWidth: 550, idealWidth: 600, minHeight: 500, idealHeight: 550)
-        .background(Color(NSColor.windowBackgroundColor))
+        .frame(minWidth: embedded ? 480 : 580, idealWidth: embedded ? nil : 640, minHeight: embedded ? 420 : 520, idealHeight: embedded ? nil : 580)
+        .background {
+            if !embedded {
+                Rectangle().fill(.ultraThinMaterial)
+            }
+        }
         .onAppear {
             loadAPIKey()
             ap_is_enabled = service.ap_is_enabled
@@ -326,7 +334,11 @@ struct SettingsView: View {
                     }
                 }
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.regularMaterial.opacity(0.65))
+                        .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+                )
             }
         }
     }
@@ -359,10 +371,14 @@ struct SettingsView: View {
                     .pickerStyle(MenuPickerStyle())
                     .frame(width: 160)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.regularMaterial.opacity(0.65))
+                        .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+                )
             }
-
             Section(title: NSLocalizedString("settings_export", comment: "Export")) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(NSLocalizedString("settings_export_folder", comment: "Export Folder"))
@@ -395,10 +411,14 @@ struct SettingsView: View {
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.regularMaterial.opacity(0.65))
+                        .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+                )
             }
-
             Section(title: "Import Method") {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Choose how wallpapers are added to your library.")
@@ -412,8 +432,13 @@ struct SettingsView: View {
                     .pickerStyle(SegmentedPickerStyle())
                     .onChange(of: service.importMethod) { _ in service.saveSettings() }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.regularMaterial.opacity(0.65))
+                        .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+                )
             }
         }
     }
@@ -441,15 +466,15 @@ struct SettingsView: View {
                     )
 
                     Text(NSLocalizedString("settings_spaces_status", comment: ""))
-                        .font(Font(font_loader.regular(size: 12)))
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 16)
-                    StorageSettingsSection()
-                        .padding(.horizontal, 16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 4)
 
+                    if service.shuffleEnabled {
                         HStack {
                             Text(NSLocalizedString("settings_shuffle_interval", comment: "Change every"))
-                                .font(Font(font_loader.regular(size: 13)))
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
                                 .foregroundColor(.secondary)
 
                             Spacer()
@@ -465,8 +490,14 @@ struct SettingsView: View {
                             .pickerStyle(MenuPickerStyle())
                             .frame(width: 160)
                         }
-                        .padding(.horizontal, 16)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(.regularMaterial.opacity(0.65))
+                                .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+                        )
                         .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                 }
             }
 
@@ -498,10 +529,14 @@ struct SettingsView: View {
                     .pickerStyle(SegmentedPickerStyle())
                     .onChange(of: videoFilter) { _ in saveVisualizerSettings() }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.regularMaterial.opacity(0.65))
+                        .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+                )
             }
-
             Section(title: "Audio Visualizer (beta)") {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Visualizer Mode")
@@ -585,8 +620,13 @@ struct SettingsView: View {
                     }
                     .padding(.top, 4)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.regularMaterial.opacity(0.65))
+                        .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+                )
             }
 
             Section(title: NSLocalizedString("settings_volume", comment: "Volume")) {
@@ -602,8 +642,13 @@ struct SettingsView: View {
                     Slider(value: $service.volume, in: 0...1, step: 0.05)
                         .onChange(of: service.volume) { service.chvol($0) }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.regularMaterial.opacity(0.65))
+                        .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+                )
             }
         }
     }
@@ -810,10 +855,14 @@ struct SToggle: View {
             }
             Spacer()
             Toggle("", isOn: $isOn)
-                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                .toggleStyle(SwitchToggleStyle(tint: MoonleafPalette.periwinkle))
                 .labelsHidden()
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.regularMaterial.opacity(0.65))
+                .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
+        )
     }
 }
