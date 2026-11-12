@@ -249,6 +249,105 @@ enum TargetLogic {
     }
 }
 
+enum VisiblePaint {
+    /// AppKit paints the space that is visible now. A cached isCurrent flag is not that space.
+    static func allowed(targetSpaceUUID: String, liveCurrentSpaceUUIDs: Set<String>) -> Bool {
+        liveCurrentSpaceUUIDs.contains(targetSpaceUUID)
+    }
+}
+
+enum ApplyCommit {
+    static func sameInstant(_ left: Date, _ right: Date) -> Bool {
+        abs(left.timeIntervalSince(right)) < 1
+    }
+
+    static func matches(
+        requestID: String,
+        path: String,
+        requestedAt: Date,
+        reportedRequestID: String,
+        reportedPath: String,
+        reportedAt: Date
+    ) -> Bool {
+        !requestID.isEmpty
+            && reportedRequestID == requestID
+            && reportedPath == path
+            && sameInstant(reportedAt, requestedAt)
+    }
+
+    static func overlaySucceeded(
+        requestID: String,
+        path: String,
+        requestedAt: Date,
+        reportedRequestID: String,
+        reportedPath: String,
+        reportedAt: Date,
+        bound: Bool,
+        reason: String?
+    ) -> Bool {
+        matches(
+            requestID: requestID,
+            path: path,
+            requestedAt: requestedAt,
+            reportedRequestID: reportedRequestID,
+            reportedPath: reportedPath,
+            reportedAt: reportedAt
+        ) && bound && reason != "space-bind-failed"
+    }
+
+    static func overlayFailed(
+        requestID: String,
+        path: String,
+        requestedAt: Date,
+        reportedRequestID: String,
+        reportedPath: String,
+        reportedAt: Date,
+        bound: Bool,
+        reason: String?
+    ) -> Bool {
+        matches(
+            requestID: requestID,
+            path: path,
+            requestedAt: requestedAt,
+            reportedRequestID: reportedRequestID,
+            reportedPath: reportedPath,
+            reportedAt: reportedAt
+        ) && (!bound || reason == "space-bind-failed")
+    }
+}
+
+enum RotationSchedule {
+    static func seconds(_ raw: String) -> TimeInterval? {
+        switch raw {
+        case "1": return 60
+        case "5": return 300
+        case "10": return 600
+        case "30": return 1800
+        case "60": return 3600
+        default: return nil
+        }
+    }
+
+    /// Named lists and folder pools rotate on their own interval even when library shuffle is off.
+    static func isDue(
+        listKind: String?,
+        rotationEnabled: Bool,
+        paused: Bool,
+        unavailable: Bool,
+        intervalRaw: String,
+        lastRotatedAt: Date?,
+        now: Date,
+        libraryShuffleEnabled: Bool
+    ) -> Bool {
+        guard rotationEnabled, !paused, !unavailable else { return false }
+        if listKind == nil || listKind == "library" {
+            guard libraryShuffleEnabled else { return false }
+        }
+        let interval = seconds(intervalRaw) ?? 300
+        return now.timeIntervalSince(lastRotatedAt ?? .distantPast) >= interval
+    }
+}
+
 enum ScopeKind: String, Equatable {
     case currentDesktop
     case displayDesktops

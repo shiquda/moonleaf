@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate wallpapers per desktop cannot be turned off.
 - New downloads use the current library folder. A future save folder applies only to later downloads.
 
+### Fixed
+- Switching Spaces refreshes the current desktop before a menu or apply, and a still is not painted onto the visible Space unless that Space is the target.
+- A playlist add no longer re-enters the catalog queue.
+- Video and GIF history, sessions, and playlist checks update only after the engine reports the same request, path, and time. A failed bind pauses the player.
+- Each playlist rotates on its own interval even when library shuffle is off.
+
 ## [4.1.1] - 2026-10-23
 
 ### Added

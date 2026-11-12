@@ -16,6 +16,37 @@ struct PlaybackAssignment: Codable, Equatable {
     var paused: Bool
     var manualPause: Bool
     var pauseReason: String?
+    var requestID: String
+    var requestedAt: Date
+
+    init(
+        path: String,
+        kind: String,
+        paused: Bool,
+        manualPause: Bool,
+        pauseReason: String?,
+        requestID: String = UUID().uuidString,
+        requestedAt: Date = Date()
+    ) {
+        self.path = path
+        self.kind = kind
+        self.paused = paused
+        self.manualPause = manualPause
+        self.pauseReason = pauseReason
+        self.requestID = requestID
+        self.requestedAt = requestedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        path = try container.decode(String.self, forKey: .path)
+        kind = try container.decode(String.self, forKey: .kind)
+        paused = try container.decode(Bool.self, forKey: .paused)
+        manualPause = try container.decode(Bool.self, forKey: .manualPause)
+        pauseReason = try container.decodeIfPresent(String.self, forKey: .pauseReason)
+        requestID = try container.decodeIfPresent(String.self, forKey: .requestID) ?? ""
+        requestedAt = try container.decodeIfPresent(Date.self, forKey: .requestedAt) ?? .distantPast
+    }
 }
 
 struct PlaybackAssignmentFile: Codable, Equatable {
@@ -30,6 +61,37 @@ struct PlaybackTargetState: Codable, Equatable {
     var paused: Bool
     var reason: String?
     var bound: Bool
+    var requestID: String
+    var requestedAt: Date
+
+    init(
+        path: String,
+        playing: Bool,
+        paused: Bool,
+        reason: String?,
+        bound: Bool,
+        requestID: String = "",
+        requestedAt: Date = .distantPast
+    ) {
+        self.path = path
+        self.playing = playing
+        self.paused = paused
+        self.reason = reason
+        self.bound = bound
+        self.requestID = requestID
+        self.requestedAt = requestedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        path = try container.decode(String.self, forKey: .path)
+        playing = try container.decode(Bool.self, forKey: .playing)
+        paused = try container.decode(Bool.self, forKey: .paused)
+        reason = try container.decodeIfPresent(String.self, forKey: .reason)
+        bound = try container.decode(Bool.self, forKey: .bound)
+        requestID = try container.decodeIfPresent(String.self, forKey: .requestID) ?? ""
+        requestedAt = try container.decodeIfPresent(Date.self, forKey: .requestedAt) ?? .distantPast
+    }
 }
 
 struct PlaybackStateFile: Codable, Equatable {
@@ -52,6 +114,8 @@ enum PlaybackFiles {
 }
 
 enum SpaceBinding {
+    /// Tests substitute live Space facts. Production leaves this nil.
+    static var factsOverride: [SpaceFact]?
     private static let skyLight = dlopen(
         "/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY)
 
@@ -71,6 +135,7 @@ enum SpaceBinding {
     }
 
     static func liveFacts() -> [SpaceFact] {
+        if let factsOverride { return factsOverride }
         guard let skyLight,
               let connectionSymbol = dlsym(skyLight, "SLSMainConnectionID"),
               let copySymbol = dlsym(skyLight, "SLSCopyManagedDisplaySpaces") else { return [] }
@@ -145,8 +210,12 @@ enum SpaceBinding {
         return move(connection, ids, managedID) == 0
     }
     static func readAssignments() -> PlaybackAssignmentFile {
-        guard let data = try? Data(contentsOf: PlaybackFiles.assignments),
-              let decoded = try? JSONDecoder().decode(PlaybackAssignmentFile.self, from: data) else {
+        guard let data = try? Data(contentsOf: PlaybackFiles.assignments) else {
+            return PlaybackAssignmentFile(revision: 0, separateSpaces: separateSpacesEnabled(), targets: [:])
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let decoded = try? decoder.decode(PlaybackAssignmentFile.self, from: data) else {
             return PlaybackAssignmentFile(revision: 0, separateSpaces: separateSpacesEnabled(), targets: [:])
         }
         return decoded
@@ -155,6 +224,7 @@ enum SpaceBinding {
     static func writeAssignments(_ file: PlaybackAssignmentFile) {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(file) else { return }
         try? FileManager.default.createDirectory(
             at: MoonleafConfigStore.configRoot,

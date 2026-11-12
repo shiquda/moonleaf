@@ -10,6 +10,33 @@ import AppKit
 import Combine
 import Foundation
 
+struct ListStamp {
+    var kind: String
+    var playlistID: UUID?
+    var playlistName: String?
+    var order: String
+    var interval: String
+    var folderPath: String?
+    var includeSubdirectories: Bool?
+    var rotationEnabled: Bool
+}
+
+struct PendingOverlay {
+    var requestID: String
+    var requestedAt: Date
+    var path: String
+    var assetID: UUID
+    var assetName: String
+    var keys: [String]
+    var origin: String
+    var playlistID: UUID?
+    var playlistName: String?
+    var recordHistory: Bool
+    var stopRotation: Bool
+    var stamp: ListStamp?
+    var touchRotationClock: Bool
+}
+
 @MainActor
 final class PlaybackCoordinator: ObservableObject {
     static let shared = PlaybackCoordinator()
@@ -27,6 +54,13 @@ final class PlaybackCoordinator: ObservableObject {
     private let catalog = LibraryCatalog.shared
     private var stateObserver: NSObjectProtocol?
     private var canTouchApp = false
+    static let topologyWatch: [Notification.Name] = [
+        NSApplication.didChangeScreenParametersNotification,
+        NSWorkspace.didWakeNotification,
+        NSWorkspace.activeSpaceDidChangeNotification,
+    ]
+    var pending: PendingOverlay?
+    private var rotationTimer: DispatchSourceTimer?
 
     private init() {
         stateObserver = DistributedNotificationCenter.default().addObserver(
@@ -42,6 +76,32 @@ final class PlaybackCoordinator: ObservableObject {
         canTouchApp = true
         refreshTopology(restoreMatching: true)
         readPlayerState()
+        startRotationTimer()
+    }
+
+    func refreshForCommand() {
+        refreshTopology(restoreMatching: false)
+        acceptReported(SpaceBinding.readState())
+    }
+
+    func installTopologyWatch(on target: Any, selector: Selector) {
+        for name in Self.topologyWatch {
+            let center: NotificationCenter = name == NSApplication.didChangeScreenParametersNotification
+                ? .default
+                : NSWorkspace.shared.notificationCenter
+            center.addObserver(target, selector: selector, name: name, object: nil)
+        }
+    }
+
+    private func startRotationTimer() {
+        guard rotationTimer == nil else { return }
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + 15, repeating: 15)
+        timer.setEventHandler { [weak self] in
+            self?.rotateDueSessions()
+        }
+        timer.resume()
+        rotationTimer = timer
     }
     func refreshTopology(restoreMatching: Bool) {
         let live = SpaceBinding.liveTargets()
@@ -73,8 +133,13 @@ final class PlaybackCoordinator: ObservableObject {
         confirmedCrossDisplay: Bool,
         recordHistory: Bool,
         playlistID: UUID? = nil,
-        playlistName: String? = nil
+        playlistName: String? = nil,
+        stamp: ListStamp? = nil,
+        touchRotationClock: Bool = false
     ) -> Bool {
+        if canTouchApp {
+            refreshForCommand()
+        }
         guard FileManager.default.fileExists(atPath: path) else {
             statusMessage = NSLocalizedString("apply_missing_file", comment: "")
             return false
@@ -95,25 +160,48 @@ final class PlaybackCoordinator: ObservableObject {
             statusMessage = message(for: error)
             return false
         case .success(let chosen):
+            guard !chosen.isEmpty else {
+                statusMessage = NSLocalizedString("apply_none", comment: "")
+                return false
+            }
             let asset = catalog.ensureAsset(
                 path: path,
                 name: name,
                 source: path.hasPrefix(MoonleafConfigStore.libraryRoot.path) ? "library" : "external",
                 origin: origin
             )
+            if kind.usesSpaceBoundOverlay {
+                pending = PendingOverlay(
+                    requestID: UUID().uuidString,
+                    requestedAt: Date(),
+                    path: path,
+                    assetID: asset.id,
+                    assetName: asset.name,
+                    keys: chosen.map(\.key),
+                    origin: origin,
+                    playlistID: stamp?.playlistID ?? playlistID,
+                    playlistName: stamp?.playlistName ?? playlistName,
+                    recordHistory: recordHistory,
+                    stopRotation: stopRotation,
+                    stamp: stamp,
+                    touchRotationClock: touchRotationClock
+                )
+                statusMessage = nil
+                pushAssignments(recordHistory: false)
+                return false
+            }
             var snapshot = catalog.snapshot()
             var appliedKeys: [String] = []
             for target in chosen {
-                if !applyOne(
+                guard assignStill(path, target: target) else { continue }
+                writeCommittedSession(
+                    snapshot: &snapshot,
                     asset: asset,
                     path: path,
-                    kind: kind,
-                    target: target,
-                    snapshot: &snapshot,
-                    stopRotation: stopRotation
-                ) {
-                    continue
-                }
+                    targetKey: target.key,
+                    stopRotation: stopRotation,
+                    stamp: stamp
+                )
                 appliedKeys.append(target.key)
             }
             guard !appliedKeys.isEmpty else {
@@ -121,19 +209,18 @@ final class PlaybackCoordinator: ObservableObject {
                 return false
             }
             if recordHistory {
-                let event = HistoryEvent(
-                    id: UUID(),
-                    assetID: asset.id,
-                    assetName: asset.name,
-                    appliedAt: Date(),
-                    targetKeys: appliedKeys,
-                    origin: origin,
-                    playlistID: playlistID,
-                    playlistName: playlistName
-                )
                 snapshot.history = HistoryLogic.appending(
                     snapshot.history,
-                    event: event,
+                    event: HistoryEvent(
+                        id: UUID(),
+                        assetID: asset.id,
+                        assetName: asset.name,
+                        appliedAt: Date(),
+                        targetKeys: appliedKeys,
+                        origin: origin,
+                        playlistID: playlistID,
+                        playlistName: playlistName
+                    ),
                     enabled: snapshot.historyEnabled,
                     isRestore: false
                 )
@@ -142,6 +229,11 @@ final class PlaybackCoordinator: ObservableObject {
             reloadPublished()
             pushAssignments(recordHistory: false)
             publishCurrentPath()
+            if canTouchApp,
+               let current = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()),
+               appliedKeys.contains(current.key) {
+                MoonleafConfigStore.shared.writeCurrentWallpaperAsync(path)
+            }
             statusMessage = nil
             return true
         }
@@ -166,7 +258,7 @@ final class PlaybackCoordinator: ObservableObject {
         }
         let existing = snapshot.sessions.first(where: { $0.targetKey == targetKey })
         let first = resolved[0]
-        let ok = apply(
+        return apply(
             path: first.path,
             name: first.name,
             scope: .explicit,
@@ -177,22 +269,18 @@ final class PlaybackCoordinator: ObservableObject {
             confirmedCrossDisplay: true,
             recordHistory: true,
             playlistID: list.id,
-            playlistName: list.name
+            playlistName: list.name,
+            stamp: ListStamp(
+                kind: "playlist",
+                playlistID: list.id,
+                playlistName: list.name,
+                order: existing?.order ?? list.order,
+                interval: existing?.interval ?? list.interval,
+                folderPath: nil,
+                includeSubdirectories: nil,
+                rotationEnabled: true
+            )
         )
-        guard ok else { return false }
-        catalog.mutate { file in
-            guard let index = file.sessions.firstIndex(where: { $0.targetKey == targetKey }) else { return }
-            file.sessions[index].listKind = "playlist"
-            file.sessions[index].playlistID = list.id
-            file.sessions[index].rotationEnabled = true
-            file.sessions[index].order = existing?.order ?? list.order
-            file.sessions[index].interval = existing?.interval ?? list.interval
-            file.sessions[index].paused = false
-            file.sessions[index].pauseReason = nil
-        }
-        reloadPublished()
-        pushAssignments(recordHistory: false)
-        return true
     }
 
     func assignPool(kind: String, targetKey: String, folderPath: String? = nil, includeSubdirectories: Bool = false) -> Bool {
@@ -206,7 +294,7 @@ final class PlaybackCoordinator: ObservableObject {
             return false
         }
         let existing = catalog.snapshot().sessions.first(where: { $0.targetKey == targetKey })
-        let ok = apply(
+        return apply(
             path: first.path,
             name: first.name,
             scope: .explicit,
@@ -215,21 +303,18 @@ final class PlaybackCoordinator: ObservableObject {
             stopRotation: false,
             origin: "manual",
             confirmedCrossDisplay: true,
-            recordHistory: true
+            recordHistory: true,
+            stamp: ListStamp(
+                kind: kind,
+                playlistID: nil,
+                playlistName: nil,
+                order: existing?.order ?? "random",
+                interval: existing?.interval ?? UserDefaults.standard.string(forKey: "moonleaf_shuffleInterval") ?? "5",
+                folderPath: folderPath,
+                includeSubdirectories: includeSubdirectories,
+                rotationEnabled: true
+            )
         )
-        guard ok else { return false }
-        catalog.mutate { file in
-            guard let index = file.sessions.firstIndex(where: { $0.targetKey == targetKey }) else { return }
-            file.sessions[index].listKind = kind
-            file.sessions[index].playlistID = nil
-            file.sessions[index].folderPath = folderPath
-            file.sessions[index].includeSubdirectories = includeSubdirectories
-            file.sessions[index].rotationEnabled = true
-            file.sessions[index].order = existing?.order ?? "random"
-            file.sessions[index].interval = existing?.interval ?? UserDefaults.standard.string(forKey: "moonleaf_shuffleInterval") ?? "5"
-        }
-        reloadPublished()
-        return true
     }
 
     func setPaused(_ paused: Bool, targetKey: String) {
@@ -280,17 +365,33 @@ final class PlaybackCoordinator: ObservableObject {
         advance(session, origin: "manual")
     }
 
-    func rotateDueSessions() {
+    func rotateDueSessions(now: Date = Date()) {
         let libraryShuffle = UserDefaults.standard.bool(forKey: "moonleaf_shuffleEnabled")
-        let now = Date()
-        for session in sessions where session.rotationEnabled && !session.paused && !session.unavailable {
-            if (session.listKind == nil || session.listKind == "library") && !libraryShuffle { continue }
-            let interval = intervalSeconds(session.interval) ?? 300
-            let last = session.lastRotatedAt ?? .distantPast
-            if now.timeIntervalSince(last) >= interval {
-                advance(session, origin: "automatic")
+        let held = Set(pending?.keys ?? [])
+        for session in catalog.snapshot().sessions where !held.contains(session.targetKey) && RotationSchedule.isDue(
+            listKind: session.listKind,
+            rotationEnabled: session.rotationEnabled,
+            paused: session.paused,
+            unavailable: session.unavailable,
+            intervalRaw: session.interval,
+            lastRotatedAt: session.lastRotatedAt,
+            now: now,
+            libraryShuffleEnabled: libraryShuffle
+        ) {
+            advance(session, origin: "automatic")
+        }
+    }
+
+    func setLibraryShuffleInterval(_ raw: String) {
+        catalog.mutate { file in
+            for index in file.sessions.indices {
+                let kind = file.sessions[index].listKind
+                if kind == nil || kind == "library" {
+                    file.sessions[index].interval = raw
+                }
             }
         }
+        reloadPublished()
     }
 
     func createPlaylist(name: String) -> UUID? {
@@ -328,20 +429,7 @@ final class PlaybackCoordinator: ObservableObject {
     }
 
     func addToPlaylist(paths: [String], playlistID: UUID) {
-        catalog.mutate { file in
-            guard let index = file.playlists.firstIndex(where: { $0.id == playlistID }) else { return }
-            var ids: [UUID] = []
-            for path in paths {
-                let record = LibraryCatalog.shared.ensureAsset(
-                    path: path,
-                    name: URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent,
-                    source: path.hasPrefix(MoonleafConfigStore.libraryRoot.path) ? "library" : "external",
-                    origin: nil
-                )
-                ids.append(record.id)
-            }
-            file.playlists[index].assetIDs = PlaylistLogic.adding(ids, to: file.playlists[index].assetIDs)
-        }
+        catalog.addAssets(paths.map { (path: $0, name: nil) }, to: playlistID)
         reloadPublished()
     }
 
@@ -501,7 +589,8 @@ final class PlaybackCoordinator: ObservableObject {
             confirmedCrossDisplay: true,
             recordHistory: true,
             playlistID: session.playlistID,
-            playlistName: playlists.first { $0.id == session.playlistID }?.name
+            playlistName: playlists.first { $0.id == session.playlistID }?.name,
+            touchRotationClock: true
         )
         guard ok else { return }
         catalog.mutate { file in
@@ -554,72 +643,84 @@ final class PlaybackCoordinator: ObservableObject {
         }
     }
 
-    private func applyOne(
+    private func writeCommittedSession(
+        snapshot: inout CatalogFile,
         asset: AssetRecord,
         path: String,
-        kind: MediaKind,
-        target: DesktopTarget,
-        snapshot: inout CatalogFile,
-        stopRotation: Bool
-    ) -> Bool {
-        if kind == .still {
-            assignStill(path, target: target)
+        targetKey: String,
+        stopRotation: Bool,
+        stamp: ListStamp?
+    ) {
+        var session = snapshot.sessions.first(where: { $0.targetKey == targetKey }) ?? TargetSession(
+            targetKey: targetKey,
+            assetID: asset.id,
+            assetName: asset.name,
+            path: path,
+            listKind: nil,
+            playlistID: nil,
+            folderPath: nil,
+            includeSubdirectories: nil,
+            rotationEnabled: false,
+            paused: false,
+            pauseReason: nil,
+            order: "random",
+            interval: UserDefaults.standard.string(forKey: "moonleaf_shuffleInterval") ?? "5",
+            unavailable: false,
+            provenance: "moonleaf",
+            lastRotatedAt: nil
+        )
+        session.assetID = asset.id
+        session.assetName = asset.name
+        session.path = path
+        session.unavailable = false
+        session.provenance = "moonleaf"
+        session.paused = false
+        session.pauseReason = nil
+        if stopRotation {
+            session.rotationEnabled = false
+            session.listKind = nil
+            session.playlistID = nil
+        } else if let stamp {
+            session.listKind = stamp.kind
+            session.playlistID = stamp.playlistID
+            session.folderPath = stamp.folderPath
+            session.includeSubdirectories = stamp.includeSubdirectories
+            session.rotationEnabled = stamp.rotationEnabled
+            session.order = stamp.order
+            session.interval = stamp.interval
         }
-        if let index = snapshot.sessions.firstIndex(where: { $0.targetKey == target.key }) {
-            snapshot.sessions[index].assetID = asset.id
-            snapshot.sessions[index].assetName = asset.name
-            snapshot.sessions[index].path = path
-            snapshot.sessions[index].unavailable = false
-            snapshot.sessions[index].provenance = "moonleaf"
-            snapshot.sessions[index].paused = false
-            snapshot.sessions[index].pauseReason = nil
-            if stopRotation {
-                snapshot.sessions[index].rotationEnabled = false
-                snapshot.sessions[index].listKind = nil
-                snapshot.sessions[index].playlistID = nil
-            }
+        if let index = snapshot.sessions.firstIndex(where: { $0.targetKey == targetKey }) {
+            snapshot.sessions[index] = session
         } else {
-            snapshot.sessions.append(TargetSession(
-                targetKey: target.key,
-                assetID: asset.id,
-                assetName: asset.name,
-                path: path,
-                listKind: nil,
-                playlistID: nil,
-                folderPath: nil,
-                includeSubdirectories: nil,
-                rotationEnabled: false,
-                paused: false,
-                pauseReason: nil,
-                order: "random",
-                interval: UserDefaults.standard.string(forKey: "moonleaf_shuffleInterval") ?? "5",
-                unavailable: false,
-                provenance: "moonleaf",
-                lastRotatedAt: nil
-            ))
+            snapshot.sessions.append(session)
         }
-        return true
     }
 
-    private func assignStill(_ path: String, target: DesktopTarget) {
+    private func assignStill(_ path: String, target: DesktopTarget) -> Bool {
         let url = URL(fileURLWithPath: path)
         let spaces = SpaceWallpapers.liveSpaces().filter { space in
             space.uuid == target.spaceUUID && target.displayUUIDs.contains(space.displayUUID)
         }
-        if !spaces.isEmpty {
-            var assigned: [SpaceWallpapers.Space: String] = [:]
-            for space in spaces { assigned[space] = path }
-            SpaceWallpapers.assign(assigned)
-            if spaces.contains(where: { !$0.isCurrent }) {
-                SpaceWallpapers.reload()
+        guard !spaces.isEmpty else { return false }
+        var assigned: [SpaceWallpapers.Space: String] = [:]
+        for space in spaces { assigned[space] = path }
+        guard SpaceWallpapers.assign(assigned) else { return false }
+        if spaces.contains(where: { !$0.isCurrent }) {
+            SpaceWallpapers.reload()
+        }
+        let liveCurrent = Set(spaces.filter(\.isCurrent).map(\.uuid))
+        guard VisiblePaint.allowed(targetSpaceUUID: target.spaceUUID, liveCurrentSpaceUUIDs: liveCurrent) else {
+            return true
+        }
+        for space in spaces where space.isCurrent {
+            guard let screen = SpaceBinding.screen(for: space.displayUUID) else { return false }
+            do {
+                try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
+            } catch {
+                return false
             }
         }
-        if target.isCurrent {
-            for displayUUID in target.displayUUIDs {
-                guard let screen = SpaceBinding.screen(for: displayUUID) else { continue }
-                try? NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
-            }
-        }
+        return true
     }
 
     private func seedCurrent(targets: [DesktopTarget]) {
@@ -656,6 +757,7 @@ final class PlaybackCoordinator: ObservableObject {
     }
 
     private func pushAssignments(recordHistory: Bool) {
+        guard canTouchApp else { return }
         _ = recordHistory
         var file = PlaybackAssignmentFile(revision: Int(Date().timeIntervalSince1970), separateSpaces: separateSpaces, targets: [:])
         let snapshot = catalog.snapshot()
@@ -672,6 +774,21 @@ final class PlaybackCoordinator: ObservableObject {
                 pauseReason: session.pauseReason
             )
         }
+        if let pending {
+            for key in pending.keys where FileManager.default.fileExists(atPath: pending.path) {
+                let kind = MediaKind.from(path: pending.path)
+                if kind.usesSpaceBoundOverlay { needsPlayer = true }
+                file.targets[key] = PlaybackAssignment(
+                    path: pending.path,
+                    kind: kind.rawValue,
+                    paused: false,
+                    manualPause: false,
+                    pauseReason: nil,
+                    requestID: pending.requestID,
+                    requestedAt: pending.requestedAt
+                )
+            }
+        }
         SpaceBinding.writeAssignments(file)
         if needsPlayer {
             GlasswpProcessManager.shared.ensureRunning(perDesktopMode: true)
@@ -680,10 +797,133 @@ final class PlaybackCoordinator: ObservableObject {
     }
 
     private func readPlayerState() {
-        playerState = SpaceBinding.readState()?.targets ?? [:]
-        if playerState.values.contains(where: { !$0.bound && $0.reason == "space-bind-failed" }) {
-            statusMessage = NSLocalizedString("bind_failed", comment: "")
+        acceptReported(SpaceBinding.readState())
+    }
+
+    func acceptReported(_ file: PlaybackStateFile?) {
+        playerState = file?.targets ?? [:]
+        guard let pending, let file else { return }
+        let sawRequest = file.targets.values.contains { $0.requestID == pending.requestID }
+        if file.updatedAt.timeIntervalSince(pending.requestedAt) < -1 && !sawRequest { return }
+        var succeeded: [String] = []
+        var failed: [String] = []
+        var waiting = false
+        for key in pending.keys {
+            guard let state = file.targets[key] else {
+                if sawRequest { failed.append(key) } else { waiting = true }
+                continue
+            }
+            if ApplyCommit.overlaySucceeded(
+                requestID: pending.requestID,
+                path: pending.path,
+                requestedAt: pending.requestedAt,
+                reportedRequestID: state.requestID,
+                reportedPath: state.path,
+                reportedAt: state.requestedAt,
+                bound: state.bound,
+                reason: state.reason
+            ) {
+                succeeded.append(key)
+            } else if ApplyCommit.overlayFailed(
+                requestID: pending.requestID,
+                path: pending.path,
+                requestedAt: pending.requestedAt,
+                reportedRequestID: state.requestID,
+                reportedPath: state.path,
+                reportedAt: state.requestedAt,
+                bound: state.bound,
+                reason: state.reason
+            ) {
+                failed.append(key)
+            } else {
+                waiting = true
+            }
         }
+        if waiting { return }
+        if !succeeded.isEmpty {
+            commitOverlay(pending, keys: succeeded)
+        }
+        self.pending = nil
+        statusMessage = failed.isEmpty ? nil : NSLocalizedString("bind_failed", comment: "")
+        if canTouchApp {
+            pushAssignments(recordHistory: false)
+            publishCurrentPath()
+        }
+    }
+
+    private func commitOverlay(_ pending: PendingOverlay, keys: [String]) {
+        catalog.mutate { file in
+            for key in keys {
+                var session = file.sessions.first(where: { $0.targetKey == key }) ?? TargetSession(
+                    targetKey: key,
+                    assetID: pending.assetID,
+                    assetName: pending.assetName,
+                    path: pending.path,
+                    listKind: nil,
+                    playlistID: nil,
+                    folderPath: nil,
+                    includeSubdirectories: nil,
+                    rotationEnabled: false,
+                    paused: false,
+                    pauseReason: nil,
+                    order: "sequential",
+                    interval: "5",
+                    unavailable: false,
+                    provenance: "moonleaf",
+                    lastRotatedAt: nil
+                )
+                session.assetID = pending.assetID
+                session.assetName = pending.assetName
+                session.path = pending.path
+                session.unavailable = false
+                session.provenance = "moonleaf"
+                session.paused = false
+                session.pauseReason = nil
+                if pending.stopRotation {
+                    session.rotationEnabled = false
+                    session.listKind = nil
+                    session.playlistID = nil
+                } else if let stamp = pending.stamp {
+                    session.listKind = stamp.kind
+                    session.playlistID = stamp.playlistID
+                    session.folderPath = stamp.folderPath
+                    session.includeSubdirectories = stamp.includeSubdirectories
+                    session.rotationEnabled = stamp.rotationEnabled
+                    session.order = stamp.order
+                    session.interval = stamp.interval
+                }
+                if pending.touchRotationClock {
+                    session.lastRotatedAt = Date()
+                }
+                if let index = file.sessions.firstIndex(where: { $0.targetKey == key }) {
+                    file.sessions[index] = session
+                } else {
+                    file.sessions.append(session)
+                }
+            }
+            if pending.recordHistory {
+                file.history = HistoryLogic.appending(
+                    file.history,
+                    event: HistoryEvent(
+                        id: UUID(),
+                        assetID: pending.assetID,
+                        assetName: pending.assetName,
+                        appliedAt: Date(),
+                        targetKeys: keys,
+                        origin: pending.origin,
+                        playlistID: pending.playlistID,
+                        playlistName: pending.playlistName
+                    ),
+                    enabled: file.historyEnabled,
+                    isRestore: false
+                )
+            }
+        }
+        reloadPublished()
+        guard canTouchApp,
+              let current = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()),
+              keys.contains(current.key) else { return }
+        MoonleafConfigStore.shared.writeCurrentWallpaperAsync(pending.path)
     }
 
     private func reloadPublished() {
@@ -697,7 +937,13 @@ final class PlaybackCoordinator: ObservableObject {
         macpaperService.shared.favorites = catalog.favoritePaths()
     }
 
+    func reloadForChecks() {
+        reloadPublished()
+        statusMessage = nil
+    }
+
     private func publishCurrentPath() {
+        guard canTouchApp else { return }
         let display = SpaceBinding.currentDisplayUUID()
         guard let target = currentTarget(displayUUID: display),
               let session = sessions.first(where: { $0.targetKey == target.key }) else { return }
@@ -726,14 +972,7 @@ final class PlaybackCoordinator: ObservableObject {
     }
 
     private func intervalSeconds(_ raw: String) -> TimeInterval? {
-        switch raw {
-        case "1": return 60
-        case "5": return 300
-        case "10": return 600
-        case "30": return 1800
-        case "60": return 3600
-        default: return nil
-        }
+        RotationSchedule.seconds(raw)
     }
 
     private func message(for error: ScopeError) -> String {

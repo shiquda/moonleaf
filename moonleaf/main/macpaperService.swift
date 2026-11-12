@@ -161,6 +161,17 @@ class macpaperService: NSObject, ObservableObject {
     func setShuffleInterval(_ interval: ShuffleInterval) {
         shuffleInterval = interval
         UserDefaults.standard.set(interval.rawValue, forKey: macpaperService.shuffleIntervalKey)
+        let raw = interval.rawValue
+        let update = {
+            MainActor.assumeIsolated {
+                PlaybackCoordinator.shared.setLibraryShuffleInterval(raw)
+            }
+        }
+        if Thread.isMainThread {
+            update()
+        } else {
+            DispatchQueue.main.async(execute: update)
+        }
         if shuffleEnabled {
             macpaperService.restartShuffleLoop()
         }
@@ -579,17 +590,19 @@ class macpaperService: NSObject, ObservableObject {
         let work = {
             self.didMutateWallpaperBeforeInitialLoad = true
             self.selected_wp = wallpaper
-            let ok = PlaybackCoordinator.shared.apply(
-                path: wallpaper.path,
-                name: wallpaper.name,
-                scope: scope,
-                displayUUID: displayUUID,
-                explicitKeys: explicitKeys,
-                stopRotation: stopRotation,
-                origin: "manual",
-                confirmedCrossDisplay: confirmedCrossDisplay,
-                recordHistory: true
-            )
+            let ok = MainActor.assumeIsolated {
+                PlaybackCoordinator.shared.apply(
+                    path: wallpaper.path,
+                    name: wallpaper.name,
+                    scope: scope,
+                    displayUUID: displayUUID,
+                    explicitKeys: explicitKeys,
+                    stopRotation: stopRotation,
+                    origin: "manual",
+                    confirmedCrossDisplay: confirmedCrossDisplay,
+                    recordHistory: true
+                )
+            }
             if ok {
                 MoonleafConfigStore.shared.writeCurrentWallpaperAsync(wallpaper.path)
             }
@@ -660,7 +673,9 @@ class macpaperService: NSObject, ObservableObject {
         didMutateWallpaperBeforeInitialLoad = true
         let work = {
             self.selected_wp = nil
-            PlaybackCoordinator.shared.clearCurrent()
+            MainActor.assumeIsolated {
+                PlaybackCoordinator.shared.clearCurrent()
+            }
             self.current_wp = nil
         }
         if Thread.isMainThread {

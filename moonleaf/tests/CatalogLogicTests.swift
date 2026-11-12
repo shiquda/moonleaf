@@ -109,6 +109,52 @@ func testStorage() {
     Check.expect(unknown.libraryBytes == nil && !unknown.libraryKnown, "unknown size is not reported as zero")
 }
 
+func testCommitPaintAndSchedule() {
+    let when = Date(timeIntervalSince1970: 1_700_000_000)
+    Check.expect(!VisiblePaint.allowed(targetSpaceUUID: "old", liveCurrentSpaceUUIDs: ["new"]), "stale space must not paint the visible screen")
+    Check.expect(VisiblePaint.allowed(targetSpaceUUID: "new", liveCurrentSpaceUUIDs: ["new"]), "live current space may be painted")
+
+    Check.expect(!ApplyCommit.overlaySucceeded(
+        requestID: "new-request", path: "/new.mp4", requestedAt: when,
+        reportedRequestID: "old-request", reportedPath: "/new.mp4", reportedAt: when,
+        bound: true, reason: nil
+    ), "old request cannot impersonate a new apply")
+    Check.expect(!ApplyCommit.overlaySucceeded(
+        requestID: "req", path: "/new.mp4", requestedAt: when,
+        reportedRequestID: "req", reportedPath: "/old.mp4", reportedAt: when,
+        bound: true, reason: nil
+    ), "matching request with the old path is not success")
+    Check.expect(!ApplyCommit.overlaySucceeded(
+        requestID: "req", path: "/new.mp4", requestedAt: when,
+        reportedRequestID: "req", reportedPath: "/new.mp4", reportedAt: when.addingTimeInterval(-30),
+        bound: true, reason: nil
+    ), "stale timestamp is not success")
+    Check.expect(ApplyCommit.overlayFailed(
+        requestID: "req", path: "/new.mp4", requestedAt: when,
+        reportedRequestID: "req", reportedPath: "/new.mp4", reportedAt: when,
+        bound: false, reason: "space-bind-failed"
+    ), "matching bind failure is a failure")
+    Check.expect(ApplyCommit.overlaySucceeded(
+        requestID: "req", path: "/new.mp4", requestedAt: when,
+        reportedRequestID: "req", reportedPath: "/new.mp4", reportedAt: when,
+        bound: true, reason: "not-visible"
+    ), "a bound hidden desktop is a successful apply")
+
+    let now = Date(timeIntervalSince1970: 10_000)
+    Check.expect(RotationSchedule.isDue(
+        listKind: "playlist", rotationEnabled: true, paused: false, unavailable: false,
+        intervalRaw: "1", lastRotatedAt: now.addingTimeInterval(-61), now: now, libraryShuffleEnabled: false
+    ), "named list rotates on its own interval while library shuffle is off")
+    Check.expect(!RotationSchedule.isDue(
+        listKind: "playlist", rotationEnabled: true, paused: false, unavailable: false,
+        intervalRaw: "5", lastRotatedAt: now.addingTimeInterval(-61), now: now, libraryShuffleEnabled: true
+    ), "a longer list interval is not the global one-minute tick")
+    Check.expect(!RotationSchedule.isDue(
+        listKind: "library", rotationEnabled: true, paused: false, unavailable: false,
+        intervalRaw: "1", lastRotatedAt: now.addingTimeInterval(-61), now: now, libraryShuffleEnabled: false
+    ), "library pool stays off when library shuffle is off")
+}
+
 
 @main
 struct CatalogChecks {
@@ -117,6 +163,7 @@ struct CatalogChecks {
         testPlaylistRules()
         testTargetsAndScope()
         testStorage()
+        testCommitPaintAndSchedule()
         if Check.failed == 0 {
             print("catalog logic checks passed")
         } else {

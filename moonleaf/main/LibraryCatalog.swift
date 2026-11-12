@@ -68,7 +68,7 @@ struct CatalogFile: Codable, Equatable {
 
 final class LibraryCatalog {
     static let shared = LibraryCatalog()
-    static let fileURL = MoonleafConfigStore.configRoot.appendingPathComponent("catalog.json")
+    static var fileURL = MoonleafConfigStore.configRoot.appendingPathComponent("catalog.json")
 
     private let queue = DispatchQueue(label: "com.naomisphere.moonleaf.catalog")
     private var file = CatalogFile()
@@ -113,6 +113,25 @@ final class LibraryCatalog {
             file.assets.append(record)
             saveLocked()
             return record
+        }
+    }
+
+    /// Resolves assets on the catalog queue. Calling `ensureAsset` from `mutate` deadlocks that queue.
+    func addAssets(_ items: [(path: String, name: String?)], to playlistID: UUID) {
+        queue.sync {
+            guard let index = file.playlists.firstIndex(where: { $0.id == playlistID }) else { return }
+            var ids: [UUID] = []
+            for item in items {
+                let record = ensureAssetLocked(
+                    path: item.path,
+                    name: item.name,
+                    source: sourceFor(item.path),
+                    origin: nil
+                )
+                ids.append(record.id)
+            }
+            file.playlists[index].assetIDs = PlaylistLogic.adding(ids, to: file.playlists[index].assetIDs)
+            saveLocked()
         }
     }
 
@@ -179,7 +198,10 @@ final class LibraryCatalog {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(file) else { return }
-        try? FileManager.default.createDirectory(at: MoonleafConfigStore.configRoot, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(
+            at: Self.fileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         try? data.write(to: Self.fileURL, options: .atomic)
     }
 

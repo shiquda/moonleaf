@@ -104,12 +104,14 @@ final class SpaceOverlayController {
                 } else if !player.window.isVisible {
                     player.window.orderFrontRegardless()
                 }
+                player.setDrawingPaused(true)
                 let bound = SpaceBinding.move(window: player.window, to: managedID)
                 if let index = windows.firstIndex(where: { $0.targetKey == target.key && $0.displayUUID == displayUUID }) {
                     windows[index].bound = bound
                     windows[index].spaceUUID = target.spaceUUID
                 }
                 if !bound {
+                    player.setDrawingPaused(true)
                     player.window.orderOut(nil)
                     boundAll = false
                     drawing = false
@@ -132,7 +134,9 @@ final class SpaceOverlayController {
                 playing: boundAll && drawing,
                 paused: reason != nil,
                 reason: reason,
-                bound: boundAll
+                bound: boundAll,
+                requestID: assignment.requestID,
+                requestedAt: assignment.requestedAt
             )
         }
 
