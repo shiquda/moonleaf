@@ -1709,11 +1709,11 @@ private final class DetailPreviewHost {
         close()
         let target = PreviewTarget(url: URL(fileURLWithPath: path), title: title, detail: detail)
         let host = NSHostingView(rootView: QuickPreviewOverlay(target: target, onClose: { DetailPreviewHost.shared.close() }))
-        let parent = NSApp.keyWindow ?? NSApp.mainWindow
-        let frame = parent?.frame ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let frame = Self.managerFrame()
         let window = NSWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.isOpaque = false
+        window.hasShadow = false
         window.backgroundColor = .clear
         window.level = .popUpMenu
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -1721,6 +1721,19 @@ private final class DetailPreviewHost {
         window.setFrame(frame, display: true)
         window.makeKeyAndOrderFront(nil)
         self.window = window
+    }
+
+    /// The detail sheet is the key window. Discover and library cover the manager
+    /// window, so the preview must use that frame, not the sheet.
+    private static func managerFrame() -> NSRect {
+        let sheet = NSApp.windows.first { $0.sheetParent != nil } ?? NSApp.keyWindow
+        if let parent = sheet?.sheetParent, parent.frame.width > 0 {
+            return parent.frame
+        }
+        if let main = NSApp.mainWindow, main.styleMask.contains(.titled), main.frame.width > 0 {
+            return main.frame
+        }
+        return NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
     }
 
     func close() {
