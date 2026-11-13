@@ -436,7 +436,9 @@ class macpaperService: NSObject, ObservableObject {
             }
 
             if !self.didMutateWallpaperBeforeInitialLoad {
-                self.current_wp = snapshot.currentWallpaper
+                if self.current_wp == nil {
+                    self.current_wp = snapshot.currentWallpaper
+                }
                 if !snapshot.screenWallpapers.isEmpty {
                     self.screenWallpapers = snapshot.screenWallpapers
                     let loaded = snapshot.screenWallpapers

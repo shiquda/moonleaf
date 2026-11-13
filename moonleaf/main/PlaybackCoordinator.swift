@@ -110,15 +110,14 @@ final class PlaybackCoordinator: ObservableObject {
         separateSpaces = live.separate
         targets = live.targets
         let liveKeys = Set(live.targets.map(\.key))
-        if catalog.snapshot().sessions.isEmpty {
-            seedCurrent(targets: live.targets)
-        }
+        seedMissingTargets(targets: live.targets)
         catalog.mutate { file in
             for index in file.sessions.indices {
                 file.sessions[index].unavailable = !liveKeys.contains(file.sessions[index].targetKey)
             }
         }
         reloadPublished()
+        publishCurrentPath()
         if restoreMatching {
             pushAssignments(recordHistory: false)
         }
@@ -342,8 +341,12 @@ final class PlaybackCoordinator: ObservableObject {
         pendingByTarget.removeValue(forKey: key)
         catalog.mutate { file in
             file.sessions.removeAll { $0.targetKey == key }
+            if !file.suppressedRestoreKeys.contains(key) {
+                file.suppressedRestoreKeys.append(key)
+            }
         }
         reloadPublished()
+        publishCurrentPath()
         pushAssignments(recordHistory: false)
     }
 
@@ -698,6 +701,7 @@ final class PlaybackCoordinator: ObservableObject {
             session.order = stamp.order
             session.interval = stamp.interval
         }
+        snapshot.suppressedRestoreKeys.removeAll { $0 == targetKey }
         if let index = snapshot.sessions.firstIndex(where: { $0.targetKey == targetKey }) {
             snapshot.sessions[index] = session
         } else {
@@ -732,37 +736,141 @@ final class PlaybackCoordinator: ObservableObject {
         return true
     }
 
-    private func seedCurrent(targets: [DesktopTarget]) {
-        guard let path = MoonleafConfigStore.shared.readCurrentWallpaper(),
-              FileManager.default.fileExists(atPath: path),
-              MediaKind.from(path: path) != .unknown else { return }
-        let display = SpaceBinding.currentDisplayUUID()
-        let current = targets.first(where: { $0.isCurrent && (display == nil || $0.displayUUIDs.contains(display!)) })
-            ?? targets.first(where: \.isCurrent)
-        guard let current else { return }
-        let name = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
-        let asset = catalog.ensureAsset(path: path, name: name, source: "library", origin: "restore")
-        catalog.mutate { file in
-            guard file.sessions.isEmpty else { return }
-            file.sessions.append(TargetSession(
-                targetKey: current.key,
-                assetID: asset.id,
-                assetName: asset.name,
-                path: path,
-                listKind: nil,
-                playlistID: nil,
-                folderPath: nil,
-                includeSubdirectories: nil,
-                rotationEnabled: false,
-                paused: false,
-                pauseReason: nil,
-                order: "random",
-                interval: "5",
-                unavailable: false,
-                provenance: "moonleaf",
-                lastRotatedAt: nil
-            ))
+    private func seedMissingTargets(targets: [DesktopTarget]) {
+        let snapshot = catalog.snapshot()
+        let existingKeys = Set(snapshot.sessions.map(\.targetKey))
+        let suppressed = Set(snapshot.suppressedRestoreKeys)
+        let candidates = targets.filter { !existingKeys.contains($0.key) && !suppressed.contains($0.key) }
+        guard !candidates.isEmpty else { return }
+
+        let inTestOverride = SpaceWallpapers.targetAssignmentsOverride != nil
+            || SpaceWallpapers.spacesOverride != nil
+            || SpaceWallpapers.assignOverride != nil
+        var legacyPaths = Set<String>()
+        if !inTestOverride {
+            if let currentPath = MoonleafConfigStore.shared.readCurrentWallpaper(), !currentPath.isEmpty {
+                legacyPaths.insert(URL(fileURLWithPath: currentPath).standardizedFileURL.path)
+                legacyPaths.insert(URL(fileURLWithPath: currentPath).resolvingSymlinksInPath().path)
+            }
+            for path in MoonleafConfigStore.shared.readScreenWallpapers().values where !path.isEmpty {
+                legacyPaths.insert(URL(fileURLWithPath: path).standardizedFileURL.path)
+                legacyPaths.insert(URL(fileURLWithPath: path).resolvingSymlinksInPath().path)
+            }
         }
+
+        var detected = SpaceWallpapers.desktopAssignments(for: candidates)
+
+        // Legacy single-file / per-screen fallback for video or GIF when the system
+        // still-image store has no matching moonleaf wallpaper on an empty session list.
+        if !inTestOverride && snapshot.sessions.isEmpty {
+            let screenMap = MoonleafConfigStore.shared.readScreenWallpapers()
+            if !screenMap.isEmpty {
+                let screens = NSScreen.screens
+                for (index, path) in screenMap {
+                    guard screens.indices.contains(index),
+                          let displayUUID = SpaceBinding.displayUUID(for: screens[index]),
+                          let target = candidates.first(where: { $0.isCurrent && $0.displayUUIDs.contains(displayUUID) }),
+                          detected[target.key] == nil else { continue }
+                    detected[target.key] = path
+                }
+            }
+            if let legacyCurrent = MoonleafConfigStore.shared.readCurrentWallpaper() {
+                let display = SpaceBinding.currentDisplayUUID()
+                if let current = candidates.first(where: { $0.isCurrent && (display == nil || $0.displayUUIDs.contains(display!)) })
+                    ?? candidates.first(where: \.isCurrent),
+                   detected[current.key] == nil {
+                    detected[current.key] = legacyCurrent
+                }
+            }
+        }
+
+        var seeded: [(target: DesktopTarget, asset: AssetRecord, path: String)] = []
+        for target in candidates {
+            guard let rawPath = detected[target.key],
+                  let ownedPath = resolvedOwnedPath(rawPath, snapshot: snapshot, legacyPaths: legacyPaths) else {
+                continue
+            }
+            let name = URL(fileURLWithPath: ownedPath).deletingPathExtension().lastPathComponent
+            let source = isInsideDirectory(ownedPath, directory: MoonleafConfigStore.libraryRoot) ? "library" : "external"
+            let asset = catalog.ensureAsset(path: ownedPath, name: name, source: source, origin: "restore")
+            seeded.append((target: target, asset: asset, path: ownedPath))
+        }
+        guard !seeded.isEmpty else { return }
+
+        catalog.mutate { file in
+            for item in seeded {
+                guard !file.sessions.contains(where: { $0.targetKey == item.target.key }),
+                      !file.suppressedRestoreKeys.contains(item.target.key) else { continue }
+                file.sessions.append(TargetSession(
+                    targetKey: item.target.key,
+                    assetID: item.asset.id,
+                    assetName: item.asset.name,
+                    path: item.path,
+                    listKind: nil,
+                    playlistID: nil,
+                    folderPath: nil,
+                    includeSubdirectories: nil,
+                    rotationEnabled: false,
+                    paused: false,
+                    pauseReason: nil,
+                    order: "random",
+                    interval: "5",
+                    unavailable: false,
+                    provenance: "moonleaf",
+                    lastRotatedAt: nil
+                ))
+            }
+        }
+    }
+
+    private func resolvedOwnedPath(_ rawPath: String, snapshot: CatalogFile, legacyPaths: Set<String>) -> String? {
+        guard !rawPath.isEmpty else { return nil }
+        let rawURL = URL(fileURLWithPath: rawPath).standardizedFileURL
+        let rawResolved = rawURL.resolvingSymlinksInPath().path
+        guard FileManager.default.fileExists(atPath: rawResolved) else { return nil }
+        guard MediaKind.from(path: rawURL.path) != .unknown || MediaKind.from(path: rawResolved) != .unknown else {
+            return nil
+        }
+
+        if let matchedAsset = snapshot.assets.first(where: {
+            let assetStd = URL(fileURLWithPath: $0.path).standardizedFileURL.path
+            let assetRes = URL(fileURLWithPath: $0.path).resolvingSymlinksInPath().path
+            return assetStd == rawURL.path || assetRes == rawResolved
+        }) {
+            if FileManager.default.fileExists(atPath: matchedAsset.path) {
+                return matchedAsset.path
+            }
+            return rawURL.path
+        }
+
+        if isInsideDirectory(rawURL.path, directory: MoonleafConfigStore.libraryRoot)
+            || isInsideDirectory(rawResolved, directory: MoonleafConfigStore.libraryRoot) {
+            return rawURL.path
+        }
+
+        if let future = snapshot.futureSaveDirectory, !future.isEmpty {
+            let futureURL = URL(fileURLWithPath: future, isDirectory: true)
+            if isInsideDirectory(rawURL.path, directory: futureURL)
+                || isInsideDirectory(rawResolved, directory: futureURL) {
+                return rawURL.path
+            }
+        }
+
+        if legacyPaths.contains(rawURL.path) || legacyPaths.contains(rawResolved) {
+            return rawURL.path
+        }
+
+        return nil
+    }
+
+    private func isInsideDirectory(_ path: String, directory: URL) -> Bool {
+        let dirStd = directory.standardizedFileURL.path
+        let dirRes = directory.resolvingSymlinksInPath().path
+        let stdPrefix = dirStd.hasSuffix("/") ? dirStd : dirStd + "/"
+        let resPrefix = dirRes.hasSuffix("/") ? dirRes : dirRes + "/"
+        let pathStd = URL(fileURLWithPath: path).standardizedFileURL.path
+        let pathRes = URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+        return pathStd.hasPrefix(stdPrefix) || pathRes.hasPrefix(resPrefix)
     }
 
     private func pushAssignments(recordHistory: Bool) {
@@ -928,6 +1036,7 @@ final class PlaybackCoordinator: ObservableObject {
                 if pending.touchRotationClock {
                     session.lastRotatedAt = Date()
                 }
+                file.suppressedRestoreKeys.removeAll { $0 == key }
                 if let index = file.sessions.firstIndex(where: { $0.targetKey == key }) {
                     file.sessions[index] = session
                 } else {
@@ -978,9 +1087,9 @@ final class PlaybackCoordinator: ObservableObject {
     private func publishCurrentPath() {
         guard canTouchApp else { return }
         let display = SpaceBinding.currentDisplayUUID()
-        guard let target = currentTarget(displayUUID: display),
-              let session = sessions.first(where: { $0.targetKey == target.key }) else { return }
-        macpaperService.shared.current_wp = session.path ?? ""
+        guard let target = currentTarget(displayUUID: display) else { return }
+        let session = sessions.first(where: { $0.targetKey == target.key })
+        macpaperService.shared.current_wp = session?.path ?? ""
     }
 
     private func mediaFiles(in directory: String, recursive: Bool) -> [String] {

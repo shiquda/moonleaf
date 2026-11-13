@@ -5,8 +5,8 @@
 //  Copyright © 2026 naomisphere. All rights reserved.
 //
 
+import AppKit
 import Foundation
-
 /// Wallpaper assignment for individual Mission Control desktops (Spaces).
 ///
 /// `NSWorkspace.setDesktopImageURL` only reaches the desktop that is on screen,
@@ -35,7 +35,8 @@ enum SpaceWallpapers {
     static var spacesOverride: [Space]?
     /// Tests record assignments instead of writing the system store.
     static var assignOverride: (([Space: String]) -> Bool)?
-
+    /// Tests substitute per-target desktop paths instead of reading AppKit / Index.plist.
+    static var targetAssignmentsOverride: (([DesktopTarget]) -> [String: String])?
     /// Every desktop of every online screen, in Mission Control order.
     static func liveSpaces() -> [Space] {
         if let spacesOverride { return spacesOverride }
@@ -115,6 +116,81 @@ enum SpaceWallpapers {
         return currentAssignments().filter { live.contains($0.key) }
     }
 
+    /// Resolves the live desktop wallpaper path for each `DesktopTarget`,
+    /// checking `NSWorkspace` for active spaces and `Index.plist` per-display /
+    /// per-space entries for all spaces.
+    static func desktopAssignments(for targets: [DesktopTarget]) -> [String: String] {
+        if let targetAssignmentsOverride {
+            return targetAssignmentsOverride(targets)
+        }
+        guard spacesOverride == nil, assignOverride == nil else { return [:] }
+        let store = readStore()
+        let spacesStore = store?["Spaces"] as? [String: Any] ?? [:]
+        let displaysStore = store?["Displays"] as? [String: Any] ?? [:]
+
+        var result: [String: String] = [:]
+        for target in targets {
+            let plistPath = storedPath(
+                for: target,
+                spacesStore: spacesStore,
+                displaysStore: displaysStore
+            )
+            if target.isCurrent, target.displayUUIDs.count == 1,
+               let displayUUID = target.displayUUIDs.first,
+               let screen = SpaceBinding.screen(for: displayUUID),
+               let wsPath = NSWorkspace.shared.desktopImageURL(for: screen)?.path {
+                if let plistPath, sameResolvedFile(plistPath, wsPath) {
+                    result[target.key] = plistPath
+                } else {
+                    result[target.key] = wsPath
+                }
+                continue
+            }
+            if let plistPath {
+                result[target.key] = plistPath
+            }
+        }
+        return result
+    }
+
+    private static func storedPath(
+        for target: DesktopTarget,
+        spacesStore: [String: Any],
+        displaysStore: [String: Any]
+    ) -> String? {
+        if let spaceEntry = spacesStore[target.spaceUUID] as? [String: Any] {
+            let perDisplay = spaceEntry["Displays"] as? [String: Any] ?? [:]
+            for displayUUID in target.displayUUIDs {
+                if let desktop = (perDisplay[displayUUID] as? [String: Any])?["Desktop"] as? [String: Any],
+                   let content = desktop["Content"] as? [String: Any],
+                   let path = path(inContent: content) {
+                    return path
+                }
+            }
+            if let desktop = (spaceEntry["Default"] as? [String: Any])?["Desktop"] as? [String: Any],
+               let content = desktop["Content"] as? [String: Any],
+               let path = path(inContent: content) {
+                return path
+            }
+        }
+        if target.spaceIndex == 1 {
+            for displayUUID in target.displayUUIDs {
+                if let desktop = (displaysStore[displayUUID] as? [String: Any])?["Desktop"] as? [String: Any],
+                   let content = desktop["Content"] as? [String: Any],
+                   let path = path(inContent: content) {
+                    return path
+                }
+            }
+        }
+        return nil
+    }
+
+    private static func sameResolvedFile(_ lhs: String, _ rhs: String) -> Bool {
+        if lhs == rhs { return true }
+        let l = URL(fileURLWithPath: lhs).resolvingSymlinksInPath().path
+        let r = URL(fileURLWithPath: rhs).resolvingSymlinksInPath().path
+        return l == r
+    }
     /// Points the given desktops at their wallpaper.
     @discardableResult
     static func assign(_ wallpapers: [Space: String]) -> Bool {
@@ -237,9 +313,14 @@ enum SpaceWallpapers {
               let configuration = choices.first?["Configuration"] as? Data,
               let decoded = try? PropertyListSerialization.propertyList(
                 from: configuration, format: nil) as? [String: Any],
-              let relative = (decoded["url"] as? [String: String])?["relative"],
-              let url = URL(string: relative) else { return nil }
-        return url.path
+              let relative = (decoded["url"] as? [String: String])?["relative"] else { return nil }
+        if let url = URL(string: relative), url.isFileURL {
+            return url.path
+        }
+        if relative.hasPrefix("file://") {
+            return String(relative.dropFirst(7)).removingPercentEncoding
+        }
+        return relative.hasPrefix("/") ? relative : nil
     }
 
     private static func readStore() -> [String: Any]? {

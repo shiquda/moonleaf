@@ -51,6 +51,7 @@ struct PlaybackChecks {
             SpaceBinding.factsOverride = nil
             SpaceWallpapers.spacesOverride = nil
             SpaceWallpapers.assignOverride = nil
+            SpaceWallpapers.targetAssignmentsOverride = nil
             try? FileManager.default.removeItem(at: root)
         }
 
@@ -62,6 +63,7 @@ struct PlaybackChecks {
         testClearDropsLateReceipt(playback)
         testNewApplySupersedesReceipt(playback)
         testBindFailureRestoresEngine(playback)
+        testStartupRecognizesDifferentMoonleafWallpapersPerDesktop(playback)
 
         if Check.failed == 0 {
             print("playback behavior checks passed")
@@ -461,5 +463,73 @@ struct PlaybackChecks {
         Check.expect(playback.pendingByTarget[key] == nil, "a failed request without a previous wallpaper is closed")
         Check.expect(captured.last != nil, "a failed request without a previous wallpaper republishes the assignment file")
         Check.expect(captured.last?.targets.keys.contains(key) == false, "a failed target with no previous wallpaper leaves the engine file")
+    }
+
+    static func testStartupRecognizesDifferentMoonleafWallpapersPerDesktop(_ playback: PlaybackCoordinator) {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("moonleaf-seed-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let wp1 = dir.appendingPathComponent("one.jpg")
+        let wp2 = dir.appendingPathComponent("two.jpg")
+        let wp3 = dir.appendingPathComponent("three.jpg")
+        let systemWP = dir.appendingPathComponent("system.heic")
+        let externalNonMoonleaf = FileManager.default.temporaryDirectory.appendingPathComponent("other-\(UUID().uuidString).jpg")
+        for url in [wp1, wp2, wp3, systemWP, externalNonMoonleaf] {
+            try? Data([0xFF, 0xD8, 0xFF]).write(to: url)
+        }
+        defer {
+            SpaceBinding.factsOverride = nil
+            SpaceWallpapers.targetAssignmentsOverride = nil
+            try? FileManager.default.removeItem(at: dir)
+            try? FileManager.default.removeItem(at: externalNonMoonleaf)
+        }
+
+        let staleKey = "d:OLD-DISPLAY|s:old-space"
+        LibraryCatalog.shared.mutate { file in
+            file.assets = []
+            file.sessions = [session(key: staleKey, path: wp1.path, kind: "library", interval: "5", last: nil)]
+            file.history = []
+            file.suppressedRestoreKeys = []
+            file.futureSaveDirectory = dir.path
+        }
+        playback.reloadForChecks()
+
+        let k1 = "d:DISP-A|s:space-1"
+        let k2 = "d:DISP-A|s:space-2"
+        let k3 = "d:DISP-B|s:space-3"
+        let k4 = "d:DISP-B|s:space-4"
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: "DISP-A", displayName: "A", spaceUUID: "space-1", managedID: 10, isCurrent: true, type: 0),
+            SpaceFact(displayUUID: "DISP-A", displayName: "A", spaceUUID: "space-2", managedID: 11, isCurrent: false, type: 0),
+            SpaceFact(displayUUID: "DISP-B", displayName: "B", spaceUUID: "space-3", managedID: 12, isCurrent: true, type: 0),
+            SpaceFact(displayUUID: "DISP-B", displayName: "B", spaceUUID: "space-4", managedID: 13, isCurrent: false, type: 0),
+        ]
+        SpaceWallpapers.targetAssignmentsOverride = { targets in
+            var map: [String: String] = [:]
+            for t in targets {
+                switch t.key {
+                case k1: map[t.key] = wp1.path
+                case k2: map[t.key] = wp2.path
+                case k3: map[t.key] = wp3.path
+                case k4: map[t.key] = externalNonMoonleaf.path
+                default: break
+                }
+            }
+            return map
+        }
+
+        playback.refreshTopology(restoreMatching: false)
+
+        Check.expect(playback.session(for: k1)?.path == wp1.path, "display A space 1 wallpaper recognized despite stale unavailable session")
+        Check.expect(playback.session(for: k2)?.path == wp2.path, "display A space 2 wallpaper recognized independently")
+        Check.expect(playback.session(for: k3)?.path == wp3.path, "display B space 3 wallpaper recognized independently")
+        Check.expect(playback.session(for: k4) == nil, "non-moonleaf wallpaper must not be claimed automatically")
+        Check.expect(playback.session(for: staleKey)?.unavailable == true, "stale disconnected session stays unavailable")
+        Check.expect(playback.history.isEmpty, "auto-recognition on startup must not add history events")
+
+        // Clearing a recognized desktop must suppress auto-resurrection on subsequent topology refreshes
+        playback.clearTarget(k2)
+        Check.expect(playback.session(for: k2) == nil, "cleared target has no session")
+        playback.refreshTopology(restoreMatching: false)
+        Check.expect(playback.session(for: k2) == nil, "cleared target stays unset instead of resurrecting")
     }
 }

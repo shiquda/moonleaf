@@ -64,6 +64,42 @@ struct CatalogFile: Codable, Equatable {
     var history: [HistoryEvent] = []
     var historyEnabled: Bool = true
     var futureSaveDirectory: String?
+    var suppressedRestoreKeys: [String] = []
+
+    init(
+        assets: [AssetRecord] = [],
+        favoriteIDs: [UUID] = [],
+        playlists: [NamedPlaylist] = [],
+        folderPool: FolderPool? = nil,
+        sessions: [TargetSession] = [],
+        history: [HistoryEvent] = [],
+        historyEnabled: Bool = true,
+        futureSaveDirectory: String? = nil,
+        suppressedRestoreKeys: [String] = []
+    ) {
+        self.assets = assets
+        self.favoriteIDs = favoriteIDs
+        self.playlists = playlists
+        self.folderPool = folderPool
+        self.sessions = sessions
+        self.history = history
+        self.historyEnabled = historyEnabled
+        self.futureSaveDirectory = futureSaveDirectory
+        self.suppressedRestoreKeys = suppressedRestoreKeys
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        assets = try container.decodeIfPresent([AssetRecord].self, forKey: .assets) ?? []
+        favoriteIDs = try container.decodeIfPresent([UUID].self, forKey: .favoriteIDs) ?? []
+        playlists = try container.decodeIfPresent([NamedPlaylist].self, forKey: .playlists) ?? []
+        folderPool = try container.decodeIfPresent(FolderPool.self, forKey: .folderPool)
+        sessions = try container.decodeIfPresent([TargetSession].self, forKey: .sessions) ?? []
+        history = try container.decodeIfPresent([HistoryEvent].self, forKey: .history) ?? []
+        historyEnabled = try container.decodeIfPresent(Bool.self, forKey: .historyEnabled) ?? true
+        futureSaveDirectory = try container.decodeIfPresent(String.self, forKey: .futureSaveDirectory)
+        suppressedRestoreKeys = try container.decodeIfPresent([String].self, forKey: .suppressedRestoreKeys) ?? []
+    }
 }
 
 final class LibraryCatalog {
