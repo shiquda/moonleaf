@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The library menu button stays readable on a light wallpaper.
 - A linked wallpaper reports the size of the file it points at, not of the link.
 - Changing every desktop repaints them off the main thread, so the window keeps responding.
+- A wallpaper that failed to reach the screen only restores what it replaced: an older failure cannot undo a newer wallpaper.
 - The library add button, its menu, the detail source, and the settings page are translated.
 
 ## [4.1.1] - 2026-10-23

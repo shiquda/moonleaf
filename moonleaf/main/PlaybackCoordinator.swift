@@ -93,6 +93,9 @@ final class PlaybackCoordinator: ObservableObject {
     private static let stillPaintQueue = DispatchQueue(label: "com.naomisphere.moonleaf.still-paint", qos: .userInitiated)
     private let stillRequestLock = NSLock()
     private var latestStillRequestIDs: [String: String] = [:]
+    /// The picture this coordinator last wrote for a desktop. A failed paint may
+    /// only restore what it replaced, so a stale failure cannot undo a newer one.
+    private var lastStillPaths: [String: String] = [:]
 
 
     private init() {
@@ -987,6 +990,7 @@ final class PlaybackCoordinator: ObservableObject {
         var assigned: [SpaceWallpapers.Space: String] = [:]
         for space in spaces { assigned[space] = path }
         guard SpaceWallpapers.assign(assigned) else { return .failed }
+        lastStillPaths[target.key] = path
         if spaces.contains(where: { !$0.isCurrent }) {
             SpaceWallpapers.reload()
         }
@@ -1023,7 +1027,12 @@ final class PlaybackCoordinator: ObservableObject {
             }
             guard targetAlive else {
                 DispatchQueue.main.async {
-                    self.completeStillPaint(request: request, targetKey: target.key, succeeded: false)
+                    self.completeStillPaint(
+                        request: request,
+                        targetKey: target.key,
+                        succeeded: false,
+                        previousPath: previousPath
+                    )
                 }
                 return
             }
@@ -1057,21 +1066,24 @@ final class PlaybackCoordinator: ObservableObject {
             if !paintFailed && skippedMovedSpace {
                 SpaceWallpapers.reload()
             }
-            if paintFailed,
-               let previousPath,
-               FileManager.default.fileExists(atPath: previousPath) {
-                var rollback: [SpaceWallpapers.Space: String] = [:]
-                for space in job.spaces { rollback[space] = previousPath }
-                _ = SpaceWallpapers.assign(rollback)
-            }
 
             DispatchQueue.main.async {
-                self.completeStillPaint(request: request, targetKey: target.key, succeeded: !paintFailed)
+                self.completeStillPaint(
+                    request: request,
+                    targetKey: target.key,
+                    succeeded: !paintFailed,
+                    previousPath: previousPath
+                )
             }
         }
     }
 
-    private func completeStillPaint(request: PendingOverlay, targetKey: String, succeeded: Bool) {
+    private func completeStillPaint(
+        request: PendingOverlay,
+        targetKey: String,
+        succeeded: Bool,
+        previousPath: String?
+    ) {
         guard pendingByTarget[targetKey]?.requestID == request.requestID else { return }
         pendingByTarget.removeValue(forKey: targetKey)
         if succeeded {
@@ -1122,6 +1134,7 @@ final class PlaybackCoordinator: ObservableObject {
                 statusMessage = nil
             }
         } else {
+            restoreStillAssignment(request: request, targetKey: targetKey, previousPath: previousPath)
             pushAssignments(recordHistory: false)
             if !settleRandomBatch(succeeded: [], rejected: [targetKey]) {
                 statusMessage = NSLocalizedString("bind_failed", comment: "")
@@ -1129,6 +1142,24 @@ final class PlaybackCoordinator: ObservableObject {
             }
         }
         applyPending = !pendingByTarget.isEmpty
+    }
+
+    /// A failed paint leaves the store pointing at a picture that never reached
+    /// the screen. Only the picture this request wrote is undone: once a newer
+    /// request owns the desktop, its wallpaper has to survive the old failure.
+    private func restoreStillAssignment(request: PendingOverlay, targetKey: String, previousPath: String?) {
+        guard lastStillPaths[targetKey] == request.path else { return }
+        lastStillPaths[targetKey] = previousPath
+        guard let previousPath,
+              FileManager.default.fileExists(atPath: previousPath),
+              let target = targets.first(where: { $0.key == targetKey }) else { return }
+        let spaces = SpaceWallpapers.liveSpaces().filter { space in
+            space.uuid == target.spaceUUID && target.displayUUIDs.contains(space.displayUUID)
+        }
+        guard !spaces.isEmpty else { return }
+        var rollback: [SpaceWallpapers.Space: String] = [:]
+        for space in spaces { rollback[space] = previousPath }
+        _ = SpaceWallpapers.assign(rollback)
     }
 
     private func seedMissingTargets(targets: [DesktopTarget]) {

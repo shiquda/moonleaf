@@ -74,6 +74,7 @@ struct PlaybackChecks {
         testRandomReceiptArrivesBeforeNextApply(playback)
         testStatusTone()
         testDeferredStillPaintRevalidatesSpaceAndFailures(playback)
+        testStaleStillFailureKeepsNewerWallpaper(playback)
 
         if Check.failed == 0 {
             print("playback behavior checks passed")
@@ -1192,5 +1193,141 @@ struct PlaybackChecks {
             "\(targetA.displayName) \(String(format: NSLocalizedString("desktop_n", comment: ""), targetA.spaceIndex))"
         )
         Check.expect(playback.statusMessage == expectedFailedMsg, "failed randomWallpaper names failed target, got \(playback.statusMessage ?? "nil")")
+    }
+
+    /// A slow paint can be overtaken. When it finally fails, it must not put the
+    /// picture it replaced back over the wallpaper that already succeeded.
+    static func testStaleStillFailureKeepsNewerWallpaper(_ playback: PlaybackCoordinator) {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("moonleaf-still-stale-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let old = dir.appendingPathComponent("old.jpg")
+        let superseded = dir.appendingPathComponent("superseded.jpg")
+        let latest = dir.appendingPathComponent("latest.jpg")
+        for url in [old, superseded, latest] {
+            try? Data([0xFF, 0xD8, 0xFF]).write(to: url)
+        }
+        defer {
+            SpaceBinding.factsOverride = nil
+            SpaceWallpapers.spacesOverride = nil
+            SpaceWallpapers.assignOverride = nil
+            SpaceWallpapers.paintDesktopOverride = nil
+            SpaceWallpapers.targetAssignmentsOverride = nil
+            playback.pendingByTarget = [:]
+            try? FileManager.default.removeItem(at: dir)
+        }
+
+        func pump(timeout: TimeInterval = 5.0, until predicate: () -> Bool) -> Bool {
+            let deadline = Date().addingTimeInterval(timeout)
+            while !predicate(), Date() < deadline {
+                RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01))
+            }
+            return predicate()
+        }
+
+        let display = "DISPLAY-STALE"
+        let spaceA = "space-a"
+        let spaceB = "space-b"
+        let keyA = "d:\(display)|s:\(spaceA)"
+        func makeFacts(currentA: Bool) -> [SpaceFact] {
+            [
+                SpaceFact(displayUUID: display, displayName: "Built-in", spaceUUID: spaceA, managedID: 51, isCurrent: currentA, type: 0),
+                SpaceFact(displayUUID: display, displayName: "Built-in", spaceUUID: spaceB, managedID: 52, isCurrent: !currentA, type: 0),
+            ]
+        }
+        SpaceBinding.factsOverride = makeFacts(currentA: true)
+        SpaceWallpapers.spacesOverride = [
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceA, isCurrent: true),
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceB, isCurrent: false),
+        ]
+        SpaceWallpapers.targetAssignmentsOverride = { _ in [:] }
+        var assignedSnapshots: [[SpaceWallpapers.Space: String]] = []
+        let snapshotLock = NSLock()
+        SpaceWallpapers.assignOverride = { map in
+            snapshotLock.lock()
+            assignedSnapshots.append(map)
+            snapshotLock.unlock()
+            return true
+        }
+        SpaceBinding.stateReader = nil
+        playback.setCommandRefreshForChecks(false)
+        playback.assignmentsSink = nil
+        playback.pendingByTarget = [:]
+        LibraryCatalog.shared.mutate { file in
+            file.sessions = []
+            file.history = []
+            file.suppressedRestoreKeys = []
+        }
+        playback.reloadForChecks()
+        playback.refreshTopology(restoreMatching: false)
+
+        // Land the first picture normally.
+        SpaceWallpapers.paintDesktopOverride = { _, _, _ in }
+        let firstOk = playback.apply(
+            path: old.path, name: "old", scope: .explicit, displayUUID: display,
+            explicitKeys: [keyA], stopRotation: true, origin: "manual",
+            confirmedCrossDisplay: true, recordHistory: true
+        )
+        Check.expect(!firstOk, "a visible still waits for its paint before reporting committed")
+        Check.expect(pump { !playback.applyPending }, "the first still settles")
+        Check.expect(playback.session(for: keyA)?.path == old.path, "the first picture is committed")
+
+        // A second request blocks inside the native call, then fails.
+        let gate = DispatchSemaphore(value: 0)
+        let started = DispatchSemaphore(value: 0)
+        SpaceWallpapers.paintDesktopOverride = { _, _, _ in
+            started.signal()
+            _ = gate.wait(timeout: .now() + 5)
+            throw NSError(domain: "TestPaint", code: 7, userInfo: [NSLocalizedDescriptionKey: "boom"])
+        }
+        let staleOk = playback.apply(
+            path: superseded.path, name: "superseded", scope: .explicit, displayUUID: display,
+            explicitKeys: [keyA], stopRotation: true, origin: "manual",
+            confirmedCrossDisplay: true, recordHistory: true
+        )
+        Check.expect(!staleOk, "the blocked request reports pending")
+        _ = started.wait(timeout: .now() + 3)
+
+        // The desktop moves away, and a newer picture lands on the now hidden desktop.
+        SpaceBinding.factsOverride = makeFacts(currentA: false)
+        SpaceWallpapers.spacesOverride = [
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceA, isCurrent: false),
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceB, isCurrent: true),
+        ]
+        let newerOk = playback.apply(
+            path: latest.path, name: "latest", scope: .explicit, displayUUID: display,
+            explicitKeys: [keyA], stopRotation: true, origin: "manual",
+            confirmedCrossDisplay: true, recordHistory: true
+        )
+        Check.expect(newerOk, "the newer picture commits while the older paint is still blocked")
+        Check.expect(playback.session(for: keyA)?.path == latest.path, "the newer picture owns the desktop")
+        let afterNewer: Int
+        snapshotLock.lock()
+        afterNewer = assignedSnapshots.count
+        snapshotLock.unlock()
+
+        gate.signal()
+        // The stale job's completion is rejected, so the only thing it can still
+        // do is write the store. Give that thread time to finish before looking.
+        _ = pump(timeout: 1.0) {
+            snapshotLock.lock()
+            let grew = assignedSnapshots.count > afterNewer
+            snapshotLock.unlock()
+            return grew
+        }
+        Check.expect(pump { !playback.applyPending }, "the stale failure settles")
+
+        snapshotLock.lock()
+        let laterWrites = assignedSnapshots.dropFirst(afterNewer)
+        snapshotLock.unlock()
+        Check.expect(
+            !laterWrites.contains { $0.values.contains(old.path) },
+            "a stale failure must not restore the picture it replaced, got \(laterWrites)"
+        )
+        Check.expect(playback.session(for: keyA)?.path == latest.path, "the newer picture survives the stale failure")
+        Check.expect(
+            playback.history.contains { $0.targetKeys.contains(keyA) && $0.assetName == "latest" },
+            "the newer picture stays in history"
+        )
+        Check.expect(!playback.applyPending && playback.pendingByTarget.isEmpty, "nothing is left pending")
     }
 }
