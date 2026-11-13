@@ -5,7 +5,7 @@ All notable changes to **Moonleaf** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.2.0] - 2026-11-13
 
 ### Added
 - Wallpapers are applied to a desktop, which is one display plus one Space, instead of one overlay across every Space.
@@ -20,7 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate wallpapers per desktop cannot be turned off.
 - New downloads use the current library folder. A future save folder applies only to later downloads.
 - The overview shuffle-all button changes every desktop immediately, without a confirmation.
-
 
 ### Fixed
 - Switching Spaces refreshes the current desktop before a menu or apply, and a still is not painted onto the visible Space unless that Space is the target.
