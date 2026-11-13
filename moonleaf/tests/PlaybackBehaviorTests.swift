@@ -51,9 +51,9 @@ struct PlaybackChecks {
             SpaceBinding.factsOverride = nil
             SpaceWallpapers.spacesOverride = nil
             SpaceWallpapers.assignOverride = nil
+            SpaceWallpapers.paintDesktopOverride = nil
             SpaceWallpapers.targetAssignmentsOverride = nil
             playback.libraryPoolOverride = nil
-            playback.assignmentsSink = nil
             playback.setCommandRefreshForChecks(false)
             SpaceBinding.stateReader = nil
             try? FileManager.default.removeItem(at: root)
@@ -73,6 +73,7 @@ struct PlaybackChecks {
         testRandomVideoReceiptSummary(playback)
         testRandomReceiptArrivesBeforeNextApply(playback)
         testStatusTone()
+        testDeferredStillPaintRevalidatesSpaceAndFailures(playback)
 
         if Check.failed == 0 {
             print("playback behavior checks passed")
@@ -994,4 +995,202 @@ struct PlaybackChecks {
         Check.expect(playback.statusMessage != NSLocalizedString("bind_failed", comment: ""), "an early bind failure does not collapse to the generic note")
     }
 
+    static func testDeferredStillPaintRevalidatesSpaceAndFailures(_ playback: PlaybackCoordinator) {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("moonleaf-still-async-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let first = dir.appendingPathComponent("first.jpg")
+        let second = dir.appendingPathComponent("second.jpg")
+        let third = dir.appendingPathComponent("third.jpg")
+        for url in [first, second, third] {
+            try? Data([0xFF, 0xD8, 0xFF]).write(to: url)
+        }
+        defer {
+            SpaceBinding.factsOverride = nil
+            SpaceWallpapers.spacesOverride = nil
+            SpaceWallpapers.assignOverride = nil
+            SpaceWallpapers.paintDesktopOverride = nil
+            SpaceWallpapers.targetAssignmentsOverride = nil
+            playback.pendingByTarget = [:]
+            try? FileManager.default.removeItem(at: dir)
+        }
+
+        func pump(timeout: TimeInterval = 5.0, until predicate: () -> Bool) -> Bool {
+            let deadline = Date().addingTimeInterval(timeout)
+            while !predicate(), Date() < deadline {
+                RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01))
+            }
+            return predicate()
+        }
+
+        let display = "DISPLAY-STILL"
+        let spaceA = "space-a"
+        let spaceB = "space-b"
+        let keyA = "d:\(display)|s:\(spaceA)"
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: display, displayName: "Built-in", spaceUUID: spaceA, managedID: 41, isCurrent: true, type: 0),
+            SpaceFact(displayUUID: display, displayName: "Built-in", spaceUUID: spaceB, managedID: 42, isCurrent: false, type: 0),
+        ]
+        SpaceWallpapers.spacesOverride = [
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceA, isCurrent: true),
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceB, isCurrent: false),
+        ]
+        SpaceWallpapers.targetAssignmentsOverride = { _ in [:] }
+        var assignedSnapshots: [[SpaceWallpapers.Space: String]] = []
+        SpaceWallpapers.assignOverride = { map in
+            assignedSnapshots.append(map)
+            return true
+        }
+        SpaceBinding.stateReader = nil
+        playback.setCommandRefreshForChecks(false)
+        playback.assignmentsSink = nil
+        playback.pendingByTarget = [:]
+        LibraryCatalog.shared.mutate { file in
+            file.sessions = []
+            file.history = []
+            file.suppressedRestoreKeys = []
+        }
+        playback.reloadForChecks()
+        playback.refreshTopology(restoreMatching: false)
+        // 1) Deferred completion: must stay pending with 0 history until paint completes.
+        let gate = DispatchSemaphore(value: 0)
+        let started = DispatchSemaphore(value: 0)
+        var paintedCalls: [(String, String)] = []
+        let callLock = NSLock()
+        SpaceWallpapers.paintDesktopOverride = { url, _, spaceUUID in
+            started.signal()
+            _ = gate.wait(timeout: .now() + 5)
+            callLock.lock()
+            paintedCalls.append((url.lastPathComponent, spaceUUID))
+            callLock.unlock()
+        }
+
+        let initialOk = playback.apply(
+            path: first.path, name: "first", scope: .explicit, displayUUID: display,
+            explicitKeys: [keyA], stopRotation: true, origin: "manual",
+            confirmedCrossDisplay: true, recordHistory: true
+        )
+        Check.expect(!initialOk, "visible still apply waits for off-main paint before reporting committed")
+        Check.expect(playback.applyPending, "applyPending is true while still paint is in flight")
+        Check.expect(playback.session(for: keyA) == nil, "session is not committed before paint finishes")
+        Check.expect(playback.history.isEmpty, "history is not recorded before paint finishes")
+
+        _ = started.wait(timeout: .now() + 3)
+        gate.signal()
+        Check.expect(pump { !playback.applyPending }, "pending still apply settles on main")
+        Check.expect(playback.session(for: keyA)?.path == first.path, "session commits after paint succeeds")
+        Check.expect(playback.history.count == 1, "history records once after paint succeeds")
+        Check.expect(paintedCalls.count == 1 && paintedCalls[0] == ("first.jpg", spaceA), "paint executed on Space A")
+
+        // 2) Space switch A -> B while queued: Space A job must skip native paint so B is untouched.
+        paintedCalls = []
+        let gate2 = DispatchSemaphore(value: 0)
+        let started2 = DispatchSemaphore(value: 0)
+        var paintCallCount2 = 0
+        SpaceWallpapers.paintDesktopOverride = { url, _, _ in
+            paintCallCount2 += 1
+            let liveAtEntry = SpaceWallpapers.liveSpaces().first { $0.isCurrent }?.uuid ?? "none"
+            callLock.lock()
+            paintedCalls.append((url.lastPathComponent, liveAtEntry))
+            callLock.unlock()
+            if paintCallCount2 == 1 {
+                started2.signal()
+                _ = gate2.wait(timeout: .now() + 5)
+            }
+        }
+        let keyB = "d:\(display)|s:\(spaceB)"
+        _ = playback.apply(
+            path: first.path, name: "first", scope: .explicit, displayUUID: display,
+            explicitKeys: [keyA], stopRotation: true, origin: "manual",
+            confirmedCrossDisplay: true, recordHistory: false
+        )
+        _ = started2.wait(timeout: .now() + 3)
+        _ = playback.apply(
+            path: second.path, name: "second", scope: .explicit, displayUUID: display,
+            explicitKeys: [keyA], stopRotation: true, origin: "manual",
+            confirmedCrossDisplay: true, recordHistory: true
+        )
+        SpaceWallpapers.spacesOverride = [
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceA, isCurrent: false),
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceB, isCurrent: true),
+        ]
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: display, displayName: "Built-in", spaceUUID: spaceA, managedID: 41, isCurrent: false, type: 0),
+            SpaceFact(displayUUID: display, displayName: "Built-in", spaceUUID: spaceB, managedID: 42, isCurrent: true, type: 0),
+        ]
+        gate2.signal()
+        Check.expect(pump { !playback.applyPending }, "queued job settles after Space switch")
+        Check.expect(paintedCalls.count == 1 && paintedCalls[0] == ("first.jpg", spaceA), "deferred paint must never touch newly active Space B, got \(paintedCalls)")
+        Check.expect(playback.session(for: keyA)?.path == second.path, "Space A session still updates via Index.plist")
+        Check.expect(playback.session(for: keyB) == nil, "Space B remains untouched")
+
+        // 3) Native paint error: must reject session/history, roll back Index.plist, and report failure.
+        SpaceWallpapers.spacesOverride = [
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceA, isCurrent: true),
+            SpaceWallpapers.Space(displayUUID: display, uuid: spaceB, isCurrent: false),
+        ]
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: display, displayName: "Built-in", spaceUUID: spaceA, managedID: 41, isCurrent: true, type: 0),
+            SpaceFact(displayUUID: display, displayName: "Built-in", spaceUUID: spaceB, managedID: 42, isCurrent: false, type: 0),
+        ]
+        assignedSnapshots = []
+        let historyBeforeFail = playback.history.count
+        SpaceWallpapers.paintDesktopOverride = { _, _, _ in
+            throw NSError(domain: "TestPaint", code: 42, userInfo: [NSLocalizedDescriptionKey: "boom"])
+        }
+        let failOk = playback.apply(
+            path: third.path, name: "third", scope: .explicit, displayUUID: display,
+            explicitKeys: [keyA], stopRotation: true, origin: "manual",
+            confirmedCrossDisplay: true, recordHistory: true
+        )
+        Check.expect(!failOk, "throwing native paint does not return synchronous success")
+        Check.expect(pump { !playback.applyPending }, "failed still apply settles on main")
+        Check.expect(playback.session(for: keyA)?.path == second.path, "failed paint keeps previous committed session")
+        Check.expect(playback.history.count == historyBeforeFail, "failed paint must not record history")
+        Check.expect(playback.statusMessage == NSLocalizedString("bind_failed", comment: ""), "failed paint reports bind_failed")
+        Check.expect(playback.statusTone == .warning, "failed paint sets warning tone")
+        Check.expect(assignedSnapshots.last?.values.contains(second.path) == true, "failed paint rolls back Index.plist to previous wallpaper")
+
+        // 4) randomWallpaper on visible current Space stays pending with 0 history until native paint finishes/fails.
+        guard let randList = playback.createPlaylist(name: "StillRand") else {
+            Check.expect(false, "failed to create StillRand playlist")
+            return
+        }
+        playback.addToPlaylist(paths: [second.path, third.path], playlistID: randList)
+        let assetSecond = LibraryCatalog.shared.asset(path: second.path)!
+        LibraryCatalog.shared.mutate { file in
+            file.history = []
+            file.sessions = [
+                TargetSession(
+                    targetKey: keyA, assetID: assetSecond.id, assetName: assetSecond.name, path: second.path,
+                    listKind: "playlist", playlistID: randList, folderPath: nil, includeSubdirectories: nil,
+                    rotationEnabled: false, paused: false, pauseReason: nil, order: "sequential",
+                    interval: "5", unavailable: false, provenance: "moonleaf", lastRotatedAt: nil
+                )
+            ]
+        }
+        playback.reloadForChecks()
+        let gateRand = DispatchSemaphore(value: 0)
+        let startedRand = DispatchSemaphore(value: 0)
+        SpaceWallpapers.paintDesktopOverride = { _, _, _ in
+            startedRand.signal()
+            _ = gateRand.wait(timeout: .now() + 5)
+            throw NSError(domain: "TestPaint", code: 99, userInfo: nil)
+        }
+        let randOutcome = playback.randomWallpaper(keys: [keyA]) { _ in 0 }
+        Check.expect(randOutcome[keyA] == .pending, "randomWallpaper marks visible still paint pending before completion")
+        Check.expect(playback.statusTone == .info, "randomWallpaper shows info tone while still paint is waiting")
+        Check.expect(playback.history.isEmpty, "randomWallpaper records no success before paint settles")
+        _ = startedRand.wait(timeout: .now() + 3)
+        gateRand.signal()
+        Check.expect(pump { !playback.applyPending }, "randomWallpaper failed still settles")
+        Check.expect(playback.history.isEmpty, "failed randomWallpaper still records no history")
+        Check.expect(playback.session(for: keyA)?.path == second.path, "failed randomWallpaper still keeps previous wallpaper")
+        Check.expect(playback.statusTone == .warning, "failed randomWallpaper still reports warning tone")
+        let targetA = playback.targets.first { $0.key == keyA }!
+        let expectedFailedMsg = String(
+            format: NSLocalizedString("random_failed_targets", comment: ""),
+            "\(targetA.displayName) \(String(format: NSLocalizedString("desktop_n", comment: ""), targetA.spaceIndex))"
+        )
+        Check.expect(playback.statusMessage == expectedFailedMsg, "failed randomWallpaper names failed target, got \(playback.statusMessage ?? "nil")")
+    }
 }

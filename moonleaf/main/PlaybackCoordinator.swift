@@ -36,6 +36,7 @@ struct PendingOverlay {
     var stamp: ListStamp?
     var touchRotationClock: Bool
     var keepPause: Bool = false
+    var isStill: Bool = false
 }
 
 /// Whether a status line reports a problem, a finished change, or a wait.
@@ -90,6 +91,8 @@ final class PlaybackCoordinator: ObservableObject {
     private var randomBatch: [String: RandomApplyOutcome]?
     /// Serial so two changes to the same desktop land in order.
     private static let stillPaintQueue = DispatchQueue(label: "com.naomisphere.moonleaf.still-paint", qos: .userInitiated)
+    private let stillRequestLock = NSLock()
+    private var latestStillRequestIDs: [String: String] = [:]
 
 
     private init() {
@@ -177,11 +180,13 @@ final class PlaybackCoordinator: ObservableObject {
         }
         guard FileManager.default.fileExists(atPath: path) else {
             statusMessage = NSLocalizedString("apply_missing_file", comment: "")
+            statusTone = .warning
             return false
         }
         let kind = MediaKind.from(path: path)
         guard kind != .unknown else {
             statusMessage = NSLocalizedString("apply_unsupported", comment: "")
+            statusTone = .warning
             return false
         }
         switch ScopeLogic.resolve(
@@ -193,10 +198,12 @@ final class PlaybackCoordinator: ObservableObject {
         ) {
         case .failure(let error):
             statusMessage = message(for: error)
+            statusTone = .warning
             return false
         case .success(let chosen):
             guard !chosen.isEmpty else {
                 statusMessage = NSLocalizedString("apply_none", comment: "")
+                statusTone = .warning
                 return false
             }
             let asset = catalog.ensureAsset(
@@ -224,6 +231,7 @@ final class PlaybackCoordinator: ObservableObject {
                 )
                 for key in request.keys {
                     pendingByTarget[key] = request
+                    setLatestStillRequest(nil, for: key)
                 }
                 statusMessage = nil
                 pushAssignments(recordHistory: false)
@@ -232,56 +240,93 @@ final class PlaybackCoordinator: ObservableObject {
             }
             var snapshot = catalog.snapshot()
             var appliedKeys: [String] = []
+            var pendingStill: [(target: DesktopTarget, job: PendingStillJob, request: PendingOverlay, previousPath: String?)] = []
             for target in chosen {
-                guard assignStill(path, target: target) else { continue }
-                writeCommittedSession(
-                    snapshot: &snapshot,
-                    asset: asset,
-                    path: path,
-                    targetKey: target.key,
-                    stopRotation: stopRotation,
-                    stamp: stamp,
-                    touchRotationClock: touchRotationClock,
-                    keepPause: keepPause
-                )
-                appliedKeys.append(target.key)
-            }
-            guard !appliedKeys.isEmpty else {
-                statusMessage = NSLocalizedString("apply_none", comment: "")
-                return false
-            }
-            for key in appliedKeys {
-                pendingByTarget.removeValue(forKey: key)
-            }
-            applyPending = !pendingByTarget.isEmpty
-            if recordHistory {
-                snapshot.history = HistoryLogic.appending(
-                    snapshot.history,
-                    event: HistoryEvent(
-                        id: UUID(),
+                let previousPath = snapshot.sessions.first(where: { $0.targetKey == target.key })?.path
+                switch assignStill(path, target: target) {
+                case .failed:
+                    continue
+                case .committed:
+                    writeCommittedSession(
+                        snapshot: &snapshot,
+                        asset: asset,
+                        path: path,
+                        targetKey: target.key,
+                        stopRotation: stopRotation,
+                        stamp: stamp,
+                        touchRotationClock: touchRotationClock,
+                        keepPause: keepPause
+                    )
+                    appliedKeys.append(target.key)
+                    pendingByTarget.removeValue(forKey: target.key)
+                    setLatestStillRequest(nil, for: target.key)
+                case .pending(let job):
+                    let request = PendingOverlay(
+                        requestID: UUID().uuidString,
+                        requestedAt: Date(),
+                        path: path,
                         assetID: asset.id,
                         assetName: asset.name,
-                        appliedAt: Date(),
-                        targetKeys: appliedKeys,
+                        keys: [target.key],
                         origin: origin,
-                        playlistID: playlistID,
-                        playlistName: playlistName
-                    ),
-                    enabled: snapshot.historyEnabled,
-                    isRestore: false
+                        playlistID: stamp?.playlistID ?? playlistID,
+                        playlistName: stamp?.playlistName ?? playlistName,
+                        recordHistory: recordHistory,
+                        stopRotation: stopRotation,
+                        stamp: stamp,
+                        touchRotationClock: touchRotationClock,
+                        keepPause: keepPause,
+                        isStill: true
+                    )
+                    pendingByTarget[target.key] = request
+                    setLatestStillRequest(request.requestID, for: target.key)
+                    pendingStill.append((target: target, job: job, request: request, previousPath: previousPath))
+                }
+            }
+            guard !appliedKeys.isEmpty || !pendingStill.isEmpty else {
+                statusMessage = NSLocalizedString("apply_none", comment: "")
+                statusTone = .warning
+                return false
+            }
+            if !appliedKeys.isEmpty {
+                if recordHistory {
+                    snapshot.history = HistoryLogic.appending(
+                        snapshot.history,
+                        event: HistoryEvent(
+                            id: UUID(),
+                            assetID: asset.id,
+                            assetName: asset.name,
+                            appliedAt: Date(),
+                            targetKeys: appliedKeys,
+                            origin: origin,
+                            playlistID: playlistID,
+                            playlistName: playlistName
+                        ),
+                        enabled: snapshot.historyEnabled,
+                        isRestore: false
+                    )
+                }
+                catalog.mutate { $0 = snapshot }
+                reloadPublished()
+                pushAssignments(recordHistory: false)
+                publishCurrentPath()
+                if canTouchApp,
+                   let current = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()),
+                   appliedKeys.contains(current.key) {
+                    MoonleafConfigStore.shared.writeCurrentWallpaperAsync(path)
+                }
+            }
+            for item in pendingStill {
+                enqueueStillPaint(
+                    request: item.request,
+                    target: item.target,
+                    job: item.job,
+                    previousPath: item.previousPath
                 )
             }
-            catalog.mutate { $0 = snapshot }
-            reloadPublished()
-            pushAssignments(recordHistory: false)
-            publishCurrentPath()
-            if canTouchApp,
-               let current = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()),
-               appliedKeys.contains(current.key) {
-                MoonleafConfigStore.shared.writeCurrentWallpaperAsync(path)
-            }
+            applyPending = !pendingByTarget.isEmpty
             statusMessage = nil
-            return true
+            return pendingStill.isEmpty
         }
     }
 
@@ -378,6 +423,7 @@ final class PlaybackCoordinator: ObservableObject {
     }
     func clearTarget(_ key: String) {
         pendingByTarget.removeValue(forKey: key)
+        setLatestStillRequest(nil, for: key)
         applyPending = !pendingByTarget.isEmpty
         catalog.mutate { file in
             file.sessions.removeAll { $0.targetKey == key }
@@ -778,7 +824,8 @@ final class PlaybackCoordinator: ObservableObject {
             return
         }
         let target = targets.first { $0.key == session.targetKey }
-        let ok = apply(
+        let listName = session.playlistID.flatMap { id in playlists.first { $0.id == id }?.name }
+        _ = apply(
             path: next.path,
             name: next.name,
             scope: .explicit,
@@ -789,20 +836,20 @@ final class PlaybackCoordinator: ObservableObject {
             confirmedCrossDisplay: true,
             recordHistory: true,
             playlistID: session.playlistID,
-            playlistName: playlists.first { $0.id == session.playlistID }?.name,
-            touchRotationClock: true
+            playlistName: listName,
+            stamp: ListStamp(
+                kind: session.listKind ?? "library",
+                playlistID: session.playlistID,
+                playlistName: listName,
+                order: session.order,
+                interval: session.interval,
+                folderPath: session.folderPath,
+                includeSubdirectories: session.includeSubdirectories,
+                rotationEnabled: session.rotationEnabled
+            ),
+            touchRotationClock: true,
+            keepPause: session.paused
         )
-        guard ok else { return }
-        catalog.mutate { file in
-            guard let index = file.sessions.firstIndex(where: { $0.targetKey == session.targetKey }) else { return }
-            file.sessions[index].lastRotatedAt = Date()
-            file.sessions[index].listKind = session.listKind
-            file.sessions[index].playlistID = session.playlistID
-            file.sessions[index].rotationEnabled = session.rotationEnabled
-            file.sessions[index].order = session.order
-            file.sessions[index].interval = session.interval
-        }
-        reloadPublished()
     }
 
     private struct PoolItem {
@@ -904,41 +951,184 @@ final class PlaybackCoordinator: ObservableObject {
         }
     }
 
-    private func assignStill(_ path: String, target: DesktopTarget) -> Bool {
-        let url = URL(fileURLWithPath: path)
+    private struct PendingStillJob {
+        let spaces: [SpaceWallpapers.Space]
+        let screensByDisplay: [String: NSScreen]
+    }
+
+    private enum StillAssignResult {
+        case failed
+        case committed
+        case pending(PendingStillJob)
+    }
+
+    private func setLatestStillRequest(_ id: String?, for key: String) {
+        stillRequestLock.lock()
+        if let id {
+            latestStillRequestIDs[key] = id
+        } else {
+            latestStillRequestIDs.removeValue(forKey: key)
+        }
+        stillRequestLock.unlock()
+    }
+
+    private func isLatestStillRequest(_ id: String, for key: String) -> Bool {
+        stillRequestLock.lock()
+        let current = latestStillRequestIDs[key] == id
+        stillRequestLock.unlock()
+        return current
+    }
+
+    private func assignStill(_ path: String, target: DesktopTarget) -> StillAssignResult {
         let spaces = SpaceWallpapers.liveSpaces().filter { space in
             space.uuid == target.spaceUUID && target.displayUUIDs.contains(space.displayUUID)
         }
-        guard !spaces.isEmpty else { return false }
+        guard !spaces.isEmpty else { return .failed }
         var assigned: [SpaceWallpapers.Space: String] = [:]
         for space in spaces { assigned[space] = path }
-        guard SpaceWallpapers.assign(assigned) else { return false }
+        guard SpaceWallpapers.assign(assigned) else { return .failed }
         if spaces.contains(where: { !$0.isCurrent }) {
             SpaceWallpapers.reload()
         }
         let liveCurrent = Set(spaces.filter(\.isCurrent).map(\.uuid))
         guard VisiblePaint.allowed(targetSpaceUUID: target.spaceUUID, liveCurrentSpaceUUIDs: liveCurrent) else {
-            return true
+            return .committed
         }
-        var paints: [(URL, NSScreen)] = []
-        for space in spaces where space.isCurrent {
-            guard let screen = SpaceBinding.screen(for: space.displayUUID) else { return false }
-            paints.append((url, screen))
-        }
-        guard !paints.isEmpty else { return true }
-        // Each picture is a synchronous call into WallpaperAgent. A dozen of
-        // them in a row blocked the window long enough to miss events, so the
-        // paint goes off the main thread in the order the desktops were changed.
-        Self.stillPaintQueue.async {
-            for (url, screen) in paints {
-                do {
-                    try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
-                } catch {
-                    NSLog("[PlaybackCoordinator] desktop picture failed: %@", error.localizedDescription)
-                }
+        let currentSpaces = spaces.filter(\.isCurrent)
+        guard !currentSpaces.isEmpty else { return .committed }
+        var screensByDisplay: [String: NSScreen] = [:]
+        if SpaceWallpapers.paintDesktopOverride == nil {
+            for space in currentSpaces {
+                guard let screen = SpaceBinding.screen(for: space.displayUUID) else { return .failed }
+                screensByDisplay[space.displayUUID] = screen
             }
         }
-        return true
+        return .pending(PendingStillJob(spaces: currentSpaces, screensByDisplay: screensByDisplay))
+    }
+
+    private func enqueueStillPaint(
+        request: PendingOverlay,
+        target: DesktopTarget,
+        job: PendingStillJob,
+        previousPath: String?
+    ) {
+        let url = URL(fileURLWithPath: request.path)
+        Self.stillPaintQueue.async { [weak self] in
+            guard let self else { return }
+            guard self.isLatestStillRequest(request.requestID, for: target.key) else { return }
+
+            let liveBefore = SpaceWallpapers.liveSpaces()
+            let targetAlive = liveBefore.contains {
+                $0.uuid == target.spaceUUID && target.displayUUIDs.contains($0.displayUUID)
+            }
+            guard targetAlive else {
+                DispatchQueue.main.async {
+                    self.completeStillPaint(request: request, targetKey: target.key, succeeded: false)
+                }
+                return
+            }
+
+            var paintFailed = false
+            var skippedMovedSpace = false
+            for space in job.spaces {
+                guard self.isLatestStillRequest(request.requestID, for: target.key) else { return }
+                let liveSpaces = SpaceWallpapers.liveSpaces()
+                let stillCurrent = liveSpaces.contains {
+                    $0.displayUUID == space.displayUUID && $0.uuid == space.uuid && $0.isCurrent
+                }
+                guard stillCurrent else {
+                    skippedMovedSpace = true
+                    continue
+                }
+                do {
+                    try SpaceWallpapers.paintCurrentSpace(
+                        url: url,
+                        screen: job.screensByDisplay[space.displayUUID],
+                        displayUUID: space.displayUUID,
+                        spaceUUID: space.uuid
+                    )
+                } catch {
+                    paintFailed = true
+                    NSLog("[PlaybackCoordinator] desktop picture failed: %@", error.localizedDescription)
+                    break
+                }
+            }
+
+            if !paintFailed && skippedMovedSpace {
+                SpaceWallpapers.reload()
+            }
+            if paintFailed,
+               let previousPath,
+               FileManager.default.fileExists(atPath: previousPath) {
+                var rollback: [SpaceWallpapers.Space: String] = [:]
+                for space in job.spaces { rollback[space] = previousPath }
+                _ = SpaceWallpapers.assign(rollback)
+            }
+
+            DispatchQueue.main.async {
+                self.completeStillPaint(request: request, targetKey: target.key, succeeded: !paintFailed)
+            }
+        }
+    }
+
+    private func completeStillPaint(request: PendingOverlay, targetKey: String, succeeded: Bool) {
+        guard pendingByTarget[targetKey]?.requestID == request.requestID else { return }
+        pendingByTarget.removeValue(forKey: targetKey)
+        if succeeded {
+            let asset = catalog.asset(path: request.path) ?? catalog.ensureAsset(
+                path: request.path,
+                name: request.assetName,
+                source: request.path.hasPrefix(MoonleafConfigStore.libraryRoot.path) ? "library" : "external",
+                origin: request.origin
+            )
+            var snapshot = catalog.snapshot()
+            writeCommittedSession(
+                snapshot: &snapshot,
+                asset: asset,
+                path: request.path,
+                targetKey: targetKey,
+                stopRotation: request.stopRotation,
+                stamp: request.stamp,
+                touchRotationClock: request.touchRotationClock,
+                keepPause: request.keepPause
+            )
+            if request.recordHistory {
+                snapshot.history = HistoryLogic.appending(
+                    snapshot.history,
+                    event: HistoryEvent(
+                        id: UUID(),
+                        assetID: asset.id,
+                        assetName: asset.name,
+                        appliedAt: Date(),
+                        targetKeys: [targetKey],
+                        origin: request.origin,
+                        playlistID: request.playlistID,
+                        playlistName: request.playlistName
+                    ),
+                    enabled: snapshot.historyEnabled,
+                    isRestore: false
+                )
+            }
+            catalog.mutate { $0 = snapshot }
+            reloadPublished()
+            pushAssignments(recordHistory: false)
+            publishCurrentPath()
+            if canTouchApp,
+               let current = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()),
+               current.key == targetKey {
+                MoonleafConfigStore.shared.writeCurrentWallpaperAsync(request.path)
+            }
+            if !settleRandomBatch(succeeded: [targetKey], rejected: []), pendingByTarget.isEmpty {
+                statusMessage = nil
+            }
+        } else {
+            pushAssignments(recordHistory: false)
+            if !settleRandomBatch(succeeded: [], rejected: [targetKey]) {
+                statusMessage = NSLocalizedString("bind_failed", comment: "")
+                statusTone = .warning
+            }
+        }
+        applyPending = !pendingByTarget.isEmpty
     }
 
     private func seedMissingTargets(targets: [DesktopTarget]) {
@@ -1096,7 +1286,7 @@ final class PlaybackCoordinator: ObservableObject {
                 pauseReason: session.pauseReason
             )
         }
-        for (key, request) in pendingByTarget where FileManager.default.fileExists(atPath: request.path) {
+        for (key, request) in pendingByTarget where !request.isStill && FileManager.default.fileExists(atPath: request.path) {
             let kind = MediaKind.from(path: request.path)
             if kind.usesSpaceBoundOverlay { needsPlayer = true }
             file.targets[key] = PlaybackAssignment(
@@ -1128,9 +1318,10 @@ final class PlaybackCoordinator: ObservableObject {
         playerState = file?.targets ?? [:]
         guard let file, !pendingByTarget.isEmpty else { return }
         var unique: [String: PendingOverlay] = [:]
-        for request in pendingByTarget.values {
+        for request in pendingByTarget.values where !request.isStill {
             unique[request.requestID] = request
         }
+        guard !unique.isEmpty else { return }
         var failed = false
         var committed = false
         var batchSucceeded: [String] = []
@@ -1189,6 +1380,7 @@ final class PlaybackCoordinator: ObservableObject {
         if !settleRandomBatch(succeeded: batchSucceeded, rejected: batchRejected) {
             if failed {
                 statusMessage = NSLocalizedString("bind_failed", comment: "")
+                statusTone = .warning
             } else if pendingByTarget.isEmpty {
                 statusMessage = nil
             }

@@ -35,6 +35,8 @@ enum SpaceWallpapers {
     static var spacesOverride: [Space]?
     /// Tests record assignments instead of writing the system store.
     static var assignOverride: (([Space: String]) -> Bool)?
+    /// Tests substitute native current-space desktop picture painting.
+    static var paintDesktopOverride: ((_ url: URL, _ displayUUID: String, _ spaceUUID: String) throws -> Void)?
     /// Tests substitute per-target desktop paths instead of reading AppKit / Index.plist.
     static var targetAssignmentsOverride: (([DesktopTarget]) -> [String: String])?
     /// Every desktop of every online screen, in Mission Control order.
@@ -84,6 +86,26 @@ enum SpaceWallpapers {
                 NSLog("[SpaceWallpapers] WallpaperAgent reload failed: %@", error.localizedDescription)
             }
         }
+    }
+
+    static func paintCurrentSpace(
+        url: URL,
+        screen: NSScreen?,
+        displayUUID: String,
+        spaceUUID: String
+    ) throws {
+        if let paintDesktopOverride {
+            try paintDesktopOverride(url, displayUUID, spaceUUID)
+            return
+        }
+        guard let targetScreen = screen ?? SpaceBinding.screen(for: displayUUID) else {
+            throw NSError(
+                domain: "SpaceWallpapers",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Screen unavailable for \(displayUUID)"]
+            )
+        }
+        try NSWorkspace.shared.setDesktopImageURL(url, for: targetScreen, options: [:])
     }
 
     // MARK: - Store
