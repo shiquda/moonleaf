@@ -592,19 +592,127 @@ struct CircleIconButton: View {
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
+        .background(IconTooltipProbe(text: helpText, hovered: isHovered))
         .onHover { hovering in
             withAnimation(.easeOut(duration: 0.14)) { isHovered = hovering }
         }
 
         if let helpText, let accessibilityLabelText {
-            button.help(helpText).accessibilityLabel(accessibilityLabelText)
+            button.accessibilityLabel(accessibilityLabelText).help(helpText)
         } else if let helpText {
-            button.help(helpText).accessibilityLabel(helpText)
+            button.accessibilityLabel(helpText).help(helpText)
         } else if let accessibilityLabelText {
             button.accessibilityLabel(accessibilityLabelText)
         } else {
             button
         }
+    }
+}
+
+/// A short label above an icon button. System tooltips often never appear
+/// inside a sheet, so this uses its own window.
+private struct IconTooltipProbe: NSViewRepresentable {
+    var text: String?
+    var hovered: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSView { NSView() }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        let label = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let wants = hovered && !label.isEmpty
+        if wants {
+            guard let window = nsView.window else { return }
+            let rect = window.convertToScreen(nsView.convert(nsView.bounds, to: nil))
+            guard rect.width > 0 else { return }
+            if context.coordinator.showing, context.coordinator.text == label { return }
+            context.coordinator.showing = true
+            context.coordinator.text = label
+            IconTooltip.shared.schedule(owner: ObjectIdentifier(nsView), text: label, anchor: rect)
+        } else if context.coordinator.showing {
+            context.coordinator.showing = false
+            context.coordinator.text = nil
+            IconTooltip.shared.cancel(owner: ObjectIdentifier(nsView))
+        }
+    }
+
+    final class Coordinator {
+        var showing = false
+        var text: String?
+    }
+}
+
+private struct IconTooltipLabel: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.regularMaterial, in: Capsule())
+            .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.6))
+    }
+}
+
+private final class IconTooltip {
+    static let shared = IconTooltip()
+    private var window: NSWindow?
+    private var token = UUID()
+    private var owner: ObjectIdentifier?
+
+    func schedule(owner: ObjectIdentifier, text: String, anchor: NSRect) {
+        let token = UUID()
+        self.token = token
+        self.owner = owner
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self, self.token == token else { return }
+            self.present(text: text, anchor: anchor)
+        }
+    }
+
+    func cancel(owner: ObjectIdentifier) {
+        guard self.owner == owner else { return }
+        token = UUID()
+        self.owner = nil
+        window?.orderOut(nil)
+        window = nil
+    }
+
+    private func present(text: String, anchor: NSRect) {
+        let measured = (text as NSString).size(withAttributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+        ])
+        let size = NSSize(width: ceil(measured.width) + 18, height: ceil(measured.height) + 10)
+        let host = NSHostingView(rootView: IconTooltipLabel(text: text))
+        host.frame = NSRect(origin: .zero, size: size)
+        let window = self.window ?? NSWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = true
+        window.ignoresMouseEvents = true
+        window.level = .popUpMenu
+        window.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
+        window.contentView = host
+        var origin = NSPoint(x: anchor.midX - size.width / 2, y: anchor.maxY + 6)
+        if let visible = (NSScreen.screens.first { $0.frame.intersects(anchor) } ?? NSScreen.main)?.visibleFrame {
+            if origin.y + size.height > visible.maxY {
+                origin.y = anchor.minY - size.height - 6
+            }
+            origin.x = min(max(origin.x, visible.minX + 4), visible.maxX - size.width - 4)
+        }
+        window.setFrame(NSRect(origin: origin, size: size), display: true)
+        window.orderFrontRegardless()
+        self.window = window
     }
 }
 

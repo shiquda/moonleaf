@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An unconfirmed video shuffle is not reported as changed. The final note names each desktop after the engine replies.
 - A video shuffle no longer stays on "waiting" after its receipt arrives while the next desktop is still being applied.
 - The asset detail preview covers the manager window, the same full-window preview used by Discover and Library.
+- Icon buttons show their action in a tooltip while the pointer is over them.
 
 ## [4.1.1] - 2026-10-23
 
