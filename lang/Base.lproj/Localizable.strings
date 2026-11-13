@@ -305,9 +305,7 @@
 "browse_apply_current" = "Apply";
 "active_label" = "Active";
 "page_overview_header" = "Desktop overview";
-"random_action" = "Shuffle wallpaper";
-"random_all" = "All displays and desktops…";
-"random_choose" = "Choose a desktop…";
+"random_action" = "Shuffle all wallpapers";
 "random_confirm_title" = "Shuffle these desktops?";
 "random_confirm_body" = "This changes %d desktops on %d displays. Each desktop gets its own pick. Rotation and pause stay as they are.";
 "random_confirm_sources" = "%d use a playlist or folder. %d use the library.";

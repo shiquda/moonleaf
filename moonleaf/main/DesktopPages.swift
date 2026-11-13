@@ -88,7 +88,7 @@ struct UsagePage: View {
     @State private var showSpacePopover = false
     @State private var showKindPopover = false
     @State private var historyWidth: CGFloat = 600
-    @State private var showRandomMenu = false
+
     @State private var confirmRandomAll = false
     var body: some View {
         VStack(spacing: 0) {
@@ -166,14 +166,6 @@ struct UsagePage: View {
         playback.targets.filter { !playback.targetUnavailable($0.key) }
     }
 
-    private var randomDisplays: [String] {
-        var seen: [String] = []
-        for target in playback.targets where !seen.contains(target.displayName) {
-            seen.append(target.displayName)
-        }
-        return seen
-    }
-
     private var randomConfirmMessage: String {
         let operable = operableTargets
         let displays = Set(operable.flatMap(\.displayUUIDs)).count
@@ -209,39 +201,9 @@ struct UsagePage: View {
         PrimaryGradientButton(
             title: NSLocalizedString("random_action", comment: ""),
             icon: "shuffle",
-            trailingIcon: "chevron.down",
             isDisabled: playback.applyPending || playback.targets.isEmpty
         ) {
-            showRandomMenu.toggle()
-        }
-        .popover(isPresented: $showRandomMenu, arrowEdge: .bottom) {
-            VStack(alignment: .leading, spacing: 6) {
-                Button(NSLocalizedString("random_all", comment: "")) {
-                    showRandomMenu = false
-                    confirmRandomAll = true
-                }
-                .buttonStyle(.plain)
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                Divider()
-                Text(NSLocalizedString("random_choose", comment: ""))
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(.secondary)
-                ForEach(randomDisplays, id: \.self) { display in
-                    Text(display)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    ForEach(playback.targets.filter { $0.displayName == display }) { target in
-                        Button(randomTargetTitle(target)) {
-                            showRandomMenu = false
-                            runRandom([target.key])
-                        }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .disabled(playback.targetUnavailable(target.key))
-                    }
-                }
-            }
-            .padding(12)
-            .frame(minWidth: 220, alignment: .leading)
+            confirmRandomAll = true
         }
     }
 
@@ -261,17 +223,6 @@ struct UsagePage: View {
                 }
             }
         }
-    }
-
-    private func randomTargetTitle(_ target: DesktopTarget) -> String {
-        var title = String(format: NSLocalizedString("desktop_n", comment: ""), target.spaceIndex)
-        if target.isCurrent {
-            title += " · " + NSLocalizedString("desktop_current", comment: "")
-        }
-        if playback.targetUnavailable(target.key) {
-            title += " · " + NSLocalizedString("target_unavailable", comment: "")
-        }
-        return title
     }
 
     private func runRandom(_ keys: [String]) {

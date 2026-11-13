@@ -305,9 +305,7 @@
 "browse_apply_current" = "应用";
 "active_label" = "当前";
 "page_overview_header" = "桌面总览";
-"random_action" = "随机换壁纸";
-"random_all" = "所有显示器与桌面…";
-"random_choose" = "选择桌面…";
+"random_action" = "随机更换所有壁纸";
 "random_confirm_title" = "随机更换这些桌面？";
 "random_confirm_body" = "将更换 %2$d 台显示器上的 %1$d 个桌面。每个桌面单独随机，不会换成同一张。不会开启或关闭自动轮换，暂停状态也会保留。";
 "random_confirm_sources" = "%d 个来自播放列表或文件夹，%d 个来自素材库。";
