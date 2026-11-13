@@ -92,11 +92,11 @@ class WHService: ObservableObject {
 
     func searchWallpapers(
         query: String? = nil,
-        sorting: WHSort = .date_added,
+        sorting: WHSort = .toplist,
         order: WHOrder = .desc,
         purity: WHPurityStatus = .sfw,
         category: WHCategory = .all,
-        topRange: WHTopRange = .week,
+        topRange: WHTopRange = .month,
         page: Int = 1,
         completion: (() -> Void)? = nil
     ) {
@@ -115,11 +115,11 @@ class WHService: ObservableObject {
 
     func loadMoreWallpapers(
         query: String? = nil,
-        sorting: WHSort = .date_added,
+        sorting: WHSort = .toplist,
         order: WHOrder = .desc,
         purity: WHPurityStatus = .sfw,
         category: WHCategory = .all,
-        topRange: WHTopRange = .week,
+        topRange: WHTopRange = .month,
         page: Int
     ) {
         fetch(
