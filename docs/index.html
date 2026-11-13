@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moonleaf – macOS Wallpaper Manager (Actively Maintained)</title>
-  <meta name="description" content="Moonleaf is the actively maintained wallpaper manager for macOS (successor to illufied/moonleaf & macpaper). Supports dynamic video, GIF, per-desktop & multi-monitor rotation, Wallhaven/Pexels integration.">
-  <meta name="keywords" content="macOS wallpaper manager, moonleaf, macpaper, live wallpaper mac, dynamic wallpaper macos, per-space wallpaper, multi-monitor wallpaper, wallhaven mac, video wallpaper mac">
+  <meta name="description" content="Moonleaf is an actively maintained, open-source wallpaper manager for macOS. Manage static wallpapers per monitor and Space, build rotation playlists, track 1,000-item history, and play MP4, MOV, and GIF wallpapers.">
+  <meta name="keywords" content="macOS wallpaper manager, moonleaf, macpaper, different wallpaper per monitor mac, per-space wallpaper macos, wallpaper playlist mac, live wallpaper mac, video wallpaper mac, gif wallpaper mac, wallhaven mac">
   <link rel="canonical" href="https://shiquda.github.io/moonleaf/">
   <link rel="icon" type="image/png" href="icon.png">
   <meta name="google-site-verification" content="Ql8N_lmVtP3E7_UWahGD9Z98qn52SCfpR53f8tIXW3E">
@@ -14,13 +14,13 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://shiquda.github.io/moonleaf/">
   <meta property="og:title" content="Moonleaf – macOS Wallpaper Manager">
-  <meta property="og:description" content="Actively maintained fork of moonleaf (formerly macpaper). Video/GIF live wallpapers, per-space and multi-monitor rotation, Wallhaven/Pexels browsing.">
+  <meta property="og:description" content="Open-source macOS wallpaper manager for per-display and per-Space static wallpapers, named playlists, 1,000-event history, video/GIF playback, and Wallhaven/Pexels browsing.">
   <meta property="og:image" content="https://shiquda.github.io/moonleaf/og-image.png">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Moonleaf – macOS Wallpaper Manager">
-  <meta name="twitter:description" content="Actively maintained fork of moonleaf. Video/GIF live wallpapers, per-space and multi-monitor rotation, Wallhaven/Pexels browsing.">
+  <meta name="twitter:description" content="Open-source macOS wallpaper manager for per-display and per-Space static wallpapers, named playlists, 1,000-event history, and MP4/MOV/GIF playback.">
   <meta name="twitter:image" content="https://shiquda.github.io/moonleaf/og-image.png">
 
   <!-- JSON-LD Structured Data for SEO & AI Crawlers -->
@@ -41,7 +41,19 @@
           "price": "0.00",
           "priceCurrency": "USD"
         },
-        "description": "Lightweight, full-featured wallpaper manager for macOS with support for video, GIF, per-desktop rotation, multi-monitor setups, and Wallhaven/Pexels browsing.",
+        "description": "Free, open-source macOS wallpaper manager built in native Swift and AppKit for per-display and per-Space static wallpapers, named rotation playlists, 1,000-event history, storage management, and MP4/MOV/GIF playback.",
+        "featureList": [
+          "Desktop Overview grouping active monitors and macOS Spaces",
+          "Independent static wallpapers per display and virtual Space",
+          "One-click shuffle across all desktops or a single desktop",
+          "Named playlists with sequential or random order and per-list intervals",
+          "Menu bar playlist switching and quick controls",
+          "1,000-event usage history with Recent and Timeline views",
+          "Storage overview separating Library files, External references, and Download cache",
+          "Hardware-accelerated MP4, MOV, and native GIF wallpaper playback",
+          "Universal binary for Apple Silicon and Intel Macs (macOS 12+)",
+          "Apple Developer ID signed, notarized, and Sparkle auto-updates"
+        ],
         "license": "https://opensource.org/licenses/MIT",
         "url": "https://shiquda.github.io/moonleaf/",
         "author": {
@@ -63,23 +75,39 @@
             "name": "Is moonleaf still maintained?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes, moonleaf is actively maintained. While the original upstream repository (illufied/moonleaf, formerly naomisphere/macpaper) was archived and frozen at v4.0.0, this official maintained fork (shiquda/moonleaf) continues active development with regular bug fixes, Homebrew packaging, and Sparkle updates. It requires macOS 12 or later; tested on macOS 26 Tahoe."
+              "text": "Yes, Moonleaf is actively maintained. While the original upstream repository (illufied/moonleaf, formerly naomisphere/macpaper) was archived at v4.0.0, this maintained fork (shiquda/moonleaf) continues active development with Homebrew distribution, Apple Developer ID notarization, and Sparkle updates. It requires macOS 12 or later; tested on macOS 26 Tahoe."
             }
           },
           {
             "@type": "Question",
-            "name": "How do I upgrade from upstream Moonleaf v4.0.0 or macpaper?",
+            "name": "Can I set a different wallpaper on each monitor and virtual Space?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Because upstream v4.0.0 is archived, its built-in legacy updater cannot receive new releases. Upgrading is seamless: simply install via Homebrew with 'brew install shiquda/moonleaf/moonleaf' or download moonleaf.dmg from GitHub Releases. On first launch, Moonleaf automatically and non-destructively migrates your existing settings (~/.config/moonleaf) and wallpaper library (~/.local/share/paper/wallpaper)."
+              "text": "Yes. Moonleaf's Desktop Overview organizes active displays and macOS Spaces together so you can assign, shuffle, and track independent static wallpapers (JPG and PNG) per display and Space, with automatic recognition on launch. Video (MP4/MOV) and GIF wallpapers play via the native desktop overlay across connected displays."
             }
           },
           {
             "@type": "Question",
-            "name": "How do I install Moonleaf via Homebrew?",
+            "name": "Does Moonleaf support wallpaper playlists and usage history?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "You can install Moonleaf with a single Homebrew command: 'brew install shiquda/moonleaf/moonleaf'. Alternatively, run 'brew tap shiquda/moonleaf && brew install --cask moonleaf'."
+              "text": "Yes. You can create named playlists that reference wallpapers in your library without copying files, set sequential or random playback with per-list intervals (15 minutes, 1 hour, 3 hours, or Daily), and switch the current desktop's playlist from the menu bar. Moonleaf also records up to your last 1,000 successful wallpaper changes in Recent and Timeline views."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I upgrade from upstream Moonleaf v4.0.0 or macpaper without losing wallpapers?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Install via Homebrew with 'brew install shiquda/moonleaf/moonleaf' or download moonleaf.dmg from GitHub Releases. On first launch, Moonleaf automatically and non-destructively adopts your existing settings (~/.config/moonleaf) and wallpaper library (~/.local/share/paper/wallpaper). In Storage settings, Library files, External references, and clearable Download cache are separated so clearing cache never deletes saved wallpapers."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I install Moonleaf with Homebrew?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Run 'brew install shiquda/moonleaf/moonleaf' (or 'brew tap shiquda/moonleaf && brew install --cask moonleaf'). Homebrew automatically downloads, verifies, and links Moonleaf to Applications."
             }
           },
           {
@@ -92,10 +120,18 @@
           },
           {
             "@type": "Question",
-            "name": "Does Moonleaf support live video and GIF wallpapers?",
+            "name": "Does Moonleaf drain laptop battery?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. Moonleaf plays MP4, MOV, and animated GIF wallpapers. In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while playing a 1080p MP4. That is one machine and one file."
+              "text": "In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while playing a 1080p MP4. That is one machine and one file. We did not measure battery life on other Macs."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I bypass the macOS Gatekeeper quarantine prompt?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Official Moonleaf releases are code-signed with an Apple Developer ID and notarized by Apple, so Gatekeeper verifies them automatically. If you build from source or run under strict custom policies, right-click moonleaf.app and choose Open, or run 'xattr -dr com.apple.quarantine /Applications/moonleaf.app'."
             }
           }
         ]
@@ -124,13 +160,16 @@
       padding: 0;
     }
 
+    html, body {
+      overflow-x: hidden;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg);
       color: var(--text);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
     }
 
     /* Ambient background glow */
@@ -139,7 +178,7 @@
       top: -150px;
       left: 50%;
       transform: translateX(-50%);
-      width: 800px;
+      width: min(800px, 100%);
       height: 450px;
       background: radial-gradient(circle, rgba(56, 139, 253, 0.2) 0%, rgba(138, 92, 246, 0.1) 40%, transparent 70%);
       pointer-events: none;
@@ -507,10 +546,13 @@
     }
 
     @media (max-width: 768px) {
+      header { flex-wrap: wrap; gap: 12px; }
+      .nav-links { gap: 14px; flex-wrap: wrap; }
       h1 { font-size: 2.3rem; }
       .hero-desc { font-size: 1.1rem; }
-      .brew-box { font-size: 0.85rem; padding: 8px 12px; }
+      .brew-box { font-size: 0.85rem; padding: 8px 12px; max-width: 100%; overflow-x: auto; }
       .grid { grid-template-columns: 1fr; }
+      .migration-box { margin: 56px 16px; padding: 26px 20px; }
     }
   </style>
 </head>
@@ -546,7 +588,7 @@
       </h1>
 
       <p class="hero-desc">
-        Lightweight, native, and feature-packed. Dynamic video & GIF wallpapers, per-desktop & multi-monitor rotation, Wallhaven & Pexels discovery, and menu bar control.
+        A native macOS wallpaper manager built in Swift and AppKit. Organize static wallpapers per monitor and Space, rotate named playlists from the menu bar, track your last 1,000 changes, and play MP4, MOV, and GIF wallpapers.
       </p>
 
       <div class="cta-group">
@@ -586,40 +628,47 @@
       <div class="grid">
         <div class="card">
           <div class="card-icon">🖥️</div>
-          <h3>Multi-Monitor & Spaces</h3>
-          <p>Assign distinct wallpapers per monitor or per macOS Space (virtual desktop). Independently rotate and shuffle wallpapers across multiple screens seamlessly.</p>
+          <h3>Per-Monitor &amp; Space Overview</h3>
+          <p>View every active display and virtual Space together in Desktop Overview. Assign and auto-recognize static wallpapers per display and Space, and shuffle all desktops or a single one in one click.</p>
+          <p style="margin-top: 10px; font-size: 0.88rem;">
+            Guide: <a href="guides/different-wallpaper-per-monitor-space-mac/" style="color: #79c0ff; text-decoration: underline;">Per-Monitor &amp; Space Setup</a>
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🗂️</div>
+          <h3>Named Playlists &amp; Menu Bar Switch</h3>
+          <p>Create playlists from your library without duplicating files. Choose sequential or random order with per-list intervals (15 min to daily), and switch the current desktop's playlist right from the menu bar.</p>
+          <p style="margin-top: 10px; font-size: 0.88rem;">
+            Guide: <a href="guides/wallpaper-playlists-mac/" style="color: #79c0ff; text-decoration: underline;">Wallpaper Playlists &amp; History</a>
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🕘</div>
+          <h3>1,000-Item History &amp; Clear Storage</h3>
+          <p>Browse your last 1,000 successful applies by Recent or Timeline, filter by display or desktop, and restore past setups. Storage settings clearly separate library files, external links, and clearable download cache.</p>
         </div>
 
         <div class="card">
           <div class="card-icon">🎬</div>
           <h3>Video &amp; GIF Playback</h3>
-          <p>Bring your desktop to life with silky smooth MP4, MOV, and GIF wallpapers using native hardware-accelerated playback.</p>
+          <p>Play MP4, MOV, and animated GIF wallpapers natively with AVFoundation and Core Animation, plus Wallhaven and Pexels discovery and menu bar volume controls.</p>
           <p style="margin-top: 10px; font-size: 0.88rem;">
             Guides: <a href="guides/gif-wallpaper-mac/" style="color: #79c0ff; text-decoration: underline;">Set GIF as Wallpaper</a> · <a href="guides/video-wallpaper-mac/" style="color: #79c0ff; text-decoration: underline;">Set Video as Wallpaper</a>
           </p>
+        </div>
 
         <div class="card">
-          <div class="card-icon">🌐</div>
-          <h3>Wallhaven & Pexels Browsing</h3>
-          <p>Explore, preview, and download thousands of curated community wallpapers directly in-app with built-in Wallhaven and Pexels integration.</p>
+          <div class="card-icon">🔍</div>
+          <h3>Detail Sheet, Esc Preview &amp; Copy</h3>
+          <p>Inspect format, resolution, size, source, and playlist membership in one detail sheet. Double-click for full-window preview (press <code>Esc</code> to close) and copy images straight to the clipboard.</p>
         </div>
 
         <div class="card">
           <div class="card-icon">⚡</div>
-          <h3>Native Universal Binary</h3>
-          <p>Universal binary for Apple Silicon and Intel. Requires macOS 12 or later; tested on macOS 26 Tahoe.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon">🔄</div>
-          <h3>Sparkle Auto-Updates</h3>
-          <p>Stay up to date effortlessly with verified, cryptographically signed updates powered by the standard Sparkle framework.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon">🌍</div>
-          <h3>14 Languages Included</h3>
-          <p>Fully localized in English, Chinese (Simplified & Traditional), Spanish, French, German, Japanese, Korean, Russian, Portuguese, and more.</p>
+          <h3>Universal, Signed &amp; Auto-Updated</h3>
+          <p>Universal binary for Apple Silicon and Intel on macOS 12+ (tested on macOS 26 Tahoe). Developer ID signed, Apple notarized, Sparkle auto-updated, localized in 14 languages, and MIT licensed.</p>
         </div>
       </div>
     </section>
@@ -665,6 +714,14 @@
       <p>Practical, step-by-step guides for customizing your macOS desktop wallpaper with Moonleaf.</p>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 20px;">
+        <a href="guides/different-wallpaper-per-monitor-space-mac/" style="display: block; padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s;">
+          <h3 style="font-size: 1.15rem; color: #79c0ff; margin-bottom: 8px;">Different Wallpaper per Monitor &amp; Space on Mac &rarr;</h3>
+          <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">Manage static wallpapers per display and virtual Space in Desktop Overview, handle macOS Space modes, and shuffle desktops in one click.</p>
+        </a>
+        <a href="guides/wallpaper-playlists-mac/" style="display: block; padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s;">
+          <h3 style="font-size: 1.15rem; color: #79c0ff; margin-bottom: 8px;">macOS Wallpaper Playlists, Rotation &amp; History &rarr;</h3>
+          <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">Build named playlists without copying files, switch lists from the menu bar, and recover wallpapers from your last 1,000 applies.</p>
+        </a>
         <a href="guides/gif-wallpaper-mac/" style="display: block; padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s;">
           <h3 style="font-size: 1.15rem; color: #79c0ff; margin-bottom: 8px;">How to Set a GIF as Wallpaper on Mac (Free, No Converting) &rarr;</h3>
           <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">Learn why macOS only shows the first frame of a GIF and how to play animated GIF wallpapers natively with no conversion.</p>
@@ -683,7 +740,22 @@
 
       <div class="faq-item" id="faq-maintenance">
         <h3>Is moonleaf still maintained?</h3>
-        <p><strong>Yes, Moonleaf is actively maintained.</strong> While the original repository (<code>illufied/moonleaf</code>, originally <code>naomisphere/macpaper</code>) was archived after v4.0.0, this fork (<code>shiquda/moonleaf</code>) is actively maintained with bug fixes, multi-monitor patches, and Homebrew packaging. It requires macOS 12 or later; tested on macOS 26 Tahoe.</p>
+        <p><strong>Yes, Moonleaf is actively maintained.</strong> While the original repository (<code>illufied/moonleaf</code>, originally <code>naomisphere/macpaper</code>) was archived after v4.0.0, this fork (<code>shiquda/moonleaf</code>) continues active development with bug fixes, Homebrew packaging, and Sparkle updates. It requires macOS 12 or later; tested on macOS 26 Tahoe.</p>
+      </div>
+
+      <div class="faq-item" id="faq-spaces">
+        <h3>Can I set a different wallpaper on each monitor and virtual Space?</h3>
+        <p><strong>Yes.</strong> Moonleaf's Desktop Overview organizes active displays and macOS Spaces together so you can assign, shuffle, and track independent static wallpapers (<code>.jpg</code>, <code>.jpeg</code>, <code>.png</code>) per display and Space, with automatic recognition on launch. Video (<code>.mp4</code>, <code>.mov</code>) and <code>.gif</code> wallpapers play via the native desktop overlay across connected displays.</p>
+      </div>
+
+      <div class="faq-item" id="faq-playlists">
+        <h3>Does Moonleaf support wallpaper playlists and usage history?</h3>
+        <p><strong>Yes.</strong> You can create named playlists referencing wallpapers in your library without copying files, choose sequential or random rotation with per-list intervals (15 minutes, 1 hour, 3 hours, or Daily), and switch the current desktop's playlist from the menu bar. Moonleaf also keeps up to your last 1,000 successful wallpaper changes in Recent and Timeline views.</p>
+      </div>
+
+      <div class="faq-item" id="faq-upgrade">
+        <h3>How do I upgrade from upstream Moonleaf v4.0.0 or macpaper without losing wallpapers?</h3>
+        <p>Install via Homebrew (<code>brew install shiquda/moonleaf/moonleaf</code>) or download <code>moonleaf.dmg</code> from GitHub Releases. On first launch, Moonleaf automatically and non-destructively adopts your existing settings (<code>~/.config/moonleaf</code>) and wallpaper library (<code>~/.local/share/paper/wallpaper</code>). In Storage settings, Library files, External references, and clearable Download cache are clearly separated so clearing cache never deletes your saved wallpapers.</p>
       </div>
 
       <div class="faq-item" id="faq-homebrew">
@@ -694,9 +766,9 @@
         </p>
       </div>
 
-      <div class="faq-item" id="faq-history">
-        <h3>What happened to naomisphere / macpaper?</h3>
-        <p>Moonleaf was originally named <strong>macpaper</strong> by creator naomisphere before being rebranded to moonleaf. Following the creator's archiving of the repository, this project was established to ensure ongoing maintenance, community pull request reviews, and continued macOS updates.</p>
+      <div class="faq-item" id="faq-universal">
+        <h3>Does Moonleaf support Apple Silicon and Intel Macs?</h3>
+        <p>The v4.2.0 release is a Universal binary for Apple Silicon (<code>arm64</code>) and Intel (<code>x86_64</code>) Macs running macOS 12 Monterey or later. Tested on macOS 26 Tahoe.</p>
       </div>
 
       <div class="faq-item" id="faq-battery">
@@ -715,12 +787,16 @@
 
   <footer>
     <p style="margin-bottom: 12px;">
-      <a href="guides/gif-wallpaper-mac/">GIF Wallpaper Guide</a> · <a href="guides/video-wallpaper-mac/">Video Wallpaper Guide</a>
+      <a href="guides/different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space Guide</a> ·
+      <a href="guides/wallpaper-playlists-mac/">Playlists &amp; History Guide</a> ·
+      <a href="guides/gif-wallpaper-mac/">GIF Wallpaper Guide</a> ·
+      <a href="guides/video-wallpaper-mac/">Video Wallpaper Guide</a>
     </p>
     <p>
       Moonleaf is open-source software licensed under the <a href="https://github.com/shiquda/moonleaf/blob/main/LICENSE">MIT License</a>.<br>
       Originally created by <a href="https://github.com/illufied">naomisphere</a>. Actively maintained by <a href="https://github.com/shiquda">shiquda</a> and contributors.
     </p>
+  </footer>
   <script>
     function copyBrew() {
       navigator.clipboard.writeText("brew install shiquda/moonleaf/moonleaf").then(() => {

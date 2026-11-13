@@ -57,12 +57,12 @@ Download the latest `moonleaf.dmg` from [GitHub Releases](https://github.com/shi
 
 ## ✨ Features
 
-- **Multi-Monitor & Spaces Independence:** Set individual wallpapers per display or per macOS Space (virtual desktop). Shuffle and cycle them independently.
+- **Per-Monitor & Space Desktop Overview:** View active monitors and macOS Spaces together, assign and auto-recognize static wallpapers per display and Space, and shuffle all desktops or a single desktop in one click.
+- **Named Playlists & Menu Bar Switching:** Group library wallpapers into playlists without duplicating files, set sequential or random rotation with per-list intervals (15 min to daily), and switch the current desktop's playlist from the menu bar.
+- **1,000-Item History & Clear Storage:** Track your last 1,000 successful wallpaper changes in Recent and Timeline views, and inspect Library files, External references, and clearable Download cache under Storage settings.
 - **Dynamic Video & GIF Wallpapers:** Smooth playback of MP4, MOV, and GIF media with native AppKit and AVFoundation hardware-accelerated rendering.
-- **In-App Wallpaper Discovery:** Seamlessly browse, preview, and download thousands of high-res wallpapers from [Wallhaven](https://wallhaven.cc) and [Pexels](https://pexels.com).
-- **Status Bar & Quick Controls:** Convenient menu bar item for one-click shuffle, pausing playback, and quick settings.
-- **Lightweight & Native:** Pure Swift and AppKit. We have not published a battery or CPU figure beyond one playback test on an M1 Pro running macOS 26.7.1.
-- **Sparkle Auto-Updates:** Verified, cryptographically signed automatic updates right inside the app.
+- **In-App Wallpaper Discovery & Quick Controls:** Browse wallpapers from [Wallhaven](https://wallhaven.cc) and [Pexels](https://pexels.com), open full-window Quick Preview (`Esc` to close), and copy images directly to the clipboard from the detail sheet.
+- **Lightweight, Native & Sparkle Auto-Updates:** Pure Swift and AppKit universal binary (`arm64` + `x86_64`) with Apple Developer ID notarization and signed Sparkle updates. We have not published a battery or CPU figure beyond one playback test on an M1 Pro running macOS 26.7.1.
 
 ---
 
@@ -92,6 +92,8 @@ Translation corrections and new languages are welcome via pull request: update o
 
 ## 📖 Guides
 
+- [How to Set a Different Wallpaper per Monitor and Space on Mac](https://shiquda.github.io/moonleaf/guides/different-wallpaper-per-monitor-space-mac/)
+- [macOS Wallpaper Playlists, Rotation & History (Free Guide)](https://shiquda.github.io/moonleaf/guides/wallpaper-playlists-mac/)
 - [How to Set a GIF as Wallpaper on Mac (Free, No Converting)](https://shiquda.github.io/moonleaf/guides/gif-wallpaper-mac/)
 - [How to Set a Video as Wallpaper on Mac (Free, MP4 & MOV)](https://shiquda.github.io/moonleaf/guides/video-wallpaper-mac/)
 
