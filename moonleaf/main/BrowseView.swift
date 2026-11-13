@@ -12,9 +12,9 @@ struct BrowseView: View {
     @StateObject private var WHServ = WHService()
     @StateObject private var pexelsServ = PexelsService()
     @State private var searchQuery = ""
-    @State private var chosen_sorting: WHSort = .date_added
+    @State private var chosen_sorting: WHSort = .toplist
     @State private var chosen_order: WHOrder = .desc
-    @State private var chosen_topRange: WHTopRange = .week
+    @State private var chosen_topRange: WHTopRange = .month
     @State private var chosen_purity: WHPurityStatus = .sfw
     @State private var chosen_categ: WHCategory = .all
     @State private var chosen_prov: Set<WallpaperProvider> = [.wallhaven]
