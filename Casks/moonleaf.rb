@@ -1,6 +1,6 @@
 cask "moonleaf" do
-  version "4.1.1"
-  sha256 "d3d6a806b3d27296ac42a81766892ef25466ee7d7dfddfca2f273c1ea278ebbc"
+  version "4.2.0"
+  sha256 "5cffe451bb2c7cab147387e5aef861632a5b8ba075987b1bd7b67ecc96abf59b"
 
   url "https://github.com/shiquda/moonleaf/releases/download/v#{version}/moonleaf.dmg"
   name "moonleaf"
