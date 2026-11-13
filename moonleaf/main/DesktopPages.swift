@@ -89,7 +89,6 @@ struct UsagePage: View {
     @State private var showKindPopover = false
     @State private var historyWidth: CGFloat = 600
 
-    @State private var confirmRandomAll = false
     var body: some View {
         VStack(spacing: 0) {
             GlassToolbar {
@@ -152,50 +151,8 @@ struct UsagePage: View {
             }
             Button(NSLocalizedString("cancel", comment: ""), role: .cancel) {}
         }
-        .alert(NSLocalizedString("random_confirm_title", comment: ""), isPresented: $confirmRandomAll) {
-            Button(NSLocalizedString("apply_confirm", comment: "")) {
-                runRandom(operableTargets.map(\.key))
-            }
-            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) {}
-        } message: {
-            Text(randomConfirmMessage)
-        }
     }
 
-    private var operableTargets: [DesktopTarget] {
-        playback.targets.filter { !playback.targetUnavailable($0.key) }
-    }
-
-    private var randomConfirmMessage: String {
-        let operable = operableTargets
-        let displays = Set(operable.flatMap(\.displayUUIDs)).count
-        var listCount = 0
-        var libraryCount = 0
-        for target in operable {
-            switch RandomLogic.source(
-                listKind: playback.session(for: target.key)?.listKind,
-                playlistID: playback.session(for: target.key)?.playlistID,
-                folderPath: playback.session(for: target.key)?.folderPath,
-                includeSubdirectories: playback.session(for: target.key)?.includeSubdirectories
-            ) {
-            case .playlist, .favorites, .folder:
-                listCount += 1
-            case .library:
-                libraryCount += 1
-            case .missing:
-                break
-            }
-        }
-        var message = String(format: NSLocalizedString("random_confirm_body", comment: ""), operable.count, displays)
-        message += " "
-        message += String(format: NSLocalizedString("random_confirm_sources", comment: ""), listCount, libraryCount)
-        let excluded = playback.targets.count - operable.count
-        if excluded > 0 {
-            message += " "
-            message += String(format: NSLocalizedString("random_confirm_excluded", comment: ""), excluded)
-        }
-        return message
-    }
 
     private var randomControl: some View {
         PrimaryGradientButton(
@@ -203,7 +160,7 @@ struct UsagePage: View {
             icon: "shuffle",
             isDisabled: playback.applyPending || playback.targets.isEmpty
         ) {
-            confirmRandomAll = true
+            runRandom(playback.targets.filter { !playback.targetUnavailable($0.key) }.map(\.key))
         }
     }
 

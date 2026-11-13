@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Separate wallpapers per desktop cannot be turned off.
 - New downloads use the current library folder. A future save folder applies only to later downloads.
+- The overview shuffle-all button changes every desktop immediately, without a confirmation.
 
 
 ### Fixed
