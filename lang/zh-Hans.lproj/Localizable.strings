@@ -172,7 +172,7 @@
 "no_favorites" = "暂无收藏";
 "no_favorites_desc" = "点击任意壁纸上的星标即可收藏";
 
-"page_usage" = "使用记录";
+"page_usage" = "总览";
 "page_library" = "素材库";
 "page_playlists" = "播放列表";
 "page_discover" = "发现";
@@ -180,7 +180,7 @@
 "spaces_separate" = "每台显示器都有各自的桌面空间，壁纸和播放列表按桌面单独设置。";
 "spaces_shared" = "桌面空间在显示器之间共享，壁纸和播放列表按共享桌面设置。";
 "section_desktops" = "桌面";
-"section_history" = "使用记录";
+"section_history" = "历史记录";
 "desktop_n" = "桌面 %d";
 "desktop_current" = "当前";
 "desktop_unset" = "未设置壁纸";
@@ -236,7 +236,7 @@
 "order_sequential" = "按顺序";
 "order_random" = "随机";
 "sb_playlists" = "播放列表";
-"sb_usage" = "使用记录";
+"sb_usage" = "总览";
 "library_selected" = "已选 %d";
 "library_select" = "选择";
 "library_unselect" = "取消选择";
@@ -304,3 +304,19 @@
 "browse_add_to_playlist" = "加入列表";
 "browse_apply_current" = "应用";
 "active_label" = "当前";
+"page_overview_header" = "桌面总览";
+"random_action" = "随机换壁纸";
+"random_all" = "所有显示器与桌面…";
+"random_choose" = "选择桌面…";
+"random_confirm_title" = "随机更换这些桌面？";
+"random_confirm_body" = "将更换 %2$d 台显示器上的 %1$d 个桌面。每个桌面单独随机，不会换成同一张。不会开启或关闭自动轮换，暂停状态也会保留。";
+"random_confirm_sources" = "%d 个来自播放列表或文件夹，%d 个来自素材库。";
+"random_confirm_excluded" = "有 %d 个桌面当前不可用，不包含在内。";
+"random_done" = "已更换 %d 个桌面。";
+"random_no_other" = "没有其他可用壁纸：%@。";
+"random_no_source" = "没有可用的壁纸来源：%@。";
+"random_failed_targets" = "更换失败：%@。";
+"random_unavailable_targets" = "桌面不可用：%@。";
+"random_none" = "没有可更换的桌面。";
+"random_busy" = "上一次更换还没完成。";
+"random_card" = "随机换一张";

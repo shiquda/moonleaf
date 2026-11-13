@@ -172,7 +172,7 @@
 "no_favorites" = "No favorites yet";
 "no_favorites_desc" = "Tap the star on any wallpaper to favorite it";
 
-"page_usage" = "Usage";
+"page_usage" = "Overview";
 "page_library" = "Library";
 "page_playlists" = "Playlists";
 "page_discover" = "Discover";
@@ -180,7 +180,7 @@
 "spaces_separate" = "Each display keeps its own desktops. Wallpapers and playlists apply per desktop.";
 "spaces_shared" = "Desktops are shared across displays. Wallpapers and playlists apply per shared desktop.";
 "section_desktops" = "Desktops";
-"section_history" = "Usage history";
+"section_history" = "History";
 "desktop_n" = "Desktop %d";
 "desktop_current" = "Current";
 "desktop_unset" = "No wallpaper set";
@@ -236,7 +236,7 @@
 "order_sequential" = "In order";
 "order_random" = "Random";
 "sb_playlists" = "Playlists";
-"sb_usage" = "Usage history";
+"sb_usage" = "Overview";
 "library_selected" = "%d selected";
 "library_select" = "Select";
 "library_unselect" = "Deselect";
@@ -304,3 +304,19 @@
 "browse_add_to_playlist" = "Add to playlist";
 "browse_apply_current" = "Apply";
 "active_label" = "Active";
+"page_overview_header" = "Desktop overview";
+"random_action" = "Shuffle wallpaper";
+"random_all" = "All displays and desktops…";
+"random_choose" = "Choose a desktop…";
+"random_confirm_title" = "Shuffle these desktops?";
+"random_confirm_body" = "This changes %d desktops on %d displays. Each desktop gets its own pick. Rotation and pause stay as they are.";
+"random_confirm_sources" = "%d use a playlist or folder. %d use the library.";
+"random_confirm_excluded" = "%d unavailable desktops are left out.";
+"random_done" = "Changed %d desktops.";
+"random_no_other" = "No other wallpaper: %@.";
+"random_no_source" = "No wallpaper source: %@.";
+"random_failed_targets" = "Failed: %@.";
+"random_unavailable_targets" = "Unavailable: %@.";
+"random_none" = "No desktop to change.";
+"random_busy" = "A wallpaper change is still in progress.";
+"random_card" = "Shuffle this desktop";

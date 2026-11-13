@@ -166,6 +166,47 @@ enum PlaylistLogic {
     }
 }
 
+enum RandomSource: Equatable {
+    case playlist(UUID)
+    case favorites
+    case folder(String, Bool)
+    case library
+    case missing
+}
+
+enum RandomChoice: Equatable {
+    case pick(UUID)
+    case noOther
+    case noSource
+}
+
+enum RandomLogic {
+    /// Playlist, favorites, and folder stay their own sources. No list uses the library, same as menu shuffle.
+    static func source(listKind: String?, playlistID: UUID?, folderPath: String?, includeSubdirectories: Bool?) -> RandomSource {
+        switch listKind {
+        case "playlist":
+            guard let playlistID else { return .missing }
+            return .playlist(playlistID)
+        case "favorites":
+            return .favorites
+        case "folder":
+            guard let folderPath, !folderPath.isEmpty else { return .missing }
+            return .folder(folderPath, includeSubdirectories ?? false)
+        default:
+            return .library
+        }
+    }
+
+    /// Picks another asset when one exists. The only current asset is not a successful change.
+    static func choose(candidates: [UUID], current: UUID?, randomIndex: (Int) -> Int) -> RandomChoice {
+        guard !candidates.isEmpty else { return .noSource }
+        let others = candidates.filter { $0 != current }
+        guard !others.isEmpty else { return .noOther }
+        let index = min(max(0, randomIndex(others.count)), others.count - 1)
+        return .pick(others[index])
+    }
+}
+
 struct SpaceFact: Equatable {
     var displayUUID: String
     var displayName: String

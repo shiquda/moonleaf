@@ -32,7 +32,7 @@ enum AppPage: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .usage: return "clock"
+        case .usage: return "display"
         case .library: return "square.grid.2x2"
         case .playlists: return "list.bullet"
         case .discover: return "sparkle.magnifyingglass"
@@ -88,27 +88,20 @@ struct UsagePage: View {
     @State private var showSpacePopover = false
     @State private var showKindPopover = false
     @State private var historyWidth: CGFloat = 600
+    @State private var showRandomMenu = false
+    @State private var confirmRandomAll = false
     var body: some View {
         VStack(spacing: 0) {
             GlassToolbar {
                 PageHeader(
-                    title: AppPage.usage.title,
+                    title: NSLocalizedString("page_overview_header", comment: ""),
                     subtitle: playback.separateSpaces
                         ? NSLocalizedString("spaces_separate", comment: "")
                         : NSLocalizedString("spaces_shared", comment: "")
                 ) {
-                    if displayChoices.count > 1 {
-                        ChipButton(
-                            title: displayFilter.isEmpty ? NSLocalizedString("filter_all", comment: "") : displayFilter,
-                            icon: "display",
-                            trailingIcon: "chevron.down",
-                            isActive: !displayFilter.isEmpty
-                        ) {
-                            showDisplayPopover.toggle()
-                        }
-                        .popover(isPresented: $showDisplayPopover, arrowEdge: .bottom) {
-                            displayPopoverContent
-                        }
+                    VStack(alignment: .trailing, spacing: 8) {
+                        randomControl
+                        displayFilterControl
                     }
                 }
             }
@@ -159,6 +152,130 @@ struct UsagePage: View {
             }
             Button(NSLocalizedString("cancel", comment: ""), role: .cancel) {}
         }
+        .alert(NSLocalizedString("random_confirm_title", comment: ""), isPresented: $confirmRandomAll) {
+            Button(NSLocalizedString("apply_confirm", comment: "")) {
+                runRandom(operableTargets.map(\.key))
+            }
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) {}
+        } message: {
+            Text(randomConfirmMessage)
+        }
+    }
+
+    private var operableTargets: [DesktopTarget] {
+        playback.targets.filter { !playback.targetUnavailable($0.key) }
+    }
+
+    private var randomDisplays: [String] {
+        var seen: [String] = []
+        for target in playback.targets where !seen.contains(target.displayName) {
+            seen.append(target.displayName)
+        }
+        return seen
+    }
+
+    private var randomConfirmMessage: String {
+        let operable = operableTargets
+        let displays = Set(operable.flatMap(\.displayUUIDs)).count
+        var listCount = 0
+        var libraryCount = 0
+        for target in operable {
+            switch RandomLogic.source(
+                listKind: playback.session(for: target.key)?.listKind,
+                playlistID: playback.session(for: target.key)?.playlistID,
+                folderPath: playback.session(for: target.key)?.folderPath,
+                includeSubdirectories: playback.session(for: target.key)?.includeSubdirectories
+            ) {
+            case .playlist, .favorites, .folder:
+                listCount += 1
+            case .library:
+                libraryCount += 1
+            case .missing:
+                break
+            }
+        }
+        var message = String(format: NSLocalizedString("random_confirm_body", comment: ""), operable.count, displays)
+        message += " "
+        message += String(format: NSLocalizedString("random_confirm_sources", comment: ""), listCount, libraryCount)
+        let excluded = playback.targets.count - operable.count
+        if excluded > 0 {
+            message += " "
+            message += String(format: NSLocalizedString("random_confirm_excluded", comment: ""), excluded)
+        }
+        return message
+    }
+
+    private var randomControl: some View {
+        PrimaryGradientButton(
+            title: NSLocalizedString("random_action", comment: ""),
+            icon: "shuffle",
+            trailingIcon: "chevron.down",
+            isDisabled: playback.applyPending || playback.targets.isEmpty
+        ) {
+            showRandomMenu.toggle()
+        }
+        .popover(isPresented: $showRandomMenu, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 6) {
+                Button(NSLocalizedString("random_all", comment: "")) {
+                    showRandomMenu = false
+                    confirmRandomAll = true
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                Divider()
+                Text(NSLocalizedString("random_choose", comment: ""))
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                ForEach(randomDisplays, id: \.self) { display in
+                    Text(display)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    ForEach(playback.targets.filter { $0.displayName == display }) { target in
+                        Button(randomTargetTitle(target)) {
+                            showRandomMenu = false
+                            runRandom([target.key])
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .disabled(playback.targetUnavailable(target.key))
+                    }
+                }
+            }
+            .padding(12)
+            .frame(minWidth: 220, alignment: .leading)
+        }
+    }
+
+    private var displayFilterControl: some View {
+        Group {
+            if displayChoices.count > 1 {
+                ChipButton(
+                    title: displayFilter.isEmpty ? NSLocalizedString("filter_all", comment: "") : displayFilter,
+                    icon: "display",
+                    trailingIcon: "chevron.down",
+                    isActive: !displayFilter.isEmpty
+                ) {
+                    showDisplayPopover.toggle()
+                }
+                .popover(isPresented: $showDisplayPopover, arrowEdge: .bottom) {
+                    displayPopoverContent
+                }
+            }
+        }
+    }
+
+    private func randomTargetTitle(_ target: DesktopTarget) -> String {
+        var title = String(format: NSLocalizedString("desktop_n", comment: ""), target.spaceIndex)
+        if target.isCurrent {
+            title += " · " + NSLocalizedString("desktop_current", comment: "")
+        }
+        if playback.targetUnavailable(target.key) {
+            title += " · " + NSLocalizedString("target_unavailable", comment: "")
+        }
+        return title
+    }
+
+    private func runRandom(_ keys: [String]) {
+        _ = playback.randomWallpaper(keys: keys)
     }
 
     private var desktopsSection: some View {
@@ -596,6 +713,16 @@ private struct DesktopTargetCard: View {
             }
 
             HStack(spacing: 8) {
+                CircleIconButton(
+                    icon: "shuffle",
+                    style: .playback,
+                    isDisabled: unavailable || playback.applyPending,
+                    helpText: NSLocalizedString("random_card", comment: ""),
+                    accessibilityLabelText: NSLocalizedString("random_card", comment: "")
+                ) {
+                    _ = playback.randomWallpaper(keys: [target.key])
+                }
+
                 CircleIconButton(
                     icon: isPaused ? "play.fill" : "pause.fill",
                     style: .playback,

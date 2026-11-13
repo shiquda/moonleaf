@@ -35,6 +35,16 @@ struct PendingOverlay {
     var stopRotation: Bool
     var stamp: ListStamp?
     var touchRotationClock: Bool
+    var keepPause: Bool = false
+}
+
+enum RandomApplyOutcome: String, Equatable {
+    case applied
+    case pending
+    case noOther
+    case noSource
+    case failed
+    case unavailable
 }
 
 @MainActor
@@ -46,6 +56,7 @@ final class PlaybackCoordinator: ObservableObject {
     @Published private(set) var sessions: [TargetSession] = []
     @Published private(set) var playlists: [NamedPlaylist] = []
     @Published private(set) var history: [HistoryEvent] = []
+    @Published private(set) var applyPending = false
     @Published private(set) var historyEnabled = true
     @Published private(set) var playerState: [String: PlaybackTargetState] = [:]
     @Published private(set) var statusMessage: String?
@@ -136,7 +147,8 @@ final class PlaybackCoordinator: ObservableObject {
         playlistID: UUID? = nil,
         playlistName: String? = nil,
         stamp: ListStamp? = nil,
-        touchRotationClock: Bool = false
+        touchRotationClock: Bool = false,
+        keepPause: Bool = false
     ) -> Bool {
         if canTouchApp {
             refreshForCommand()
@@ -185,13 +197,15 @@ final class PlaybackCoordinator: ObservableObject {
                     recordHistory: recordHistory,
                     stopRotation: stopRotation,
                     stamp: stamp,
-                    touchRotationClock: touchRotationClock
+                    touchRotationClock: touchRotationClock,
+                    keepPause: keepPause
                 )
                 for key in request.keys {
                     pendingByTarget[key] = request
                 }
                 statusMessage = nil
                 pushAssignments(recordHistory: false)
+                applyPending = !pendingByTarget.isEmpty
                 return false
             }
             var snapshot = catalog.snapshot()
@@ -204,7 +218,9 @@ final class PlaybackCoordinator: ObservableObject {
                     path: path,
                     targetKey: target.key,
                     stopRotation: stopRotation,
-                    stamp: stamp
+                    stamp: stamp,
+                    touchRotationClock: touchRotationClock,
+                    keepPause: keepPause
                 )
                 appliedKeys.append(target.key)
             }
@@ -215,6 +231,7 @@ final class PlaybackCoordinator: ObservableObject {
             for key in appliedKeys {
                 pendingByTarget.removeValue(forKey: key)
             }
+            applyPending = !pendingByTarget.isEmpty
             if recordHistory {
                 snapshot.history = HistoryLogic.appending(
                     snapshot.history,
@@ -339,6 +356,7 @@ final class PlaybackCoordinator: ObservableObject {
     }
     func clearTarget(_ key: String) {
         pendingByTarget.removeValue(forKey: key)
+        applyPending = !pendingByTarget.isEmpty
         catalog.mutate { file in
             file.sessions.removeAll { $0.targetKey == key }
             if !file.suppressedRestoreKeys.contains(key) {
@@ -375,6 +393,118 @@ final class PlaybackCoordinator: ObservableObject {
             return
         }
         advance(session, origin: "manual")
+    }
+
+    func randomWallpaper(keys: [String], randomIndex: @escaping (Int) -> Int = { Int.random(in: 0..<$0) }) -> [String: RandomApplyOutcome] {
+        if !pendingByTarget.isEmpty {
+            statusMessage = NSLocalizedString("random_busy", comment: "")
+            applyPending = true
+            return [:]
+        }
+        var outcomes: [String: RandomApplyOutcome] = [:]
+        for key in keys {
+            guard targets.contains(where: { $0.key == key }), !targetUnavailable(key) else {
+                outcomes[key] = .unavailable
+                continue
+            }
+            let session = sessions.first { $0.targetKey == key }
+            let source = RandomLogic.source(
+                listKind: session?.listKind,
+                playlistID: session?.playlistID,
+                folderPath: session?.folderPath,
+                includeSubdirectories: session?.includeSubdirectories
+            )
+            let items = randomItems(source)
+            switch RandomLogic.choose(candidates: items.map(\.id), current: session?.assetID, randomIndex: randomIndex) {
+            case .noSource:
+                outcomes[key] = .noSource
+            case .noOther:
+                outcomes[key] = .noOther
+            case .pick(let id):
+                guard let item = items.first(where: { $0.id == id }) else {
+                    outcomes[key] = .failed
+                    continue
+                }
+                let target = targets.first { $0.key == key }
+                let listName = session?.playlistID.flatMap { id in playlists.first { $0.id == id }?.name }
+                let rotating = session?.rotationEnabled == true && session?.paused != true
+                let ok = apply(
+                    path: item.path,
+                    name: item.name,
+                    scope: .explicit,
+                    displayUUID: target?.displayUUIDs.first,
+                    explicitKeys: [key],
+                    stopRotation: false,
+                    origin: "manual",
+                    confirmedCrossDisplay: true,
+                    recordHistory: true,
+                    playlistID: session?.playlistID,
+                    playlistName: listName,
+                    stamp: ListStamp(
+                        kind: session?.listKind ?? "",
+                        playlistID: session?.playlistID,
+                        playlistName: listName,
+                        order: session?.order ?? "random",
+                        interval: session?.interval ?? UserDefaults.standard.string(forKey: "moonleaf_shuffleInterval") ?? "5",
+                        folderPath: session?.folderPath,
+                        includeSubdirectories: session?.includeSubdirectories,
+                        rotationEnabled: session?.rotationEnabled ?? false
+                    ),
+                    touchRotationClock: rotating,
+                    keepPause: session?.paused == true
+                )
+                if ok {
+                    outcomes[key] = .applied
+                } else if pendingByTarget[key]?.path == item.path {
+                    outcomes[key] = .pending
+                } else {
+                    outcomes[key] = .failed
+                }
+            }
+        }
+        statusMessage = Self.randomStatus(outcomes, targets: targets)
+        applyPending = !pendingByTarget.isEmpty
+        return outcomes
+    }
+
+    static func randomStatus(_ outcomes: [String: RandomApplyOutcome], targets: [DesktopTarget]) -> String? {
+        guard !outcomes.isEmpty else { return NSLocalizedString("random_none", comment: "") }
+        func names(_ outcome: RandomApplyOutcome) -> String {
+            outcomes.filter { $0.value == outcome }.map { pair in
+                guard let target = targets.first(where: { $0.key == pair.key }) else { return pair.key }
+                return "\(target.displayName) \(String(format: NSLocalizedString("desktop_n", comment: ""), target.spaceIndex))"
+            }.joined(separator: ", ")
+        }
+        let applied = outcomes.values.filter { $0 == .applied || $0 == .pending }.count
+        let problems = outcomes.values.contains { $0 != .applied && $0 != .pending }
+        if !problems {
+            return String(format: NSLocalizedString("random_done", comment: ""), applied)
+        }
+        var parts = [String(format: NSLocalizedString("random_done", comment: ""), applied)]
+        let noOther = names(.noOther)
+        let noSource = names(.noSource)
+        let failed = names(.failed)
+        let unavailable = names(.unavailable)
+        if !noOther.isEmpty { parts.append(String(format: NSLocalizedString("random_no_other", comment: ""), noOther)) }
+        if !noSource.isEmpty { parts.append(String(format: NSLocalizedString("random_no_source", comment: ""), noSource)) }
+        if !failed.isEmpty { parts.append(String(format: NSLocalizedString("random_failed_targets", comment: ""), failed)) }
+        if !unavailable.isEmpty { parts.append(String(format: NSLocalizedString("random_unavailable_targets", comment: ""), unavailable)) }
+        return parts.joined(separator: " ")
+    }
+
+    private func randomItems(_ source: RandomSource) -> [PoolItem] {
+        switch source {
+        case .playlist(let id):
+            return poolItems(kind: "playlist", playlistID: id, folderPath: nil, includeSubdirectories: false)
+        case .favorites:
+            return poolItems(kind: "favorites", playlistID: nil, folderPath: nil, includeSubdirectories: false)
+        case .folder(let path, let recursive):
+            return poolItems(kind: "folder", playlistID: nil, folderPath: path, includeSubdirectories: recursive)
+        case .library:
+            return poolItems(kind: "library", playlistID: nil, folderPath: nil, includeSubdirectories: false)
+        case .missing:
+            return []
+        }
     }
 
     func rotateDueSessions(now: Date = Date()) {
@@ -661,7 +791,9 @@ final class PlaybackCoordinator: ObservableObject {
         path: String,
         targetKey: String,
         stopRotation: Bool,
-        stamp: ListStamp?
+        stamp: ListStamp?,
+        touchRotationClock: Bool = false,
+        keepPause: Bool = false
     ) {
         var session = snapshot.sessions.first(where: { $0.targetKey == targetKey }) ?? TargetSession(
             targetKey: targetKey,
@@ -686,8 +818,10 @@ final class PlaybackCoordinator: ObservableObject {
         session.path = path
         session.unavailable = false
         session.provenance = "moonleaf"
-        session.paused = false
-        session.pauseReason = nil
+        if !keepPause {
+            session.paused = false
+            session.pauseReason = nil
+        }
         if stopRotation {
             session.rotationEnabled = false
             session.listKind = nil
@@ -700,6 +834,9 @@ final class PlaybackCoordinator: ObservableObject {
             session.rotationEnabled = stamp.rotationEnabled
             session.order = stamp.order
             session.interval = stamp.interval
+        }
+        if touchRotationClock {
+            session.lastRotatedAt = Date()
         }
         snapshot.suppressedRestoreKeys.removeAll { $0 == targetKey }
         if let index = snapshot.sessions.firstIndex(where: { $0.targetKey == targetKey }) {
@@ -897,9 +1034,9 @@ final class PlaybackCoordinator: ObservableObject {
             file.targets[key] = PlaybackAssignment(
                 path: request.path,
                 kind: kind.rawValue,
-                paused: false,
-                manualPause: false,
-                pauseReason: nil,
+                paused: request.keepPause && catalog.snapshot().sessions.first { $0.targetKey == key }?.paused == true,
+                manualPause: request.keepPause && catalog.snapshot().sessions.first { $0.targetKey == key }?.paused == true,
+                pauseReason: (request.keepPause && catalog.snapshot().sessions.first { $0.targetKey == key }?.paused == true) ? "manual" : nil,
                 requestID: request.requestID,
                 requestedAt: request.requestedAt
             )
@@ -988,6 +1125,7 @@ final class PlaybackCoordinator: ObservableObject {
         if committed, canTouchApp {
             publishCurrentPath()
         }
+        applyPending = !pendingByTarget.isEmpty
     }
 
     private func commitOverlay(_ pending: PendingOverlay, keys: [String]) {
@@ -1018,8 +1156,10 @@ final class PlaybackCoordinator: ObservableObject {
                 session.path = pending.path
                 session.unavailable = false
                 session.provenance = "moonleaf"
-                session.paused = false
-                session.pauseReason = nil
+                if !pending.keepPause {
+                    session.paused = false
+                    session.pauseReason = nil
+                }
                 if pending.stopRotation {
                     session.rotationEnabled = false
                     session.listKind = nil

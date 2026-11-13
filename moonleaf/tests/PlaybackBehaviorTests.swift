@@ -64,6 +64,7 @@ struct PlaybackChecks {
         testNewApplySupersedesReceipt(playback)
         testBindFailureRestoresEngine(playback)
         testStartupRecognizesDifferentMoonleafWallpapersPerDesktop(playback)
+        testRandomWallpaperKeepsOtherDesktops(playback)
 
         if Check.failed == 0 {
             print("playback behavior checks passed")
@@ -531,5 +532,115 @@ struct PlaybackChecks {
         Check.expect(playback.session(for: k2) == nil, "cleared target has no session")
         playback.refreshTopology(restoreMatching: false)
         Check.expect(playback.session(for: k2) == nil, "cleared target stays unset instead of resurrecting")
+    }
+
+    static func testRandomWallpaperKeepsOtherDesktops(_ playback: PlaybackCoordinator) {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("moonleaf-random-\(UUID().uuidString)", isDirectory: true)
+        let folder = dir.appendingPathComponent("only", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let a = dir.appendingPathComponent("a.jpg")
+        let b = dir.appendingPathComponent("b.jpg")
+        let c = dir.appendingPathComponent("c.jpg")
+        let only = folder.appendingPathComponent("only.jpg")
+        for url in [a, b, c, only] {
+            try? Data([0xFF, 0xD8, 0xFF]).write(to: url)
+        }
+        defer {
+            SpaceBinding.factsOverride = nil
+            SpaceWallpapers.spacesOverride = nil
+            SpaceWallpapers.assignOverride = nil
+            try? FileManager.default.removeItem(at: dir)
+        }
+        guard let listID = playback.createPlaylist(name: "Desk") else {
+            Check.expect(false, "random playlist was not created")
+            return
+        }
+        playback.addToPlaylist(paths: [a.path, b.path, c.path], playlistID: listID)
+        let assets = LibraryCatalog.shared.snapshot().assets
+        func asset(_ suffix: String) -> AssetRecord? {
+            assets.first { $0.path.hasSuffix(suffix) }
+        }
+        guard let assetA = asset("a.jpg"), let assetC = asset("c.jpg") else {
+            Check.expect(false, "playlist assets were not saved")
+            return
+        }
+
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: "DISP-A", displayName: "Built-in", spaceUUID: "space-1", managedID: 21, isCurrent: false, type: 0),
+            SpaceFact(displayUUID: "DISP-A", displayName: "Built-in", spaceUUID: "space-2", managedID: 22, isCurrent: false, type: 0),
+        ]
+        SpaceWallpapers.spacesOverride = [
+            SpaceWallpapers.Space(displayUUID: "DISP-A", uuid: "space-1", isCurrent: false),
+            SpaceWallpapers.Space(displayUUID: "DISP-A", uuid: "space-2", isCurrent: false),
+        ]
+        SpaceWallpapers.targetAssignmentsOverride = { _ in [:] }
+        SpaceWallpapers.assignOverride = { _ in true }
+        playback.refreshTopology(restoreMatching: false)
+        guard let first = playback.targets.first(where: { $0.spaceUUID == "space-1" }),
+              let second = playback.targets.first(where: { $0.spaceUUID == "space-2" }) else {
+            Check.expect(false, "test desktops were not recognized")
+            return
+        }
+        let k1 = first.key
+        let k2 = second.key
+        let when = Date(timeIntervalSince1970: 1_700_000_000)
+        guard let onlyList = playback.createPlaylist(name: "Only") else {
+            Check.expect(false, "single-item playlist was not created")
+            return
+        }
+        playback.addToPlaylist(paths: [only.path], playlistID: onlyList)
+        guard let onlyAsset = LibraryCatalog.shared.snapshot().assets.first(where: { $0.path.hasSuffix("only.jpg") }) else {
+            Check.expect(false, "single wallpaper was not saved")
+            return
+        }
+        LibraryCatalog.shared.mutate { file in
+            file.history = []
+            file.sessions = [
+                TargetSession(
+                    targetKey: k1, assetID: assetA.id, assetName: assetA.name, path: assetA.path,
+                    listKind: "playlist", playlistID: listID, folderPath: nil, includeSubdirectories: nil,
+                    rotationEnabled: true, paused: true, pauseReason: "manual", order: "sequential",
+                    interval: "60", unavailable: false, provenance: "moonleaf", lastRotatedAt: when
+                ),
+                TargetSession(
+                    targetKey: k2, assetID: onlyAsset.id, assetName: onlyAsset.name, path: onlyAsset.path,
+                    listKind: "playlist", playlistID: onlyList, folderPath: nil, includeSubdirectories: nil,
+                    rotationEnabled: false, paused: false, pauseReason: nil, order: "random",
+                    interval: "5", unavailable: false, provenance: "moonleaf", lastRotatedAt: nil
+                ),
+            ]
+        }
+        playback.reloadForChecks()
+        playback.pendingByTarget = [:]
+
+        let one = playback.randomWallpaper(keys: [k1]) { _ in 1 }
+        Check.expect(one[k1] == .applied, "one desktop can change, got \(String(describing: one[k1])) \(playback.statusMessage ?? "") keys \(playback.targets.map(\.key))")
+        Check.expect(playback.session(for: k1)?.path?.hasSuffix("c.jpg") == true, "random does not walk the list in order, got \(playback.session(for: k1)?.path ?? "nil")")
+        Check.expect(playback.session(for: k2)?.path == onlyAsset.path, "a one-desktop shuffle leaves the other desktop")
+        Check.expect(playback.session(for: k1)?.paused == true, "a paused desktop stays paused")
+        Check.expect(playback.session(for: k1)?.pauseReason == "manual", "manual pause reason stays")
+        Check.expect(playback.session(for: k1)?.playlistID == listID, "shuffle does not switch the playlist")
+        Check.expect(playback.session(for: k1)?.rotationEnabled == true, "shuffle does not turn rotation off")
+        Check.expect(playback.session(for: k1)?.order == "sequential", "shuffle does not change list order")
+        Check.expect(playback.session(for: k1)?.interval == "60", "shuffle does not change the interval")
+        Check.expect(playback.session(for: k1)?.lastRotatedAt == when, "a paused desktop does not restart the rotation clock")
+        Check.expect(playback.history.count == 1, "only the successful desktop is recorded")
+        Check.expect(playback.history.last?.targetKeys == [k1], "history names the desktop that changed")
+
+        let both = playback.randomWallpaper(keys: [k1, k2]) { _ in 0 }
+        Check.expect(both[k2] == .noOther, "a desktop with only its current wallpaper is not changed")
+        Check.expect(playback.session(for: k2)?.path == onlyAsset.path, "no other wallpaper keeps the old file")
+        Check.expect(playback.history.filter { $0.targetKeys == [k2] }.isEmpty, "a no-op does not write history")
+        Check.expect(both[k1] == .applied, "the other desktop still changes on its own")
+        Check.expect(playback.session(for: k1)?.path != assetC.path, "each desktop picks independently")
+
+        let beforeFail = playback.history.count
+        let kept = playback.session(for: k1)?.path
+        SpaceWallpapers.assignOverride = { _ in false }
+        let failed = playback.randomWallpaper(keys: [k1, k2]) { _ in 0 }
+        Check.expect(failed[k1] == .failed, "a rejected write is a failure")
+        Check.expect(playback.session(for: k1)?.path == kept, "a failed desktop keeps its wallpaper")
+        Check.expect(playback.history.count == beforeFail, "a failed change is not a successful history event")
+        Check.expect(failed[k2] == .noOther, "a failed neighbor does not invent a change")
     }
 }

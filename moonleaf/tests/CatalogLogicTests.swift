@@ -155,6 +155,18 @@ func testCommitPaintAndSchedule() {
     ), "library pool stays off when library shuffle is off")
 }
 
+func testRandomChoice() {
+    let current = UUID()
+    let other = UUID()
+    Check.expect(RandomLogic.choose(candidates: [], current: nil, randomIndex: { _ in 0 }) == .noSource, "empty source is not a change")
+    Check.expect(RandomLogic.choose(candidates: [current], current: current, randomIndex: { _ in 0 }) == .noOther, "the only current asset is not a change")
+    Check.expect(RandomLogic.choose(candidates: [current, other], current: current, randomIndex: { _ in 0 }) == .pick(other), "random skips the current asset")
+    Check.expect(RandomLogic.source(listKind: "playlist", playlistID: nil, folderPath: nil, includeSubdirectories: nil) == .missing, "a playlist without an id is not a source")
+    Check.expect(RandomLogic.source(listKind: nil, playlistID: nil, folderPath: nil, includeSubdirectories: nil) == .library, "no list uses the library")
+    let list = UUID()
+    Check.expect(RandomLogic.source(listKind: "playlist", playlistID: list, folderPath: nil, includeSubdirectories: nil) == .playlist(list), "an active playlist stays the source")
+}
+
 
 @main
 struct CatalogChecks {
@@ -164,6 +176,7 @@ struct CatalogChecks {
         testTargetsAndScope()
         testStorage()
         testCommitPaintAndSchedule()
+        testRandomChoice()
         if Check.failed == 0 {
             print("catalog logic checks passed")
         } else {

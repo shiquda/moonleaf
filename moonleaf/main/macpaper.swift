@@ -293,10 +293,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let playback = PlaybackCoordinator.shared
         playback.refreshForCommand()
         guard let target = playback.currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()) else { return }
-        if let session = playback.session(for: target.key), session.listKind != nil || session.rotationEnabled {
-            playback.next(targetKey: target.key)
-        } else {
-            _ = playback.assignPool(kind: "library", targetKey: target.key)
+        let report = playback.randomWallpaper(keys: [target.key])
+        if report.values.contains(where: { $0 != .applied && $0 != .pending }), let message = playback.statusMessage {
+            showStatus(message)
         }
     }
 

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The menu bar can switch the current desktop to a playlist.
 - The library can search by name and add a selection to a playlist without changing what is playing.
 - Discover saves a chosen file into the library. Pexels video quality is chosen before saving.
+- The overview page can shuffle one desktop or every desktop, each with its own pick, without turning rotation on or off.
 
 ### Changed
 - Separate wallpapers per desktop cannot be turned off.
