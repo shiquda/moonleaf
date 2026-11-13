@@ -209,6 +209,8 @@
 "detail_no_lists" = "不在播放列表中";
 "reveal_finder" = "在访达中显示";
 "copy_path" = "复制路径";
+"copy_image" = "复制图片";
+"preview_open" = "预览";
 "favorite_toggle" = "收藏";
 "apply_current" = "设为当前桌面";
 "apply_display" = "设为此显示器的所有桌面";

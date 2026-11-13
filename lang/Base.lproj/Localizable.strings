@@ -209,6 +209,8 @@
 "detail_no_lists" = "Not in a playlist";
 "reveal_finder" = "Show in Finder";
 "copy_path" = "Copy path";
+"copy_image" = "Copy image";
+"preview_open" = "Preview";
 "favorite_toggle" = "Favorite";
 "apply_current" = "Set on current desktop";
 "apply_display" = "Set on this display's desktops";

@@ -1701,6 +1701,33 @@ private struct PlaylistDropDelegate: DropDelegate {
         }
     }
 }
+private final class DetailPreviewHost {
+    static let shared = DetailPreviewHost()
+    private var window: NSWindow?
+
+    func show(path: String, title: String, detail: String?) {
+        close()
+        let target = PreviewTarget(url: URL(fileURLWithPath: path), title: title, detail: detail)
+        let host = NSHostingView(rootView: QuickPreviewOverlay(target: target, onClose: { DetailPreviewHost.shared.close() }))
+        let parent = NSApp.keyWindow ?? NSApp.mainWindow
+        let frame = parent?.frame ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let window = NSWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.level = .popUpMenu
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.contentView = host
+        window.setFrame(frame, display: true)
+        window.makeKeyAndOrderFront(nil)
+        self.window = window
+    }
+
+    func close() {
+        window?.orderOut(nil)
+        window = nil
+    }
+}
 
 struct AssetDetailSheet: View {
     let path: String
@@ -1709,7 +1736,8 @@ struct AssetDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var pixelSize = ""
     @State private var byteSize = ""
-    @State private var copiedPath = false
+    @State private var copiedImage = false
+    @State private var imageHovered = false
 
     private var fileExists: Bool {
         FileManager.default.fileExists(atPath: path)
@@ -1777,11 +1805,35 @@ struct AssetDetailSheet: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
-                        MediaThumb(
-                            path: path,
-                            size: CGSize(width: 440, height: 176),
-                            cornerRadius: 16
-                        )
+                        ZStack(alignment: .topTrailing) {
+                            MediaThumb(
+                                path: path,
+                                size: CGSize(width: 440, height: 176),
+                                cornerRadius: 16
+                            )
+                            .contentShape(Rectangle())
+                            .onTapGesture(count: 2) {
+                                openPreview()
+                            }
+
+                            if imageHovered && fileExists {
+                                CircleIconButton(
+                                    icon: "eye",
+                                    size: 32,
+                                    style: .darkFrosted,
+                                    helpText: NSLocalizedString("preview_open", comment: ""),
+                                    accessibilityLabelText: NSLocalizedString("preview_open", comment: "")
+                                ) {
+                                    openPreview()
+                                }
+                                .padding(10)
+                            }
+                        }
+                        .onHover { hovering in
+                            withAnimation(.easeOut(duration: 0.15)) {
+                                imageHovered = hovering
+                            }
+                        }
 
                         LazyVGrid(
                             columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
@@ -1818,14 +1870,16 @@ struct AssetDetailSheet: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
                             CircleIconButton(
-                                icon: copiedPath ? "checkmark" : "doc.on.doc",
+                                icon: copiedImage ? "checkmark" : "photo",
                                 size: 28,
-                                style: copiedPath ? .success : .neutral,
-                                helpText: NSLocalizedString("copy_path", comment: "")
+                                style: copiedImage ? .success : .neutral,
+                                isDisabled: !fileExists,
+                                helpText: NSLocalizedString("copy_image", comment: ""),
+                                accessibilityLabelText: NSLocalizedString("copy_image", comment: "")
                             ) {
-                                copy(path)
-                                copiedPath = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedPath = false }
+                                copyImage(path)
+                                copiedImage = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedImage = false }
                             }
 
                             CircleIconButton(
@@ -2021,9 +2075,25 @@ struct AssetDetailSheet: View {
         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
     }
 
-    private func copy(_ path: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(path, forType: .string)
+    private func openPreview() {
+        guard fileExists else { return }
+        DetailPreviewHost.shared.show(
+            path: path,
+            title: titleText,
+            detail: pixelSize.isEmpty ? nil : pixelSize
+        )
+    }
+
+    private func copyImage(_ path: String) {
+        let url = URL(fileURLWithPath: path)
+        let board = NSPasteboard.general
+        board.clearContents()
+        let ext = url.pathExtension.lowercased()
+        if ["jpg", "jpeg", "png", "gif"].contains(ext), let image = NSImage(contentsOf: url) {
+            board.writeObjects([image, url as NSURL])
+        } else {
+            board.writeObjects([url as NSURL])
+        }
     }
 }
 
