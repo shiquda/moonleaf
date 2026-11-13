@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The menu bar can switch the current desktop to a playlist.
 - The library can search by name and add a selection to a playlist without changing what is playing.
 - Discover saves a chosen file into the library. Pexels video quality is chosen before saving.
+- Discover opens on the top-rated range of the last million downloads.
 - The overview page can shuffle every desktop from the header, or one desktop from its card, without turning rotation on or off.
 - The asset detail image opens the preview on a double-click, and shows a preview button while the pointer is over it. The path row copies the image itself.
 
