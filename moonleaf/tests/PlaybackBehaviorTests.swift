@@ -52,6 +52,8 @@ struct PlaybackChecks {
             SpaceWallpapers.spacesOverride = nil
             SpaceWallpapers.assignOverride = nil
             SpaceWallpapers.targetAssignmentsOverride = nil
+            playback.libraryPoolOverride = nil
+            playback.assignmentsSink = nil
             try? FileManager.default.removeItem(at: root)
         }
 
@@ -65,6 +67,8 @@ struct PlaybackChecks {
         testBindFailureRestoresEngine(playback)
         testStartupRecognizesDifferentMoonleafWallpapersPerDesktop(playback)
         testRandomWallpaperKeepsOtherDesktops(playback)
+        testLibraryShuffleStopsAfterRandom(playback)
+        testRandomVideoReceiptSummary(playback)
 
         if Check.failed == 0 {
             print("playback behavior checks passed")
@@ -643,4 +647,207 @@ struct PlaybackChecks {
         Check.expect(playback.history.count == beforeFail, "a failed change is not a successful history event")
         Check.expect(failed[k2] == .noOther, "a failed neighbor does not invent a change")
     }
+
+    static func testLibraryShuffleStopsAfterRandom(_ playback: PlaybackCoordinator) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("moonleaf-library-\(UUID().uuidString)", isDirectory: true)
+            .resolvingSymlinksInPath()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let first = dir.appendingPathComponent("a.jpg")
+        let second = dir.appendingPathComponent("b.jpg")
+        for url in [first, second] {
+            try? Data([0xFF, 0xD8, 0xFF]).write(to: url)
+        }
+        defer {
+            playback.libraryPoolOverride = nil
+            UserDefaults.standard.set(false, forKey: "moonleaf_shuffleEnabled")
+            SpaceBinding.factsOverride = nil
+            SpaceWallpapers.spacesOverride = nil
+            SpaceWallpapers.assignOverride = nil
+            try? FileManager.default.removeItem(at: dir)
+        }
+        playback.libraryPoolOverride = dir.path
+        let listed = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil))?
+            .map(\.path).sorted() ?? []
+        guard listed.count == 2 else {
+            Check.expect(false, "library files were not listed, got \(listed)")
+            return
+        }
+        let assetA = LibraryCatalog.shared.ensureAsset(path: listed[0], name: "a", source: "library", origin: nil)
+        let assetB = LibraryCatalog.shared.ensureAsset(path: listed[1], name: "b", source: "library", origin: nil)
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: "DISP-A", displayName: "Built-in", spaceUUID: "space-lib", managedID: 31, isCurrent: false, type: 0),
+        ]
+        SpaceWallpapers.spacesOverride = [
+            SpaceWallpapers.Space(displayUUID: "DISP-A", uuid: "space-lib", isCurrent: false),
+        ]
+        SpaceWallpapers.assignOverride = { _ in true }
+        playback.refreshTopology(restoreMatching: false)
+        guard let key = playback.targets.first(where: { $0.spaceUUID == "space-lib" })?.key else {
+            Check.expect(false, "library desktop was not recognized")
+            return
+        }
+        let when = Date(timeIntervalSince1970: 1_700_000_000)
+        LibraryCatalog.shared.mutate { file in
+            file.history = []
+            file.sessions = [
+                TargetSession(
+                    targetKey: key, assetID: assetA.id, assetName: assetA.name, path: assetA.path,
+                    listKind: nil, playlistID: nil, folderPath: nil, includeSubdirectories: nil,
+                    rotationEnabled: false, paused: false, pauseReason: nil, order: "sequential",
+                    interval: "1", unavailable: false, provenance: "moonleaf", lastRotatedAt: when
+                ),
+            ]
+        }
+        playback.reloadForChecks()
+        playback.pendingByTarget = [:]
+        UserDefaults.standard.set(false, forKey: "moonleaf_shuffleEnabled")
+
+        let picked = playback.randomWallpaper(keys: [key]) { _ in 0 }
+        Check.expect(picked[key] == .applied, "a library shuffle changes the desktop, got \(String(describing: picked[key])) \(playback.statusMessage ?? "")")
+        Check.expect(playback.session(for: key)?.path == assetB.path, "library shuffle picks the other file, got \(playback.session(for: key)?.path ?? "nil")")
+        Check.expect(playback.session(for: key)?.listKind == nil, "a library shuffle keeps the nil source, got \(playback.session(for: key)?.listKind ?? "nil")")
+        Check.expect(playback.session(for: key)?.rotationEnabled == false, "a library shuffle does not turn rotation on")
+        let afterRandom = playback.history.count
+
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: "DISP-A", displayName: "Built-in", spaceUUID: "space-lib", managedID: 31, isCurrent: true, type: 0),
+        ]
+        playback.refreshTopology(restoreMatching: false)
+        playback.enableRotationOnCurrentDesktop()
+        Check.expect(playback.session(for: key)?.rotationEnabled == true, "the desktop rotation can be turned on after a library shuffle")
+        Check.expect(playback.session(for: key)?.listKind == "library", "turning rotation on keeps a library source, got \(playback.session(for: key)?.listKind ?? "nil")")
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: "DISP-A", displayName: "Built-in", spaceUUID: "space-lib", managedID: 31, isCurrent: false, type: 0),
+        ]
+        playback.refreshTopology(restoreMatching: false)
+        LibraryCatalog.shared.mutate { file in
+            guard let index = file.sessions.firstIndex(where: { $0.targetKey == key }) else { return }
+            file.sessions[index].lastRotatedAt = when
+        }
+        playback.reloadForChecks()
+        playback.rotateDueSessions(now: when.addingTimeInterval(120))
+        Check.expect(playback.session(for: key)?.path == assetB.path, "library rotation off keeps the shuffled wallpaper")
+        Check.expect(playback.history.count == afterRandom, "library rotation off does not record another success")
+
+        UserDefaults.standard.set(true, forKey: "moonleaf_shuffleEnabled")
+        playback.rotateDueSessions(now: when.addingTimeInterval(180))
+        Check.expect(playback.session(for: key)?.path == assetA.path, "library rotation on still advances, got \(playback.session(for: key)?.path ?? "nil")")
+        Check.expect(playback.history.count == afterRandom + 1, "library rotation on records the automatic change")
+
+        UserDefaults.standard.set(false, forKey: "moonleaf_shuffleEnabled")
+        LibraryCatalog.shared.mutate { file in
+            guard let index = file.sessions.firstIndex(where: { $0.targetKey == key }) else { return }
+            file.sessions[index].listKind = ""
+            file.sessions[index].lastRotatedAt = when
+        }
+        playback.reloadForChecks()
+        let beforeBlank = playback.history.count
+        let blankPath = playback.session(for: key)?.path
+        playback.rotateDueSessions(now: when.addingTimeInterval(240))
+        Check.expect(playback.session(for: key)?.path == blankPath, "a blank source does not bypass the library switch")
+        Check.expect(playback.history.count == beforeBlank, "a blank source does not record a success while library rotation is off")
+
+    }
+
+    static func testRandomVideoReceiptSummary(_ playback: PlaybackCoordinator) {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("moonleaf-video-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let files = ["a.mp4", "b.mp4", "c.mp4", "d.mp4"].map { dir.appendingPathComponent($0) }
+        for url in files {
+            try? Data([0x00, 0x00, 0x00, 0x18]).write(to: url)
+        }
+        defer {
+            playback.assignmentsSink = nil
+            playback.pendingByTarget = [:]
+            _ = playback.randomWallpaper(keys: [])
+            SpaceBinding.factsOverride = nil
+            SpaceWallpapers.spacesOverride = nil
+            try? FileManager.default.removeItem(at: dir)
+        }
+        guard let listA = playback.createPlaylist(name: "Video A"),
+              let listB = playback.createPlaylist(name: "Video B") else {
+            Check.expect(false, "video playlists were not created")
+            return
+        }
+        playback.addToPlaylist(paths: [files[0].path, files[1].path], playlistID: listA)
+        playback.addToPlaylist(paths: [files[2].path, files[3].path], playlistID: listB)
+        func asset(_ suffix: String) -> AssetRecord? {
+            LibraryCatalog.shared.snapshot().assets.first { $0.path.hasSuffix(suffix) }
+        }
+        guard let assetA = asset("a.mp4"), let assetC = asset("c.mp4") else {
+            Check.expect(false, "video assets were not saved")
+            return
+        }
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: "DISP-A", displayName: "Built-in", spaceUUID: "space-v1", managedID: 41, isCurrent: false, type: 0),
+            SpaceFact(displayUUID: "DISP-A", displayName: "Built-in", spaceUUID: "space-v2", managedID: 42, isCurrent: false, type: 0),
+        ]
+        playback.refreshTopology(restoreMatching: false)
+        guard let first = playback.targets.first(where: { $0.spaceUUID == "space-v1" }),
+              let second = playback.targets.first(where: { $0.spaceUUID == "space-v2" }) else {
+            Check.expect(false, "video desktops were not recognized")
+            return
+        }
+        let k1 = first.key
+        let k2 = second.key
+        LibraryCatalog.shared.mutate { file in
+            file.history = []
+            file.sessions = [
+                TargetSession(
+                    targetKey: k1, assetID: assetA.id, assetName: assetA.name, path: assetA.path,
+                    listKind: "playlist", playlistID: listA, folderPath: nil, includeSubdirectories: nil,
+                    rotationEnabled: false, paused: true, pauseReason: "manual", order: "random",
+                    interval: "5", unavailable: false, provenance: "moonleaf", lastRotatedAt: nil
+                ),
+                TargetSession(
+                    targetKey: k2, assetID: assetC.id, assetName: assetC.name, path: assetC.path,
+                    listKind: "playlist", playlistID: listB, folderPath: nil, includeSubdirectories: nil,
+                    rotationEnabled: false, paused: false, pauseReason: nil, order: "random",
+                    interval: "5", unavailable: false, provenance: "moonleaf", lastRotatedAt: nil
+                ),
+            ]
+        }
+        playback.reloadForChecks()
+        playback.pendingByTarget = [:]
+        playback.assignmentsSink = { _ in }
+        let report = playback.randomWallpaper(keys: [k1, k2]) { _ in 0 }
+        Check.expect(report[k1] == .pending && report[k2] == .pending, "video shuffles wait for the engine, got \(report)")
+        Check.expect(playback.history.isEmpty, "a waiting video shuffle is not a successful history event")
+        func label(_ target: DesktopTarget) -> String {
+            "\(target.displayName) \(String(format: NSLocalizedString("desktop_n", comment: ""), target.spaceIndex))"
+        }
+        let waiting = String(format: NSLocalizedString("random_waiting", comment: ""), [label(first), label(second)].joined(separator: ", "))
+        Check.expect(playback.statusMessage == waiting, "waiting is not reported as changed, got \(playback.statusMessage ?? "nil")")
+        Check.expect(playback.statusMessage != String(format: NSLocalizedString("random_done", comment: ""), 2), "two pending videos are not two successes")
+
+        guard let pendingA = playback.pendingByTarget[k1], let pendingB = playback.pendingByTarget[k2] else {
+            Check.expect(false, "video requests were not stored")
+            return
+        }
+        playback.acceptReported(PlaybackStateFile(
+            updatedAt: Date(),
+            targets: [
+                k1: PlaybackTargetState(
+                    path: pendingA.path, playing: false, paused: true, reason: nil, bound: true,
+                    requestID: pendingA.requestID, requestedAt: pendingA.requestedAt
+                ),
+                k2: PlaybackTargetState(
+                    path: pendingB.path, playing: false, paused: true, reason: "space-bind-failed", bound: false,
+                    requestID: pendingB.requestID, requestedAt: pendingB.requestedAt
+                ),
+            ]
+        ))
+        Check.expect(playback.history.count == 1, "only the confirmed video is recorded, got \(playback.history.count)")
+        Check.expect(playback.history.last?.targetKeys == [k1], "history names the desktop that confirmed")
+        Check.expect(playback.session(for: k1)?.path?.hasSuffix("b.mp4") == true, "the confirmed desktop changes")
+        Check.expect(playback.session(for: k1)?.paused == true, "a paused video stays paused after confirmation")
+        Check.expect(playback.session(for: k2)?.path == assetC.path, "a failed bind keeps the old wallpaper")
+        Check.expect(playback.history.contains { $0.targetKeys.contains(k2) } == false, "a failed bind is not a success")
+        let done = String(format: NSLocalizedString("random_done", comment: ""), 1)
+        let failed = String(format: NSLocalizedString("random_failed_targets", comment: ""), label(second))
+        Check.expect(playback.statusMessage == "\(done) \(failed)", "the final note names success and failure, got \(playback.statusMessage ?? "nil")")
+        Check.expect(playback.statusMessage != NSLocalizedString("bind_failed", comment: ""), "a partial shuffle does not collapse to a generic bind failure")
+    }
+
 }

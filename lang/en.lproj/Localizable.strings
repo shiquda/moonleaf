@@ -313,6 +313,7 @@
 "random_confirm_sources" = "%d use a playlist or folder. %d use the library.";
 "random_confirm_excluded" = "%d unavailable desktops are left out.";
 "random_done" = "Changed %d desktops.";
+"random_waiting" = "Waiting to confirm: %@.";
 "random_no_other" = "No other wallpaper: %@.";
 "random_no_source" = "No wallpaper source: %@.";
 "random_failed_targets" = "Failed: %@.";

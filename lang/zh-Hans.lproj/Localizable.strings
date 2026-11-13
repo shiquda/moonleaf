@@ -313,6 +313,7 @@
 "random_confirm_sources" = "%d 个来自播放列表或文件夹，%d 个来自素材库。";
 "random_confirm_excluded" = "有 %d 个桌面当前不可用，不包含在内。";
 "random_done" = "已更换 %d 个桌面。";
+"random_waiting" = "正在确认：%@。";
 "random_no_other" = "没有其他可用壁纸：%@。";
 "random_no_source" = "没有可用的壁纸来源：%@。";
 "random_failed_targets" = "更换失败：%@。";

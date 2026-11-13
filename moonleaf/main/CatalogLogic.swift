@@ -369,6 +369,11 @@ enum RotationSchedule {
         }
     }
 
+    /// A blank kind is the same library source as nil. It must not bypass the global shuffle switch.
+    static func followsLibraryShuffle(_ listKind: String?) -> Bool {
+        listKind == nil || listKind == "library" || listKind?.isEmpty == true
+    }
+
     /// Named lists and folder pools rotate on their own interval even when library shuffle is off.
     static func isDue(
         listKind: String?,
@@ -381,7 +386,7 @@ enum RotationSchedule {
         libraryShuffleEnabled: Bool
     ) -> Bool {
         guard rotationEnabled, !paused, !unavailable else { return false }
-        if listKind == nil || listKind == "library" {
+        if followsLibraryShuffle(listKind) {
             guard libraryShuffleEnabled else { return false }
         }
         let interval = seconds(intervalRaw) ?? 300

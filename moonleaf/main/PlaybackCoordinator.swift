@@ -11,7 +11,7 @@ import Combine
 import Foundation
 
 struct ListStamp {
-    var kind: String
+    var kind: String?
     var playlistID: UUID?
     var playlistName: String?
     var order: String
@@ -71,9 +71,14 @@ final class PlaybackCoordinator: ObservableObject {
         NSWorkspace.activeSpaceDidChangeNotification,
     ]
     var pendingByTarget: [String: PendingOverlay] = [:]
+    /// Tests point the library pool at a temp directory. Production stays nil.
+    var libraryPoolOverride: String?
     /// Tests capture the assignment file instead of writing the shared one.
     var assignmentsSink: ((PlaybackAssignmentFile) -> Void)?
     private var rotationTimer: DispatchSourceTimer?
+    /// One-shot shuffle whose video targets are still waiting for an engine receipt.
+    private var randomBatch: [String: RandomApplyOutcome]?
+
 
     private init() {
         stateObserver = DistributedNotificationCenter.default().addObserver(
@@ -379,7 +384,9 @@ final class PlaybackCoordinator: ObservableObject {
             catalog.mutate { file in
                 guard let index = file.sessions.firstIndex(where: { $0.targetKey == target.key }) else { return }
                 file.sessions[index].rotationEnabled = true
-                if file.sessions[index].listKind == nil { file.sessions[index].listKind = "library" }
+                if RotationSchedule.followsLibraryShuffle(file.sessions[index].listKind) {
+                    file.sessions[index].listKind = "library"
+                }
             }
             reloadPublished()
             return
@@ -441,7 +448,7 @@ final class PlaybackCoordinator: ObservableObject {
                     playlistID: session?.playlistID,
                     playlistName: listName,
                     stamp: ListStamp(
-                        kind: session?.listKind ?? "",
+                        kind: Self.preservedListKind(session?.listKind),
                         playlistID: session?.playlistID,
                         playlistName: listName,
                         order: session?.order ?? "random",
@@ -462,6 +469,7 @@ final class PlaybackCoordinator: ObservableObject {
                 }
             }
         }
+        randomBatch = outcomes.values.contains(.pending) ? outcomes : nil
         statusMessage = Self.randomStatus(outcomes, targets: targets)
         applyPending = !pendingByTarget.isEmpty
         return outcomes
@@ -475,12 +483,19 @@ final class PlaybackCoordinator: ObservableObject {
                 return "\(target.displayName) \(String(format: NSLocalizedString("desktop_n", comment: ""), target.spaceIndex))"
             }.joined(separator: ", ")
         }
-        let applied = outcomes.values.filter { $0 == .applied || $0 == .pending }.count
+        let applied = outcomes.values.filter { $0 == .applied }.count
+        let waiting = names(.pending)
         let problems = outcomes.values.contains { $0 != .applied && $0 != .pending }
-        if !problems {
+        if waiting.isEmpty && !problems {
             return String(format: NSLocalizedString("random_done", comment: ""), applied)
         }
-        var parts = [String(format: NSLocalizedString("random_done", comment: ""), applied)]
+        var parts: [String] = []
+        if applied > 0 {
+            parts.append(String(format: NSLocalizedString("random_done", comment: ""), applied))
+        }
+        if !waiting.isEmpty {
+            parts.append(String(format: NSLocalizedString("random_waiting", comment: ""), waiting))
+        }
         let noOther = names(.noOther)
         let noSource = names(.noSource)
         let failed = names(.failed)
@@ -489,7 +504,13 @@ final class PlaybackCoordinator: ObservableObject {
         if !noSource.isEmpty { parts.append(String(format: NSLocalizedString("random_no_source", comment: ""), noSource)) }
         if !failed.isEmpty { parts.append(String(format: NSLocalizedString("random_failed_targets", comment: ""), failed)) }
         if !unavailable.isEmpty { parts.append(String(format: NSLocalizedString("random_unavailable_targets", comment: ""), unavailable)) }
-        return parts.joined(separator: " ")
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    /// Nil and blank stay nil. An explicit library kind stays library. Neither becomes an empty string.
+    static func preservedListKind(_ kind: String?) -> String? {
+        if kind?.isEmpty == true { return nil }
+        return kind
     }
 
     private func randomItems(_ source: RandomSource) -> [PoolItem] {
@@ -771,7 +792,7 @@ final class PlaybackCoordinator: ObservableObject {
                 return PoolItem(id: record.id, path: path, name: record.name)
             }
         default:
-            return mediaFiles(in: MoonleafConfigStore.libraryRoot.path, recursive: false).compactMap { path in
+            return mediaFiles(in: libraryPoolOverride ?? MoonleafConfigStore.libraryRoot.path, recursive: false).compactMap { path in
                 let record = catalog.ensureAsset(path: path, name: nil, source: "library", origin: nil)
                 return PoolItem(id: record.id, path: path, name: record.name)
             }
@@ -1065,6 +1086,8 @@ final class PlaybackCoordinator: ObservableObject {
         }
         var failed = false
         var committed = false
+        var batchSucceeded: [String] = []
+        var batchRejected: [String] = []
         for request in unique.values {
             let keys = request.keys.filter { pendingByTarget[$0]?.requestID == request.requestID }
             guard !keys.isEmpty else { continue }
@@ -1113,11 +1136,15 @@ final class PlaybackCoordinator: ObservableObject {
                 pendingByTarget.removeValue(forKey: key)
             }
             if !rejected.isEmpty { failed = true }
+            batchSucceeded.append(contentsOf: succeeded)
+            batchRejected.append(contentsOf: rejected)
         }
-        if failed {
-            statusMessage = NSLocalizedString("bind_failed", comment: "")
-        } else if pendingByTarget.isEmpty {
-            statusMessage = nil
+        if !settleRandomBatch(succeeded: batchSucceeded, rejected: batchRejected) {
+            if failed {
+                statusMessage = NSLocalizedString("bind_failed", comment: "")
+            } else if pendingByTarget.isEmpty {
+                statusMessage = nil
+            }
         }
         if committed || failed {
             pushAssignments(recordHistory: false)
@@ -1126,6 +1153,24 @@ final class PlaybackCoordinator: ObservableObject {
             publishCurrentPath()
         }
         applyPending = !pendingByTarget.isEmpty
+    }
+
+    /// Updates a waiting shuffle from receipts. Returns true when this call owns the status line.
+    private func settleRandomBatch(succeeded: [String], rejected: [String]) -> Bool {
+        guard var batch = randomBatch else { return false }
+        var touched = false
+        for key in succeeded where batch[key] == .pending {
+            batch[key] = .applied
+            touched = true
+        }
+        for key in rejected where batch[key] == .pending {
+            batch[key] = .failed
+            touched = true
+        }
+        guard touched else { return false }
+        statusMessage = Self.randomStatus(batch, targets: targets)
+        randomBatch = batch.values.contains(.pending) ? batch : nil
+        return true
     }
 
     private func commitOverlay(_ pending: PendingOverlay, keys: [String]) {
