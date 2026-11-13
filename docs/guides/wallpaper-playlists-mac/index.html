@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>macOS Wallpaper Playlists, Rotation &amp; History (Free Guide)</title>
+  <meta name="description" content="Build named wallpaper playlists on Mac without duplicating files, switch playlists from the menu bar, track your last 1,000 applies, and manage storage cleanly with Moonleaf.">
+  <link rel="canonical" href="https://shiquda.github.io/moonleaf/guides/wallpaper-playlists-mac/">
+  <link rel="icon" type="image/png" href="../../icon.png">
+
+  <!-- OpenGraph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://shiquda.github.io/moonleaf/guides/wallpaper-playlists-mac/">
+  <meta property="og:title" content="macOS Wallpaper Playlists, Rotation &amp; History (Free Guide)">
+  <meta property="og:description" content="Build named wallpaper playlists on Mac without duplicating files, switch playlists from the menu bar, and restore any of your last 1,000 wallpapers with Moonleaf.">
+  <meta property="og:image" content="https://shiquda.github.io/moonleaf/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="macOS Wallpaper Playlists, Rotation &amp; History (Free Guide)">
+  <meta name="twitter:description" content="Build named wallpaper playlists on Mac without duplicating files, switch from the menu bar, and track 1,000-item history with Moonleaf.">
+  <meta name="twitter:image" content="https://shiquda.github.io/moonleaf/og-image.png">
+
+  <link rel="stylesheet" href="../style.css">
+
+  <!-- JSON-LD Structured Data: Article & FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        "headline": "macOS Wallpaper Playlists, Rotation & History (Free Guide)",
+        "description": "Build named wallpaper playlists on Mac without duplicating files, switch playlists from the menu bar, track your last 1,000 applies, and manage storage cleanly with Moonleaf.",
+        "author": {
+          "@type": "Person",
+          "name": "shiquda",
+          "url": "https://github.com/shiquda"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "moonleaf",
+          "url": "https://shiquda.github.io/moonleaf/"
+        },
+        "datePublished": "2026-11-13",
+        "dateModified": "2026-11-13",
+        "mainEntityOfPage": "https://shiquda.github.io/moonleaf/guides/wallpaper-playlists-mac/"
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Do Moonleaf playlists copy my wallpaper files on disk?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Playlists store references to assets in your library rather than duplicating files. One wallpaper can belong to multiple playlists, and deleting a playlist or removing an item from a list keeps the original file untouched."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What rotation orders and intervals do Moonleaf playlists support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Each playlist can play In order (reordered via drag-and-drop or Up/Down controls) or Random, and each playlist has its own rotation interval: 15 minutes, 1 hour, 3 hours, or Daily. You can also assign different playlists to different desktops."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I switch wallpaper playlists from the macOS menu bar?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Click the Moonleaf icon in the menu bar and open the Playlists submenu to switch the current desktop to any named playlist, or click Shuffle Now for an immediate change."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How many wallpaper changes does Usage History keep?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Moonleaf keeps up to your last 1,000 successful wallpaper applies in Recent (deduplicated) and Timeline (day-by-day) views. Clearing history deletes recorded usage entries only—your wallpapers, favorites, and playlists remain intact."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does clearing cache in Moonleaf delete my saved wallpapers?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Settings -> Storage separates Library files, External references, Download cache, and Memory thumbnails. Clearing the download cache or memory thumbnails never deletes wallpapers in your library or external folders."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <div class="glow-top"></div>
+
+  <header>
+    <a href="../../" class="brand">
+      <img src="../../icon.png" alt="Moonleaf logo">
+      <span>moonleaf</span>
+    </a>
+    <div class="nav-links">
+      <a href="../../#features">Features</a>
+      <a href="../../#guides">Guides</a>
+      <a href="../../#upgrade">Migration</a>
+      <a href="../../#faq">FAQ</a>
+      <a href="https://github.com/shiquda/moonleaf" class="github-btn" target="_blank" rel="noopener">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <main class="guide-article">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="../../">Home</a>
+      <span>&rsaquo;</span>
+      <a href="../../#guides">Guides</a>
+      <span>&rsaquo;</span>
+      <span>Wallpaper Playlists, Rotation &amp; History</span>
+    </nav>
+
+    <header class="guide-header">
+      <h1>macOS Wallpaper Playlists, Rotation &amp; History (Free Guide)</h1>
+      <div class="guide-meta">
+        <span>Updated: November 13, 2026</span>
+        <span>&bull;</span>
+        <span>6 min read</span>
+        <span>&bull;</span>
+        <span class="guide-tag">macOS 12+ (Intel &amp; Apple Silicon)</span>
+        <span class="guide-tag">Free &amp; Open Source</span>
+      </div>
+    </header>
+
+    <!-- Answer-Ready Block -->
+    <section class="answer-ready-box" aria-label="Quick Answer">
+      <h3>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        Quick Answer
+      </h3>
+      <p>
+        <strong>How do you rotate curated wallpaper sets on a Mac without copying files into separate folders?</strong> <a href="../../">Moonleaf</a> lets you create <strong>named playlists</strong> that reference wallpapers in your library, pick <strong>In order</strong> or <strong>Random</strong> playback with per-list intervals (<code>15 minutes</code>, <code>1 hour</code>, <code>3 hours</code>, or <code>Daily</code>), assign playlists to individual desktops, and switch lists right from the macOS menu bar.
+      </p>
+      <p>
+        <strong>Plus built-in recall &amp; storage clarity:</strong> Moonleaf tracks up to your last <strong>1,000</strong> successful wallpaper applies in <strong>Recent</strong> and <strong>Timeline</strong> views, and separates saved library files from external references and clearable download cache in <strong>Settings &rarr; Storage</strong>.
+      </p>
+      <span class="disclosure">Disclosure: Moonleaf is our free, MIT-licensed macOS wallpaper manager.</span>
+    </section>
+
+    <section>
+      <h2>Why Named Playlists Beat Single-Folder Rotation</h2>
+      <p>
+        macOS System Settings can rotate pictures inside a single folder, which forces you to duplicate images across folders if you want separate "Work", "Minimal", and "Night" sets—and gives you no menu bar switch or apply history.
+      </p>
+      <p>
+        In Moonleaf, your <strong>Library</strong> holds the source wallpapers (or external links to folders you already keep), while <strong>Playlists</strong> act as lightweight collections pointing to them:
+      </p>
+      <ul>
+        <li><strong>Zero file duplication:</strong> One wallpaper can belong to several playlists at once.</li>
+        <li><strong>Safe editing:</strong> Removing an item from a playlist—or deleting the entire playlist—never deletes your wallpaper files.</li>
+        <li><strong>Independent intervals &amp; order:</strong> Each playlist keeps its own playback order (<em>In order</em> or <em>Random</em>) and schedule, even when global library shuffle is turned off.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Step 1: Create a Playlist &amp; Multi-Select from Library</h2>
+      <ol>
+        <li>Open Moonleaf and switch to the <strong>Playlists</strong> tab in the sidebar.</li>
+        <li>Enter a <strong>Playlist name</strong> (for example, <em>Focus</em> or <em>Ultrawide Landscapes</em>) and click <strong>Create</strong>.</li>
+        <li>Open the <strong>Library</strong> tab, search by filename (<code>Search name or file</code>) or filter by favorites/type, then click <strong>Select</strong> to pick multiple wallpapers at once and choose <strong>Add selected</strong> to add them to your playlist without interrupting what is currently on screen.</li>
+      </ol>
+      <p>
+        Back in <strong>Playlists</strong>, you can drag items to reorder them (or use the <strong>Up</strong> / <strong>Down</strong> buttons), inspect how many files in the list are available, and remove individual items anytime.
+      </p>
+    </section>
+
+    <section>
+      <h2>Step 2: Set Order, Interval &amp; Desktop Target</h2>
+      <p>
+        Inside your selected playlist, configure how and where it rotates:
+      </p>
+      <ul>
+        <li><strong>Order:</strong> Switch between <strong>In order</strong> (follows your custom item order) and <strong>Random</strong>.</li>
+        <li><strong>Interval:</strong> Pick <strong>15 minutes</strong>, <strong>1 hour</strong>, <strong>3 hours</strong>, or <strong>Daily</strong>.</li>
+        <li><strong>Desktop:</strong> Choose a target monitor &times; Space under <strong>Desktop</strong> and click <strong>Apply to desktop</strong>.</li>
+      </ul>
+      <p>
+        Want different playlists on different monitors or virtual Spaces? See our <a href="../different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space Wallpaper Guide</a>.
+      </p>
+    </section>
+
+    <section>
+      <h2>Step 3: Switch Playlists &amp; Shuffle from the Menu Bar</h2>
+      <p>
+        Once your playlists are ready, you don't need to keep the manager window open:
+      </p>
+      <ul>
+        <li>Click Moonleaf's menu bar icon and hover over <strong>Playlists</strong> to switch the active desktop to any playlist with one click.</li>
+        <li>Click <strong>Shuffle Now</strong> in the menu bar—or <strong>Shuffle all wallpapers</strong> in <strong>Overview</strong>—for an instant change.</li>
+        <li>Open <strong>Overview</strong> directly from the menu bar whenever you want to inspect all active displays and Spaces at a glance.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Step 4: Find Past Wallpapers in 1,000-Item Usage History</h2>
+      <p>
+        Ever seen a wallpaper rotate past and wished you knew its name? The <strong>History</strong> section in <strong>Overview</strong> records up to your latest <strong>1,000</strong> successful applies (both manual picks and automatic rotations, excluding startup restores):
+      </p>
+      <ul>
+        <li><strong>Recent vs. Timeline:</strong> Browse a deduplicated list of recently used wallpapers or switch to <strong>Timeline</strong> to see changes grouped by day.</li>
+        <li><strong>Search &amp; Filters:</strong> Filter by filename, <strong>Display</strong>, <strong>Desktop</strong>, or <strong>Type</strong> (<em>Still</em> / <em>Video</em>).</li>
+        <li><strong>One-Click Actions:</strong> Re-apply to the current desktop or display, toggle favorite, or open <strong>Details</strong>.</li>
+        <li><strong>Non-Destructive Clear:</strong> Clicking <strong>Clear history</strong> removes recorded usage entries only—your wallpapers, favorites, and playlists stay untouched.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Step 5: Inspect Details, Esc Preview, Copy Image &amp; Storage</h2>
+      <p>
+        Two quality-of-life tools make managing a large wallpaper library straightforward:
+      </p>
+      <ul>
+        <li><strong>Unified Asset Details:</strong> Open <strong>Details</strong> on any item across Overview, Library, or Playlists to see its <strong>Format</strong>, <strong>Resolution</strong>, <strong>Size</strong>, <strong>Source</strong> (<em>Library</em>, <em>External file</em>, <em>Discover</em>, <em>Wallhaven</em>, or <em>Pexels</em>), <strong>Location</strong>, and playlist membership. Double-click the thumbnail (or click the hover preview icon) for a full-window preview—press <code>Esc</code> to close the preview—and click <strong>Copy image</strong> to copy still image data directly to your clipboard (or copy the file for videos/GIFs).</li>
+        <li><strong>Transparent Storage Settings:</strong> Under <strong>Settings &rarr; Storage</strong>, Moonleaf separates <strong>Library files</strong>, <strong>External references</strong> (with <em>Show paths</em> so you can see linked files without copying them), <strong>Download cache</strong> (<em>Clear download cache</em>), and <strong>Clear memory thumbnails</strong> (clearly noted as in-memory only, not disk files).</li>
+      </ul>
+
+      <div class="callout callout-tip">
+        <strong>Safe by design:</strong>
+        <p>Clearing the download cache or memory thumbnails in <strong>Settings &rarr; Storage</strong> never deletes your saved library wallpapers or external folders.</p>
+      </div>
+    </section>
+
+    <section class="faq-section">
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-card">
+        <h3>Do Moonleaf playlists copy my wallpaper files on disk?</h3>
+        <p>No. Playlists store references to assets in your library rather than duplicating files. One wallpaper can belong to multiple playlists, and deleting a playlist or removing an item from a list keeps the original file untouched.</p>
+      </div>
+
+      <div class="faq-card">
+        <h3>What rotation orders and intervals do Moonleaf playlists support?</h3>
+        <p>Each playlist can play <strong>In order</strong> (reordered via drag-and-drop or Up/Down controls) or <strong>Random</strong>, and each playlist has its own rotation interval: <code>15 minutes</code>, <code>1 hour</code>, <code>3 hours</code>, or <code>Daily</code>. You can also assign different playlists to different desktops.</p>
+      </div>
+
+      <div class="faq-card">
+        <h3>Can I switch wallpaper playlists from the macOS menu bar?</h3>
+        <p>Yes. Click the Moonleaf icon in the menu bar and open the <strong>Playlists</strong> submenu to switch the current desktop to any named playlist, or click <strong>Shuffle Now</strong> for an immediate change.</p>
+      </div>
+
+      <div class="faq-card">
+        <h3>How many wallpaper changes does Usage History keep?</h3>
+        <p>Moonleaf keeps up to your last <strong>1,000</strong> successful wallpaper applies in <strong>Recent</strong> (deduplicated) and <strong>Timeline</strong> (day-by-day) views. Clearing history deletes recorded usage entries only—your wallpapers, favorites, and playlists remain intact.</p>
+      </div>
+
+      <div class="faq-card">
+        <h3>Does clearing cache in Moonleaf delete my saved wallpapers?</h3>
+        <p>No. <strong>Settings &rarr; Storage</strong> separates Library files, External references, Download cache, and Memory thumbnails. Clearing the download cache or memory thumbnails never deletes wallpapers in your library or external folders.</p>
+      </div>
+    </section>
+
+    <!-- Footer CTA Banner -->
+    <div class="cta-banner">
+      <h2>Build Smarter Wallpaper Playlists on Mac</h2>
+      <p>Download Moonleaf free under the MIT License. Native Swift &amp; AppKit for macOS 12+ (Apple Silicon &amp; Intel).</p>
+      <div class="cta-buttons">
+        <a href="https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg" class="btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download moonleaf.dmg
+        </a>
+        <div class="btn-secondary" onclick="navigator.clipboard.writeText('brew install shiquda/moonleaf/moonleaf'); alert('Copied brew command to clipboard!');">
+          brew install shiquda/moonleaf/moonleaf
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p style="margin-bottom: 12px;">
+      <a href="../../">Moonleaf Homepage</a> &bull;
+      <a href="../different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space Guide</a> &bull;
+      <a href="../gif-wallpaper-mac/">GIF Wallpaper Guide</a> &bull;
+      <a href="../video-wallpaper-mac/">Video Wallpaper Guide</a> &bull;
+      <a href="https://github.com/shiquda/moonleaf">GitHub Repository</a>
+    </p>
+    <p>
+      Moonleaf is open-source software licensed under the <a href="https://github.com/shiquda/moonleaf/blob/main/LICENSE">MIT License</a>.<br>
+      Originally created by <a href="https://github.com/illufied">naomisphere</a>. Actively maintained by <a href="https://github.com/shiquda">shiquda</a> and contributors.
+    </p>
+  </footer>
+</body>
+</html>
