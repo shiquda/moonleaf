@@ -23,6 +23,7 @@ struct macpaper: App {
     }
 }
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var status_item: NSStatusItem?
     var _mwin: NSWindow?
@@ -60,21 +61,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         updater.automaticallyChecksForUpdates = checkForUpdates
 
+        PlaybackCoordinator.shared.start()
         service.launchGlasswpDaemon()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(displaysDidChange),
-            name: NSApplication.didChangeScreenParametersNotification,
-            object: nil
-        )
+        PlaybackCoordinator.shared.installTopologyWatch(on: self, selector: #selector(displaysDidChange))
     }
 
-    /// A screen can be plugged in at any moment, and the desktops it brings
-    /// have no picture of their own until something decorates them: without
-    /// this they stay on the system default.
+    /// Display, wake, and Space changes refresh live desktop identity.
+    /// A newly attached display stays undecorated until this runs.
+    @MainActor
     @objc private func displaysDidChange() {
         service.refreshScreenCount()
-        macpaperService.restoreWallpapersAfterDisplayChange()
+        PlaybackCoordinator.shared.refreshTopology(restoreMatching: true)
     }
 
     private func performFirstLaunchMigration() {
@@ -146,6 +143,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Self.updateActivationPolicy()
         NSApp.activate(ignoringOtherApps: true)
     }
+    @MainActor
     func sb_item_menu() -> NSMenu {
         let menu = NSMenu()
         menu.delegate = self
@@ -157,7 +155,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         populateStatusMenu(menu)
     }
 
+    @MainActor
     private func populateStatusMenu(_ menu: NSMenu) {
+        PlaybackCoordinator.shared.refreshForCommand()
         menu.removeAllItems()
 
         if service.wallpapers.isEmpty && !service.isLoading {
@@ -212,6 +212,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(noWpItem)
         }
 
+        let playback = PlaybackCoordinator.shared
+        let currentTarget = playback.currentTarget(displayUUID: SpaceBinding.currentDisplayUUID())
+        let currentList = currentTarget.flatMap { playback.session(for: $0.key)?.playlistID }
+        let listMenu = NSMenu()
+        if playback.playlists.isEmpty {
+            let empty = NSMenuItem(title: NSLocalizedString("playlist_none", comment: ""), action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            listMenu.addItem(empty)
+        }
+        for list in playback.playlists {
+            let item = NSMenuItem(title: list.name, action: #selector(apply_list(_:)), keyEquivalent: "")
+            item.representedObject = list.id.uuidString
+            item.target = self
+            item.state = list.id == currentList ? .on : .off
+            if currentTarget == nil || playback.targetUnavailable(currentTarget!.key) {
+                item.isEnabled = false
+            }
+            listMenu.addItem(item)
+        }
+        let listItem = NSMenuItem(title: NSLocalizedString("sb_playlists", comment: ""), action: nil, keyEquivalent: "")
+        listItem.submenu = listMenu
+        menu.addItem(listItem)
+
+        let historyItem = NSMenuItem(title: NSLocalizedString("sb_usage", comment: ""), action: #selector(show_usage), keyEquivalent: "")
+        historyItem.target = self
+        menu.addItem(historyItem)
+
         let shuffleItem = NSMenuItem(title: NSLocalizedString("sb_shuffle_now", comment: "Shuffle Now"), action: #selector(shuffle_now), keyEquivalent: "")
         shuffleItem.target = self
         shuffleItem.isEnabled = !wallpapers.isEmpty
@@ -261,8 +288,40 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         service.set_wp(wallpaper)
     }
 
+    @MainActor
     @objc func shuffle_now() {
-        macpaperService.shuffleNow()
+        let playback = PlaybackCoordinator.shared
+        playback.refreshForCommand()
+        guard let target = playback.currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()) else { return }
+        let report = playback.randomWallpaper(keys: [target.key])
+        if report.values.contains(where: { $0 != .applied && $0 != .pending }), let message = playback.statusMessage {
+            showStatus(message)
+        }
+    }
+
+    @MainActor
+    @objc func apply_list(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let id = UUID(uuidString: raw) else { return }
+        let playback = PlaybackCoordinator.shared
+        playback.refreshForCommand()
+        guard let target = playback.currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()) else {
+            showStatus(NSLocalizedString("scope_no_current", comment: ""))
+            return
+        }
+        if !playback.assignList(playlistID: id, targetKey: target.key), let message = playback.statusMessage {
+            showStatus(message)
+        }
+    }
+
+    @objc func show_usage() {
+        AppNavigation.shared.page = .usage
+        show_manager()
+    }
+
+    private func showStatus(_ message: String) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.runModal()
     }
 
     @objc func toggle_launchAgent() {

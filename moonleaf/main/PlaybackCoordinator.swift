@@ -1,0 +1,1592 @@
+//
+//  PlaybackCoordinator.swift
+//  moonleaf
+//
+//  One owner for what is on each desktop. The menu bar and the window call
+//  the same methods. Player state wins over the last request when they differ.
+//
+
+import AppKit
+import Combine
+import Foundation
+
+struct ListStamp {
+    var kind: String?
+    var playlistID: UUID?
+    var playlistName: String?
+    var order: String
+    var interval: String
+    var folderPath: String?
+    var includeSubdirectories: Bool?
+    var rotationEnabled: Bool
+}
+
+struct PendingOverlay {
+    var requestID: String
+    var requestedAt: Date
+    var path: String
+    var assetID: UUID
+    var assetName: String
+    var keys: [String]
+    var origin: String
+    var playlistID: UUID?
+    var playlistName: String?
+    var recordHistory: Bool
+    var stopRotation: Bool
+    var stamp: ListStamp?
+    var touchRotationClock: Bool
+    var keepPause: Bool = false
+    var isStill: Bool = false
+}
+
+/// Whether a status line reports a problem, a finished change, or a wait.
+enum PlaybackStatusTone {
+    case warning
+    case success
+    case info
+}
+
+enum RandomApplyOutcome: String, Equatable {
+    case applied
+    case pending
+    case noOther
+    case noSource
+    case failed
+    case unavailable
+}
+
+@MainActor
+final class PlaybackCoordinator: ObservableObject {
+    static let shared = PlaybackCoordinator()
+
+    @Published private(set) var separateSpaces = true
+    @Published private(set) var targets: [DesktopTarget] = []
+    @Published private(set) var sessions: [TargetSession] = []
+    @Published private(set) var playlists: [NamedPlaylist] = []
+    @Published private(set) var history: [HistoryEvent] = []
+    @Published private(set) var applyPending = false
+    @Published private(set) var historyEnabled = true
+    @Published private(set) var playerState: [String: PlaybackTargetState] = [:]
+    @Published private(set) var statusMessage: String?
+    /// How the status should read: most messages report a problem, and the
+    /// shuffle result says whether anything changed.
+    @Published private(set) var statusTone: PlaybackStatusTone = .warning
+    @Published private(set) var catalogRevision = 0
+
+    private let catalog = LibraryCatalog.shared
+    private var stateObserver: NSObjectProtocol?
+    private var canTouchApp = false
+    static let topologyWatch: [Notification.Name] = [
+        NSApplication.didChangeScreenParametersNotification,
+        NSWorkspace.didWakeNotification,
+        NSWorkspace.activeSpaceDidChangeNotification,
+    ]
+    var pendingByTarget: [String: PendingOverlay] = [:]
+    /// Tests point the library pool at a temp directory. Production stays nil.
+    var libraryPoolOverride: String?
+    /// Tests capture the assignment file instead of writing the shared one.
+    var assignmentsSink: ((PlaybackAssignmentFile) -> Void)?
+    private var rotationTimer: DispatchSourceTimer?
+    /// One-shot shuffle whose video targets are still waiting for an engine receipt.
+    private var randomBatch: [String: RandomApplyOutcome]?
+    /// Serial so two changes to the same desktop land in order.
+    private static let stillPaintQueue = DispatchQueue(label: "com.naomisphere.moonleaf.still-paint", qos: .userInitiated)
+    private let stillRequestLock = NSLock()
+    private var latestStillRequestIDs: [String: String] = [:]
+    /// The picture this coordinator last wrote for a desktop. A failed paint may
+    /// only restore what it replaced, so a stale failure cannot undo a newer one.
+    private var lastStillPaths: [String: String] = [:]
+
+
+    private init() {
+        stateObserver = DistributedNotificationCenter.default().addObserver(
+            forName: PlaybackNotices.state,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.readPlayerState() }
+        }
+    }
+
+    func start() {
+        canTouchApp = true
+        refreshTopology(restoreMatching: true)
+        readPlayerState()
+        startRotationTimer()
+    }
+
+    /// Lets behavior checks exercise command refresh without starting the live app.
+    func setCommandRefreshForChecks(_ enabled: Bool) {
+        canTouchApp = enabled
+    }
+
+    func refreshForCommand() {
+        refreshTopology(restoreMatching: false)
+        acceptReported(SpaceBinding.readState())
+    }
+
+    func installTopologyWatch(on target: Any, selector: Selector) {
+        for name in Self.topologyWatch {
+            let center: NotificationCenter = name == NSApplication.didChangeScreenParametersNotification
+                ? .default
+                : NSWorkspace.shared.notificationCenter
+            center.addObserver(target, selector: selector, name: name, object: nil)
+        }
+    }
+
+    private func startRotationTimer() {
+        guard rotationTimer == nil else { return }
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + 15, repeating: 15)
+        timer.setEventHandler { [weak self] in
+            self?.rotateDueSessions()
+        }
+        timer.resume()
+        rotationTimer = timer
+    }
+    func refreshTopology(restoreMatching: Bool) {
+        let live = SpaceBinding.liveTargets()
+        separateSpaces = live.separate
+        targets = live.targets
+        let liveKeys = Set(live.targets.map(\.key))
+        seedMissingTargets(targets: live.targets)
+        catalog.mutate { file in
+            for index in file.sessions.indices {
+                file.sessions[index].unavailable = !liveKeys.contains(file.sessions[index].targetKey)
+            }
+        }
+        reloadPublished()
+        publishCurrentPath()
+        if restoreMatching {
+            pushAssignments(recordHistory: false)
+        }
+    }
+
+    func apply(
+        path: String,
+        name: String?,
+        scope: ScopeKind,
+        displayUUID: String?,
+        explicitKeys: [String] = [],
+        stopRotation: Bool,
+        origin: String,
+        confirmedCrossDisplay: Bool,
+        recordHistory: Bool,
+        playlistID: UUID? = nil,
+        playlistName: String? = nil,
+        stamp: ListStamp? = nil,
+        touchRotationClock: Bool = false,
+        keepPause: Bool = false
+    ) -> Bool {
+        if canTouchApp {
+            refreshForCommand()
+        }
+        guard FileManager.default.fileExists(atPath: path) else {
+            statusMessage = NSLocalizedString("apply_missing_file", comment: "")
+            statusTone = .warning
+            return false
+        }
+        let kind = MediaKind.from(path: path)
+        guard kind != .unknown else {
+            statusMessage = NSLocalizedString("apply_unsupported", comment: "")
+            statusTone = .warning
+            return false
+        }
+        switch ScopeLogic.resolve(
+            kind: scope,
+            targets: targets,
+            displayUUID: displayUUID,
+            explicitKeys: explicitKeys,
+            allowCrossDisplay: confirmedCrossDisplay
+        ) {
+        case .failure(let error):
+            statusMessage = message(for: error)
+            statusTone = .warning
+            return false
+        case .success(let chosen):
+            guard !chosen.isEmpty else {
+                statusMessage = NSLocalizedString("apply_none", comment: "")
+                statusTone = .warning
+                return false
+            }
+            let asset = catalog.ensureAsset(
+                path: path,
+                name: name,
+                source: path.hasPrefix(MoonleafConfigStore.libraryRoot.path) ? "library" : "external",
+                origin: origin
+            )
+            if kind.usesSpaceBoundOverlay {
+                let request = PendingOverlay(
+                    requestID: UUID().uuidString,
+                    requestedAt: Date(),
+                    path: path,
+                    assetID: asset.id,
+                    assetName: asset.name,
+                    keys: chosen.map(\.key),
+                    origin: origin,
+                    playlistID: stamp?.playlistID ?? playlistID,
+                    playlistName: stamp?.playlistName ?? playlistName,
+                    recordHistory: recordHistory,
+                    stopRotation: stopRotation,
+                    stamp: stamp,
+                    touchRotationClock: touchRotationClock,
+                    keepPause: keepPause
+                )
+                for key in request.keys {
+                    pendingByTarget[key] = request
+                    setLatestStillRequest(nil, for: key)
+                }
+                statusMessage = nil
+                pushAssignments(recordHistory: false)
+                applyPending = !pendingByTarget.isEmpty
+                return false
+            }
+            var snapshot = catalog.snapshot()
+            var appliedKeys: [String] = []
+            var pendingStill: [(target: DesktopTarget, job: PendingStillJob, request: PendingOverlay, previousPath: String?)] = []
+            for target in chosen {
+                let previousPath = snapshot.sessions.first(where: { $0.targetKey == target.key })?.path
+                switch assignStill(path, target: target) {
+                case .failed:
+                    continue
+                case .committed:
+                    writeCommittedSession(
+                        snapshot: &snapshot,
+                        asset: asset,
+                        path: path,
+                        targetKey: target.key,
+                        stopRotation: stopRotation,
+                        stamp: stamp,
+                        touchRotationClock: touchRotationClock,
+                        keepPause: keepPause
+                    )
+                    appliedKeys.append(target.key)
+                    pendingByTarget.removeValue(forKey: target.key)
+                    setLatestStillRequest(nil, for: target.key)
+                case .pending(let job):
+                    let request = PendingOverlay(
+                        requestID: UUID().uuidString,
+                        requestedAt: Date(),
+                        path: path,
+                        assetID: asset.id,
+                        assetName: asset.name,
+                        keys: [target.key],
+                        origin: origin,
+                        playlistID: stamp?.playlistID ?? playlistID,
+                        playlistName: stamp?.playlistName ?? playlistName,
+                        recordHistory: recordHistory,
+                        stopRotation: stopRotation,
+                        stamp: stamp,
+                        touchRotationClock: touchRotationClock,
+                        keepPause: keepPause,
+                        isStill: true
+                    )
+                    pendingByTarget[target.key] = request
+                    setLatestStillRequest(request.requestID, for: target.key)
+                    pendingStill.append((target: target, job: job, request: request, previousPath: previousPath))
+                }
+            }
+            guard !appliedKeys.isEmpty || !pendingStill.isEmpty else {
+                statusMessage = NSLocalizedString("apply_none", comment: "")
+                statusTone = .warning
+                return false
+            }
+            if !appliedKeys.isEmpty {
+                if recordHistory {
+                    snapshot.history = HistoryLogic.appending(
+                        snapshot.history,
+                        event: HistoryEvent(
+                            id: UUID(),
+                            assetID: asset.id,
+                            assetName: asset.name,
+                            appliedAt: Date(),
+                            targetKeys: appliedKeys,
+                            origin: origin,
+                            playlistID: playlistID,
+                            playlistName: playlistName
+                        ),
+                        enabled: snapshot.historyEnabled,
+                        isRestore: false
+                    )
+                }
+                catalog.mutate { $0 = snapshot }
+                reloadPublished()
+                pushAssignments(recordHistory: false)
+                publishCurrentPath()
+                if canTouchApp,
+                   let current = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()),
+                   appliedKeys.contains(current.key) {
+                    MoonleafConfigStore.shared.writeCurrentWallpaperAsync(path)
+                }
+            }
+            for item in pendingStill {
+                enqueueStillPaint(
+                    request: item.request,
+                    target: item.target,
+                    job: item.job,
+                    previousPath: item.previousPath
+                )
+            }
+            applyPending = !pendingByTarget.isEmpty
+            statusMessage = nil
+            return pendingStill.isEmpty
+        }
+    }
+
+    func assignList(playlistID: UUID, targetKey: String) -> Bool {
+        guard let target = targets.first(where: { $0.key == targetKey }), !targetUnavailable(targetKey) else {
+            statusMessage = NSLocalizedString("scope_unknown_target", comment: "")
+            return false
+        }
+        let snapshot = catalog.snapshot()
+        guard let list = snapshot.playlists.first(where: { $0.id == playlistID }) else {
+            statusMessage = NSLocalizedString("list_missing", comment: "")
+            return false
+        }
+        let resolved = resolvedPlaylist(list, snapshot: snapshot)
+        guard !resolved.isEmpty else {
+            statusMessage = list.assetIDs.isEmpty
+                ? NSLocalizedString("list_empty", comment: "")
+                : NSLocalizedString("list_all_unavailable", comment: "")
+            return false
+        }
+        let existing = snapshot.sessions.first(where: { $0.targetKey == targetKey })
+        let first = resolved[0]
+        return apply(
+            path: first.path,
+            name: first.name,
+            scope: .explicit,
+            displayUUID: target.displayUUIDs.first,
+            explicitKeys: [targetKey],
+            stopRotation: false,
+            origin: "manual",
+            confirmedCrossDisplay: true,
+            recordHistory: true,
+            playlistID: list.id,
+            playlistName: list.name,
+            stamp: ListStamp(
+                kind: "playlist",
+                playlistID: list.id,
+                playlistName: list.name,
+                order: existing?.order ?? list.order,
+                interval: existing?.interval ?? list.interval,
+                folderPath: nil,
+                includeSubdirectories: nil,
+                rotationEnabled: true
+            )
+        )
+    }
+
+    func assignPool(kind: String, targetKey: String, folderPath: String? = nil, includeSubdirectories: Bool = false) -> Bool {
+        guard let target = targets.first(where: { $0.key == targetKey }) else {
+            statusMessage = NSLocalizedString("scope_unknown_target", comment: "")
+            return false
+        }
+        let items = poolItems(kind: kind, playlistID: nil, folderPath: folderPath, includeSubdirectories: includeSubdirectories)
+        guard let first = items.first else {
+            statusMessage = NSLocalizedString("list_empty", comment: "")
+            return false
+        }
+        let existing = catalog.snapshot().sessions.first(where: { $0.targetKey == targetKey })
+        return apply(
+            path: first.path,
+            name: first.name,
+            scope: .explicit,
+            displayUUID: target.displayUUIDs.first,
+            explicitKeys: [targetKey],
+            stopRotation: false,
+            origin: "manual",
+            confirmedCrossDisplay: true,
+            recordHistory: true,
+            stamp: ListStamp(
+                kind: kind,
+                playlistID: nil,
+                playlistName: nil,
+                order: existing?.order ?? "random",
+                interval: existing?.interval ?? UserDefaults.standard.string(forKey: "moonleaf_shuffleInterval") ?? "5",
+                folderPath: folderPath,
+                includeSubdirectories: includeSubdirectories,
+                rotationEnabled: true
+            )
+        )
+    }
+
+    func setPaused(_ paused: Bool, targetKey: String) {
+        guard !targetUnavailable(targetKey) else {
+            statusMessage = NSLocalizedString("scope_unknown_target", comment: "")
+            return
+        }
+        catalog.mutate { file in
+            guard let index = file.sessions.firstIndex(where: { $0.targetKey == targetKey }) else { return }
+            file.sessions[index].paused = paused
+            file.sessions[index].pauseReason = paused ? "manual" : nil
+        }
+        reloadPublished()
+        pushAssignments(recordHistory: false)
+    }
+    func clearTarget(_ key: String) {
+        pendingByTarget.removeValue(forKey: key)
+        setLatestStillRequest(nil, for: key)
+        applyPending = !pendingByTarget.isEmpty
+        catalog.mutate { file in
+            file.sessions.removeAll { $0.targetKey == key }
+            if !file.suppressedRestoreKeys.contains(key) {
+                file.suppressedRestoreKeys.append(key)
+            }
+        }
+        reloadPublished()
+        publishCurrentPath()
+        pushAssignments(recordHistory: false)
+    }
+
+    func clearCurrent() {
+        guard let target = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()) else { return }
+        clearTarget(target.key)
+    }
+
+    func enableRotationOnCurrentDesktop() {
+        guard let target = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()) else { return }
+        if session(for: target.key) != nil {
+            catalog.mutate { file in
+                guard let index = file.sessions.firstIndex(where: { $0.targetKey == target.key }) else { return }
+                file.sessions[index].rotationEnabled = true
+                if RotationSchedule.followsLibraryShuffle(file.sessions[index].listKind) {
+                    file.sessions[index].listKind = "library"
+                }
+            }
+            reloadPublished()
+            return
+        }
+        _ = assignPool(kind: "library", targetKey: target.key)
+    }
+
+    func next(targetKey: String) {
+        guard let session = sessions.first(where: { $0.targetKey == targetKey }), !session.unavailable else {
+            statusMessage = NSLocalizedString("scope_unknown_target", comment: "")
+            return
+        }
+        advance(session, origin: "manual")
+    }
+
+    func randomWallpaper(keys: [String], randomIndex: @escaping (Int) -> Int = { Int.random(in: 0..<$0) }) -> [String: RandomApplyOutcome] {
+        if !pendingByTarget.isEmpty {
+            statusMessage = NSLocalizedString("random_busy", comment: "")
+            applyPending = true
+            return [:]
+        }
+        var outcomes: [String: RandomApplyOutcome] = [:]
+        randomBatch = Dictionary(uniqueKeysWithValues: keys.map { ($0, RandomApplyOutcome.pending) })
+        for key in keys {
+            guard targets.contains(where: { $0.key == key }), !targetUnavailable(key) else {
+                outcomes[key] = .unavailable
+                recordRandom(key, outcomes: outcomes)
+                continue
+            }
+            let session = sessions.first { $0.targetKey == key }
+            let source = RandomLogic.source(
+                listKind: session?.listKind,
+                playlistID: session?.playlistID,
+                folderPath: session?.folderPath,
+                includeSubdirectories: session?.includeSubdirectories
+            )
+            let items = randomItems(source)
+            switch RandomLogic.choose(candidates: items.map(\.id), current: session?.assetID, randomIndex: randomIndex) {
+            case .noSource:
+                outcomes[key] = .noSource
+            case .noOther:
+                outcomes[key] = .noOther
+            case .pick(let id):
+                guard let item = items.first(where: { $0.id == id }) else {
+                    outcomes[key] = .failed
+                    recordRandom(key, outcomes: outcomes)
+                    continue
+                }
+                let target = targets.first { $0.key == key }
+                let listName = session?.playlistID.flatMap { id in playlists.first { $0.id == id }?.name }
+                let rotating = session?.rotationEnabled == true && session?.paused != true
+                let ok = apply(
+                    path: item.path,
+                    name: item.name,
+                    scope: .explicit,
+                    displayUUID: target?.displayUUIDs.first,
+                    explicitKeys: [key],
+                    stopRotation: false,
+                    origin: "manual",
+                    confirmedCrossDisplay: true,
+                    recordHistory: true,
+                    playlistID: session?.playlistID,
+                    playlistName: listName,
+                    stamp: ListStamp(
+                        kind: Self.preservedListKind(session?.listKind),
+                        playlistID: session?.playlistID,
+                        playlistName: listName,
+                        order: session?.order ?? "random",
+                        interval: session?.interval ?? UserDefaults.standard.string(forKey: "moonleaf_shuffleInterval") ?? "5",
+                        folderPath: session?.folderPath,
+                        includeSubdirectories: session?.includeSubdirectories,
+                        rotationEnabled: session?.rotationEnabled ?? false
+                    ),
+                    touchRotationClock: rotating,
+                    keepPause: session?.paused == true
+                )
+                if ok {
+                    outcomes[key] = .applied
+                } else if pendingByTarget[key]?.path == item.path {
+                    outcomes[key] = .pending
+                } else {
+                    outcomes[key] = .failed
+                }
+            }
+            recordRandom(key, outcomes: outcomes)
+        }
+        let batch = randomBatch ?? outcomes
+        statusMessage = Self.randomStatus(batch, targets: targets)
+        statusTone = Self.randomTone(batch)
+        randomBatch = batch.values.contains(.pending) ? batch : nil
+        applyPending = !pendingByTarget.isEmpty
+        return batch
+    }
+
+    private func recordRandom(_ key: String, outcomes: [String: RandomApplyOutcome]) {
+        if randomBatch?[key] == nil || randomBatch?[key] == .pending {
+            randomBatch?[key] = outcomes[key]
+        }
+    }
+
+    /// Only a change that finished everywhere reads as success; a wait is a
+    /// notice, anything left behind is a problem.
+    static func randomTone(_ outcomes: [String: RandomApplyOutcome]) -> PlaybackStatusTone {
+        if outcomes.values.contains(where: { $0 != .applied && $0 != .pending }) { return .warning }
+        if outcomes.values.contains(where: { $0 == .pending }) { return .info }
+        return outcomes.isEmpty ? .warning : .success
+    }
+
+    static func randomStatus(_ outcomes: [String: RandomApplyOutcome], targets: [DesktopTarget]) -> String? {
+        guard !outcomes.isEmpty else { return NSLocalizedString("random_none", comment: "") }
+        func names(_ outcome: RandomApplyOutcome) -> String {
+            outcomes.filter { $0.value == outcome }.map { pair in
+                guard let target = targets.first(where: { $0.key == pair.key }) else { return pair.key }
+                return "\(target.displayName) \(String(format: NSLocalizedString("desktop_n", comment: ""), target.spaceIndex))"
+            }.joined(separator: ", ")
+        }
+        let applied = outcomes.values.filter { $0 == .applied }.count
+        let waiting = names(.pending)
+        let problems = outcomes.values.contains { $0 != .applied && $0 != .pending }
+        if waiting.isEmpty && !problems {
+            return String(format: NSLocalizedString("random_done", comment: ""), applied)
+        }
+        var parts: [String] = []
+        if applied > 0 {
+            parts.append(String(format: NSLocalizedString("random_done", comment: ""), applied))
+        }
+        if !waiting.isEmpty {
+            parts.append(String(format: NSLocalizedString("random_waiting", comment: ""), waiting))
+        }
+        let noOther = names(.noOther)
+        let noSource = names(.noSource)
+        let failed = names(.failed)
+        let unavailable = names(.unavailable)
+        if !noOther.isEmpty { parts.append(String(format: NSLocalizedString("random_no_other", comment: ""), noOther)) }
+        if !noSource.isEmpty { parts.append(String(format: NSLocalizedString("random_no_source", comment: ""), noSource)) }
+        if !failed.isEmpty { parts.append(String(format: NSLocalizedString("random_failed_targets", comment: ""), failed)) }
+        if !unavailable.isEmpty { parts.append(String(format: NSLocalizedString("random_unavailable_targets", comment: ""), unavailable)) }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    /// Nil and blank stay nil. An explicit library kind stays library. Neither becomes an empty string.
+    static func preservedListKind(_ kind: String?) -> String? {
+        if kind?.isEmpty == true { return nil }
+        return kind
+    }
+
+    private func randomItems(_ source: RandomSource) -> [PoolItem] {
+        switch source {
+        case .playlist(let id):
+            return poolItems(kind: "playlist", playlistID: id, folderPath: nil, includeSubdirectories: false)
+        case .favorites:
+            return poolItems(kind: "favorites", playlistID: nil, folderPath: nil, includeSubdirectories: false)
+        case .folder(let path, let recursive):
+            return poolItems(kind: "folder", playlistID: nil, folderPath: path, includeSubdirectories: recursive)
+        case .library:
+            return poolItems(kind: "library", playlistID: nil, folderPath: nil, includeSubdirectories: false)
+        case .missing:
+            return []
+        }
+    }
+
+    func rotateDueSessions(now: Date = Date()) {
+        let libraryShuffle = UserDefaults.standard.bool(forKey: "moonleaf_shuffleEnabled")
+        let held = Set(pendingByTarget.keys)
+        for session in catalog.snapshot().sessions where !held.contains(session.targetKey) && RotationSchedule.isDue(
+            listKind: session.listKind,
+            rotationEnabled: session.rotationEnabled,
+            paused: session.paused,
+            unavailable: session.unavailable,
+            intervalRaw: session.interval,
+            lastRotatedAt: session.lastRotatedAt,
+            now: now,
+            libraryShuffleEnabled: libraryShuffle
+        ) {
+            advance(session, origin: "automatic")
+        }
+    }
+
+    func setLibraryShuffleInterval(_ raw: String) {
+        catalog.mutate { file in
+            for index in file.sessions.indices {
+                let kind = file.sessions[index].listKind
+                if kind == nil || kind == "library" {
+                    file.sessions[index].interval = raw
+                }
+            }
+        }
+        reloadPublished()
+    }
+
+    func createPlaylist(name: String) -> UUID? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let id = UUID()
+        catalog.mutate { file in
+            file.playlists.append(NamedPlaylist(id: id, name: trimmed, assetIDs: [], order: "sequential", interval: "5"))
+        }
+        reloadPublished()
+        return id
+    }
+
+    func renamePlaylist(_ id: UUID, name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        catalog.mutate { file in
+            guard let index = file.playlists.firstIndex(where: { $0.id == id }) else { return }
+            file.playlists[index].name = trimmed
+        }
+        reloadPublished()
+    }
+
+    func deletePlaylist(_ id: UUID) {
+        catalog.mutate { file in
+            file.playlists.removeAll { $0.id == id }
+            for index in file.sessions.indices where file.sessions[index].playlistID == id {
+                file.sessions[index].playlistID = nil
+                file.sessions[index].listKind = nil
+                file.sessions[index].rotationEnabled = false
+            }
+        }
+        reloadPublished()
+        pushAssignments(recordHistory: false)
+    }
+
+    func addToPlaylist(paths: [String], playlistID: UUID) {
+        catalog.addAssets(paths.map { (path: $0, name: nil) }, to: playlistID)
+        reloadPublished()
+    }
+
+    func removeFromPlaylist(assetID: UUID, playlistID: UUID) {
+        catalog.mutate { file in
+            guard let index = file.playlists.firstIndex(where: { $0.id == playlistID }) else { return }
+            file.playlists[index].assetIDs = PlaylistLogic.removing(assetID, from: file.playlists[index].assetIDs)
+        }
+        reloadPublished()
+    }
+
+    func moveInPlaylist(playlistID: UUID, from: Int, to: Int) {
+        catalog.mutate { file in
+            guard let index = file.playlists.firstIndex(where: { $0.id == playlistID }) else { return }
+            file.playlists[index].assetIDs = PlaylistLogic.moving(file.playlists[index].assetIDs, from: from, to: to)
+        }
+        reloadPublished()
+    }
+
+    func updatePlaylistSettings(_ id: UUID, order: String, interval: String) {
+        catalog.mutate { file in
+            guard let index = file.playlists.firstIndex(where: { $0.id == id }) else { return }
+            file.playlists[index].order = order
+            file.playlists[index].interval = interval
+            for sessionIndex in file.sessions.indices where file.sessions[sessionIndex].playlistID == id {
+                file.sessions[sessionIndex].order = order
+                file.sessions[sessionIndex].interval = interval
+            }
+        }
+        reloadPublished()
+    }
+
+    func setHistoryEnabled(_ enabled: Bool) {
+        catalog.mutate { $0.historyEnabled = enabled }
+        reloadPublished()
+    }
+
+    func removeHistory(_ id: UUID) {
+        catalog.mutate { $0.history.removeAll { $0.id == id } }
+        reloadPublished()
+    }
+
+    func clearHistory() {
+        catalog.mutate { $0.history.removeAll() }
+        reloadPublished()
+    }
+
+    func setFutureSaveDirectory(_ path: String?) {
+        catalog.mutate { $0.futureSaveDirectory = path }
+        reloadPublished()
+    }
+
+    func futureSaveDirectory() -> String? {
+        catalog.snapshot().futureSaveDirectory
+    }
+
+    func saveDirectory() -> URL {
+        if let path = futureSaveDirectory(), FileManager.default.fileExists(atPath: path) {
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        return MoonleafConfigStore.libraryRoot
+    }
+
+    func targetUnavailable(_ key: String) -> Bool {
+        if let session = sessions.first(where: { $0.targetKey == key }), session.unavailable { return true }
+        return !targets.contains(where: { $0.key == key })
+    }
+
+    func currentTarget(displayUUID: String?) -> DesktopTarget? {
+        let current = targets.filter(\.isCurrent)
+        if let displayUUID {
+            return current.first { $0.displayUUIDs.contains(displayUUID) } ?? current.first
+        }
+        return current.first
+    }
+
+    func session(for key: String) -> TargetSession? {
+        sessions.first { $0.targetKey == key }
+    }
+
+    func playbackDescription(for key: String) -> String {
+        if targetUnavailable(key) {
+            return NSLocalizedString("target_unavailable", comment: "")
+        }
+        if let state = playerState[key] {
+            if !state.bound && state.reason == "space-bind-failed" {
+                return NSLocalizedString("bind_failed", comment: "")
+            }
+            if state.paused {
+                return pauseText(state.reason ?? "paused")
+            }
+            if state.playing {
+                return NSLocalizedString("playback_playing", comment: "")
+            }
+        }
+        if let session = session(for: key) {
+            if session.provenance == "unknown" {
+                return NSLocalizedString("playback_unknown", comment: "")
+            }
+            if session.paused {
+                return pauseText(session.pauseReason ?? "manual")
+            }
+            if let path = session.path, MediaKind.from(path: path).usesSpaceBoundOverlay, playerState[key] == nil {
+                return NSLocalizedString("playback_unknown", comment: "")
+            }
+            return NSLocalizedString("playback_showing", comment: "")
+        }
+        return NSLocalizedString("playback_unknown", comment: "")
+    }
+
+    func assetRecord(path: String) -> AssetRecord? {
+        catalog.asset(path: path) ?? {
+            guard FileManager.default.fileExists(atPath: path) else { return nil }
+            return catalog.ensureAsset(path: path, name: nil, source: path.hasPrefix(MoonleafConfigStore.libraryRoot.path) ? "library" : "external", origin: nil)
+        }()
+    }
+
+    func resolvedPath(assetID: UUID) -> String? {
+        catalog.resolvedAsset(assetID)?.url.path
+    }
+
+    func membershipNames(path: String) -> [String] {
+        guard let asset = catalog.asset(path: path) else { return [] }
+        return catalog.playlists(containing: asset.id).map(\.name)
+    }
+
+    func historyForDisplay() -> [HistoryEvent] {
+        history.reversed()
+    }
+
+    private func advance(_ session: TargetSession, origin: String) {
+        let items = poolItems(
+            kind: session.listKind ?? "library",
+            playlistID: session.playlistID,
+            folderPath: session.folderPath,
+            includeSubdirectories: session.includeSubdirectories ?? false
+        )
+        let ids = items.map(\.id)
+        guard let nextID = PlaylistLogic.nextID(
+            playable: ids,
+            current: session.assetID,
+            order: session.order,
+            randomIndex: { count in Int.random(in: 0..<count) }
+        ), let next = items.first(where: { $0.id == nextID }) else {
+            statusMessage = NSLocalizedString("list_empty", comment: "")
+            return
+        }
+        let target = targets.first { $0.key == session.targetKey }
+        let listName = session.playlistID.flatMap { id in playlists.first { $0.id == id }?.name }
+        _ = apply(
+            path: next.path,
+            name: next.name,
+            scope: .explicit,
+            displayUUID: target?.displayUUIDs.first,
+            explicitKeys: [session.targetKey],
+            stopRotation: false,
+            origin: origin,
+            confirmedCrossDisplay: true,
+            recordHistory: true,
+            playlistID: session.playlistID,
+            playlistName: listName,
+            stamp: ListStamp(
+                kind: session.listKind ?? "library",
+                playlistID: session.playlistID,
+                playlistName: listName,
+                order: session.order,
+                interval: session.interval,
+                folderPath: session.folderPath,
+                includeSubdirectories: session.includeSubdirectories,
+                rotationEnabled: session.rotationEnabled
+            ),
+            touchRotationClock: true,
+            keepPause: session.paused
+        )
+    }
+
+    private struct PoolItem {
+        var id: UUID
+        var path: String
+        var name: String
+    }
+
+    private func poolItems(kind: String, playlistID: UUID?, folderPath: String?, includeSubdirectories: Bool) -> [PoolItem] {
+        let snapshot = catalog.snapshot()
+        switch kind {
+        case "playlist":
+            guard let list = snapshot.playlists.first(where: { $0.id == playlistID }) else { return [] }
+            return resolvedPlaylist(list, snapshot: snapshot).map { PoolItem(id: $0.id, path: $0.path, name: $0.name) }
+        case "favorites":
+            return snapshot.favoriteIDs.compactMap { id in
+                guard let resolved = catalog.resolvedAsset(id) else { return nil }
+                return PoolItem(id: id, path: resolved.url.path, name: resolved.record.name)
+            }
+        case "folder":
+            guard let folderPath else { return [] }
+            return mediaFiles(in: folderPath, recursive: includeSubdirectories).compactMap { path in
+                let record = catalog.ensureAsset(path: path, name: nil, source: "external", origin: nil)
+                return PoolItem(id: record.id, path: path, name: record.name)
+            }
+        default:
+            return mediaFiles(in: libraryPoolOverride ?? MoonleafConfigStore.libraryRoot.path, recursive: false).compactMap { path in
+                let record = catalog.ensureAsset(path: path, name: nil, source: "library", origin: nil)
+                return PoolItem(id: record.id, path: path, name: record.name)
+            }
+        }
+    }
+
+    private func resolvedPlaylist(_ list: NamedPlaylist, snapshot: CatalogFile) -> [(id: UUID, path: String, name: String)] {
+        list.assetIDs.compactMap { id in
+            guard let resolved = catalog.resolvedAsset(id) else { return nil }
+            return (id, resolved.url.path, resolved.record.name)
+        }
+    }
+
+    private func writeCommittedSession(
+        snapshot: inout CatalogFile,
+        asset: AssetRecord,
+        path: String,
+        targetKey: String,
+        stopRotation: Bool,
+        stamp: ListStamp?,
+        touchRotationClock: Bool = false,
+        keepPause: Bool = false
+    ) {
+        var session = snapshot.sessions.first(where: { $0.targetKey == targetKey }) ?? TargetSession(
+            targetKey: targetKey,
+            assetID: asset.id,
+            assetName: asset.name,
+            path: path,
+            listKind: nil,
+            playlistID: nil,
+            folderPath: nil,
+            includeSubdirectories: nil,
+            rotationEnabled: false,
+            paused: false,
+            pauseReason: nil,
+            order: "random",
+            interval: UserDefaults.standard.string(forKey: "moonleaf_shuffleInterval") ?? "5",
+            unavailable: false,
+            provenance: "moonleaf",
+            lastRotatedAt: nil
+        )
+        session.assetID = asset.id
+        session.assetName = asset.name
+        session.path = path
+        session.unavailable = false
+        session.provenance = "moonleaf"
+        if !keepPause {
+            session.paused = false
+            session.pauseReason = nil
+        }
+        if stopRotation {
+            session.rotationEnabled = false
+            session.listKind = nil
+            session.playlistID = nil
+        } else if let stamp {
+            session.listKind = stamp.kind
+            session.playlistID = stamp.playlistID
+            session.folderPath = stamp.folderPath
+            session.includeSubdirectories = stamp.includeSubdirectories
+            session.rotationEnabled = stamp.rotationEnabled
+            session.order = stamp.order
+            session.interval = stamp.interval
+        }
+        if touchRotationClock {
+            session.lastRotatedAt = Date()
+        }
+        snapshot.suppressedRestoreKeys.removeAll { $0 == targetKey }
+        if let index = snapshot.sessions.firstIndex(where: { $0.targetKey == targetKey }) {
+            snapshot.sessions[index] = session
+        } else {
+            snapshot.sessions.append(session)
+        }
+    }
+
+    private struct PendingStillJob {
+        let spaces: [SpaceWallpapers.Space]
+        let screensByDisplay: [String: NSScreen]
+    }
+
+    private enum StillAssignResult {
+        case failed
+        case committed
+        case pending(PendingStillJob)
+    }
+
+    private func setLatestStillRequest(_ id: String?, for key: String) {
+        stillRequestLock.lock()
+        if let id {
+            latestStillRequestIDs[key] = id
+        } else {
+            latestStillRequestIDs.removeValue(forKey: key)
+        }
+        stillRequestLock.unlock()
+    }
+
+    private func isLatestStillRequest(_ id: String, for key: String) -> Bool {
+        stillRequestLock.lock()
+        let current = latestStillRequestIDs[key] == id
+        stillRequestLock.unlock()
+        return current
+    }
+
+    private func assignStill(_ path: String, target: DesktopTarget) -> StillAssignResult {
+        let spaces = SpaceWallpapers.liveSpaces().filter { space in
+            space.uuid == target.spaceUUID && target.displayUUIDs.contains(space.displayUUID)
+        }
+        guard !spaces.isEmpty else { return .failed }
+        var assigned: [SpaceWallpapers.Space: String] = [:]
+        for space in spaces { assigned[space] = path }
+        guard SpaceWallpapers.assign(assigned) else { return .failed }
+        lastStillPaths[target.key] = path
+        if spaces.contains(where: { !$0.isCurrent }) {
+            SpaceWallpapers.reload()
+        }
+        let liveCurrent = Set(spaces.filter(\.isCurrent).map(\.uuid))
+        guard VisiblePaint.allowed(targetSpaceUUID: target.spaceUUID, liveCurrentSpaceUUIDs: liveCurrent) else {
+            return .committed
+        }
+        let currentSpaces = spaces.filter(\.isCurrent)
+        guard !currentSpaces.isEmpty else { return .committed }
+        var screensByDisplay: [String: NSScreen] = [:]
+        if SpaceWallpapers.paintDesktopOverride == nil {
+            for space in currentSpaces {
+                guard let screen = SpaceBinding.screen(for: space.displayUUID) else { return .failed }
+                screensByDisplay[space.displayUUID] = screen
+            }
+        }
+        return .pending(PendingStillJob(spaces: currentSpaces, screensByDisplay: screensByDisplay))
+    }
+
+    private func enqueueStillPaint(
+        request: PendingOverlay,
+        target: DesktopTarget,
+        job: PendingStillJob,
+        previousPath: String?
+    ) {
+        let url = URL(fileURLWithPath: request.path)
+        Self.stillPaintQueue.async { [weak self] in
+            guard let self else { return }
+            guard self.isLatestStillRequest(request.requestID, for: target.key) else { return }
+
+            let liveBefore = SpaceWallpapers.liveSpaces()
+            let targetAlive = liveBefore.contains {
+                $0.uuid == target.spaceUUID && target.displayUUIDs.contains($0.displayUUID)
+            }
+            guard targetAlive else {
+                DispatchQueue.main.async {
+                    self.completeStillPaint(
+                        request: request,
+                        targetKey: target.key,
+                        succeeded: false,
+                        previousPath: previousPath
+                    )
+                }
+                return
+            }
+
+            var paintFailed = false
+            var skippedMovedSpace = false
+            for space in job.spaces {
+                guard self.isLatestStillRequest(request.requestID, for: target.key) else { return }
+                let liveSpaces = SpaceWallpapers.liveSpaces()
+                let stillCurrent = liveSpaces.contains {
+                    $0.displayUUID == space.displayUUID && $0.uuid == space.uuid && $0.isCurrent
+                }
+                guard stillCurrent else {
+                    skippedMovedSpace = true
+                    continue
+                }
+                do {
+                    try SpaceWallpapers.paintCurrentSpace(
+                        url: url,
+                        screen: job.screensByDisplay[space.displayUUID],
+                        displayUUID: space.displayUUID,
+                        spaceUUID: space.uuid
+                    )
+                } catch {
+                    paintFailed = true
+                    NSLog("[PlaybackCoordinator] desktop picture failed: %@", error.localizedDescription)
+                    break
+                }
+            }
+
+            if !paintFailed && skippedMovedSpace {
+                SpaceWallpapers.reload()
+            }
+
+            DispatchQueue.main.async {
+                self.completeStillPaint(
+                    request: request,
+                    targetKey: target.key,
+                    succeeded: !paintFailed,
+                    previousPath: previousPath
+                )
+            }
+        }
+    }
+
+    private func completeStillPaint(
+        request: PendingOverlay,
+        targetKey: String,
+        succeeded: Bool,
+        previousPath: String?
+    ) {
+        guard pendingByTarget[targetKey]?.requestID == request.requestID else { return }
+        pendingByTarget.removeValue(forKey: targetKey)
+        if succeeded {
+            let asset = catalog.asset(path: request.path) ?? catalog.ensureAsset(
+                path: request.path,
+                name: request.assetName,
+                source: request.path.hasPrefix(MoonleafConfigStore.libraryRoot.path) ? "library" : "external",
+                origin: request.origin
+            )
+            var snapshot = catalog.snapshot()
+            writeCommittedSession(
+                snapshot: &snapshot,
+                asset: asset,
+                path: request.path,
+                targetKey: targetKey,
+                stopRotation: request.stopRotation,
+                stamp: request.stamp,
+                touchRotationClock: request.touchRotationClock,
+                keepPause: request.keepPause
+            )
+            if request.recordHistory {
+                snapshot.history = HistoryLogic.appending(
+                    snapshot.history,
+                    event: HistoryEvent(
+                        id: UUID(),
+                        assetID: asset.id,
+                        assetName: asset.name,
+                        appliedAt: Date(),
+                        targetKeys: [targetKey],
+                        origin: request.origin,
+                        playlistID: request.playlistID,
+                        playlistName: request.playlistName
+                    ),
+                    enabled: snapshot.historyEnabled,
+                    isRestore: false
+                )
+            }
+            catalog.mutate { $0 = snapshot }
+            reloadPublished()
+            pushAssignments(recordHistory: false)
+            publishCurrentPath()
+            if canTouchApp,
+               let current = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()),
+               current.key == targetKey {
+                MoonleafConfigStore.shared.writeCurrentWallpaperAsync(request.path)
+            }
+            if !settleRandomBatch(succeeded: [targetKey], rejected: []), pendingByTarget.isEmpty {
+                statusMessage = nil
+            }
+        } else {
+            restoreStillAssignment(request: request, targetKey: targetKey, previousPath: previousPath)
+            pushAssignments(recordHistory: false)
+            if !settleRandomBatch(succeeded: [], rejected: [targetKey]) {
+                statusMessage = NSLocalizedString("bind_failed", comment: "")
+                statusTone = .warning
+            }
+        }
+        applyPending = !pendingByTarget.isEmpty
+    }
+
+    /// A failed paint leaves the store pointing at a picture that never reached
+    /// the screen. Only the picture this request wrote is undone: once a newer
+    /// request owns the desktop, its wallpaper has to survive the old failure.
+    private func restoreStillAssignment(request: PendingOverlay, targetKey: String, previousPath: String?) {
+        guard lastStillPaths[targetKey] == request.path else { return }
+        lastStillPaths[targetKey] = previousPath
+        guard let previousPath,
+              FileManager.default.fileExists(atPath: previousPath),
+              let target = targets.first(where: { $0.key == targetKey }) else { return }
+        let spaces = SpaceWallpapers.liveSpaces().filter { space in
+            space.uuid == target.spaceUUID && target.displayUUIDs.contains(space.displayUUID)
+        }
+        guard !spaces.isEmpty else { return }
+        var rollback: [SpaceWallpapers.Space: String] = [:]
+        for space in spaces { rollback[space] = previousPath }
+        _ = SpaceWallpapers.assign(rollback)
+    }
+
+    private func seedMissingTargets(targets: [DesktopTarget]) {
+        let snapshot = catalog.snapshot()
+        let existingKeys = Set(snapshot.sessions.map(\.targetKey))
+        let suppressed = Set(snapshot.suppressedRestoreKeys)
+        let candidates = targets.filter { !existingKeys.contains($0.key) && !suppressed.contains($0.key) }
+        guard !candidates.isEmpty else { return }
+
+        let inTestOverride = SpaceWallpapers.targetAssignmentsOverride != nil
+            || SpaceWallpapers.spacesOverride != nil
+            || SpaceWallpapers.assignOverride != nil
+        var legacyPaths = Set<String>()
+        if !inTestOverride {
+            if let currentPath = MoonleafConfigStore.shared.readCurrentWallpaper(), !currentPath.isEmpty {
+                legacyPaths.insert(URL(fileURLWithPath: currentPath).standardizedFileURL.path)
+                legacyPaths.insert(URL(fileURLWithPath: currentPath).resolvingSymlinksInPath().path)
+            }
+            for path in MoonleafConfigStore.shared.readScreenWallpapers().values where !path.isEmpty {
+                legacyPaths.insert(URL(fileURLWithPath: path).standardizedFileURL.path)
+                legacyPaths.insert(URL(fileURLWithPath: path).resolvingSymlinksInPath().path)
+            }
+        }
+
+        var detected = SpaceWallpapers.desktopAssignments(for: candidates)
+
+        // Legacy single-file / per-screen fallback for video or GIF when the system
+        // still-image store has no matching moonleaf wallpaper on an empty session list.
+        if !inTestOverride && snapshot.sessions.isEmpty {
+            let screenMap = MoonleafConfigStore.shared.readScreenWallpapers()
+            if !screenMap.isEmpty {
+                let screens = NSScreen.screens
+                for (index, path) in screenMap {
+                    guard screens.indices.contains(index),
+                          let displayUUID = SpaceBinding.displayUUID(for: screens[index]),
+                          let target = candidates.first(where: { $0.isCurrent && $0.displayUUIDs.contains(displayUUID) }),
+                          detected[target.key] == nil else { continue }
+                    detected[target.key] = path
+                }
+            }
+            if let legacyCurrent = MoonleafConfigStore.shared.readCurrentWallpaper() {
+                let display = SpaceBinding.currentDisplayUUID()
+                if let current = candidates.first(where: { $0.isCurrent && (display == nil || $0.displayUUIDs.contains(display!)) })
+                    ?? candidates.first(where: \.isCurrent),
+                   detected[current.key] == nil {
+                    detected[current.key] = legacyCurrent
+                }
+            }
+        }
+
+        var seeded: [(target: DesktopTarget, asset: AssetRecord, path: String)] = []
+        for target in candidates {
+            guard let rawPath = detected[target.key],
+                  let ownedPath = resolvedOwnedPath(rawPath, snapshot: snapshot, legacyPaths: legacyPaths) else {
+                continue
+            }
+            let name = URL(fileURLWithPath: ownedPath).deletingPathExtension().lastPathComponent
+            let source = isInsideDirectory(ownedPath, directory: MoonleafConfigStore.libraryRoot) ? "library" : "external"
+            let asset = catalog.ensureAsset(path: ownedPath, name: name, source: source, origin: "restore")
+            seeded.append((target: target, asset: asset, path: ownedPath))
+        }
+        guard !seeded.isEmpty else { return }
+
+        catalog.mutate { file in
+            for item in seeded {
+                guard !file.sessions.contains(where: { $0.targetKey == item.target.key }),
+                      !file.suppressedRestoreKeys.contains(item.target.key) else { continue }
+                file.sessions.append(TargetSession(
+                    targetKey: item.target.key,
+                    assetID: item.asset.id,
+                    assetName: item.asset.name,
+                    path: item.path,
+                    listKind: nil,
+                    playlistID: nil,
+                    folderPath: nil,
+                    includeSubdirectories: nil,
+                    rotationEnabled: false,
+                    paused: false,
+                    pauseReason: nil,
+                    order: "random",
+                    interval: "5",
+                    unavailable: false,
+                    provenance: "moonleaf",
+                    lastRotatedAt: nil
+                ))
+            }
+        }
+    }
+
+    private func resolvedOwnedPath(_ rawPath: String, snapshot: CatalogFile, legacyPaths: Set<String>) -> String? {
+        guard !rawPath.isEmpty else { return nil }
+        let rawURL = URL(fileURLWithPath: rawPath).standardizedFileURL
+        let rawResolved = rawURL.resolvingSymlinksInPath().path
+        guard FileManager.default.fileExists(atPath: rawResolved) else { return nil }
+        guard MediaKind.from(path: rawURL.path) != .unknown || MediaKind.from(path: rawResolved) != .unknown else {
+            return nil
+        }
+
+        if let matchedAsset = snapshot.assets.first(where: {
+            let assetStd = URL(fileURLWithPath: $0.path).standardizedFileURL.path
+            let assetRes = URL(fileURLWithPath: $0.path).resolvingSymlinksInPath().path
+            return assetStd == rawURL.path || assetRes == rawResolved
+        }) {
+            if FileManager.default.fileExists(atPath: matchedAsset.path) {
+                return matchedAsset.path
+            }
+            return rawURL.path
+        }
+
+        if isInsideDirectory(rawURL.path, directory: MoonleafConfigStore.libraryRoot)
+            || isInsideDirectory(rawResolved, directory: MoonleafConfigStore.libraryRoot) {
+            return rawURL.path
+        }
+
+        if let future = snapshot.futureSaveDirectory, !future.isEmpty {
+            let futureURL = URL(fileURLWithPath: future, isDirectory: true)
+            if isInsideDirectory(rawURL.path, directory: futureURL)
+                || isInsideDirectory(rawResolved, directory: futureURL) {
+                return rawURL.path
+            }
+        }
+
+        if legacyPaths.contains(rawURL.path) || legacyPaths.contains(rawResolved) {
+            return rawURL.path
+        }
+
+        return nil
+    }
+
+    private func isInsideDirectory(_ path: String, directory: URL) -> Bool {
+        let dirStd = directory.standardizedFileURL.path
+        let dirRes = directory.resolvingSymlinksInPath().path
+        let stdPrefix = dirStd.hasSuffix("/") ? dirStd : dirStd + "/"
+        let resPrefix = dirRes.hasSuffix("/") ? dirRes : dirRes + "/"
+        let pathStd = URL(fileURLWithPath: path).standardizedFileURL.path
+        let pathRes = URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+        return pathStd.hasPrefix(stdPrefix) || pathRes.hasPrefix(resPrefix)
+    }
+
+    private func pushAssignments(recordHistory: Bool) {
+        guard canTouchApp || assignmentsSink != nil else { return }
+        _ = recordHistory
+        var file = PlaybackAssignmentFile(revision: Int(Date().timeIntervalSince1970), separateSpaces: separateSpaces, targets: [:])
+        let snapshot = catalog.snapshot()
+        var needsPlayer = false
+        for session in snapshot.sessions where !session.unavailable {
+            guard let path = session.path, FileManager.default.fileExists(atPath: path) else { continue }
+            let kind = MediaKind.from(path: path)
+            if kind.usesSpaceBoundOverlay { needsPlayer = true }
+            file.targets[session.targetKey] = PlaybackAssignment(
+                path: path,
+                kind: kind.rawValue,
+                paused: session.paused,
+                manualPause: session.pauseReason == "manual",
+                pauseReason: session.pauseReason
+            )
+        }
+        for (key, request) in pendingByTarget where !request.isStill && FileManager.default.fileExists(atPath: request.path) {
+            let kind = MediaKind.from(path: request.path)
+            if kind.usesSpaceBoundOverlay { needsPlayer = true }
+            file.targets[key] = PlaybackAssignment(
+                path: request.path,
+                kind: kind.rawValue,
+                paused: request.keepPause && catalog.snapshot().sessions.first { $0.targetKey == key }?.paused == true,
+                manualPause: request.keepPause && catalog.snapshot().sessions.first { $0.targetKey == key }?.paused == true,
+                pauseReason: (request.keepPause && catalog.snapshot().sessions.first { $0.targetKey == key }?.paused == true) ? "manual" : nil,
+                requestID: request.requestID,
+                requestedAt: request.requestedAt
+            )
+        }
+        if let assignmentsSink {
+            assignmentsSink(file)
+            return
+        }
+        SpaceBinding.writeAssignments(file)
+        if needsPlayer {
+            GlasswpProcessManager.shared.ensureRunning(perDesktopMode: true)
+        }
+        SpaceBinding.postReconcile()
+    }
+
+    private func readPlayerState() {
+        acceptReported(SpaceBinding.readState())
+    }
+
+    func acceptReported(_ file: PlaybackStateFile?) {
+        playerState = file?.targets ?? [:]
+        guard let file, !pendingByTarget.isEmpty else { return }
+        var unique: [String: PendingOverlay] = [:]
+        for request in pendingByTarget.values where !request.isStill {
+            unique[request.requestID] = request
+        }
+        guard !unique.isEmpty else { return }
+        var failed = false
+        var committed = false
+        var batchSucceeded: [String] = []
+        var batchRejected: [String] = []
+        for request in unique.values {
+            let keys = request.keys.filter { pendingByTarget[$0]?.requestID == request.requestID }
+            guard !keys.isEmpty else { continue }
+            let sawRequest = file.targets.values.contains { $0.requestID == request.requestID }
+            if file.updatedAt.timeIntervalSince(request.requestedAt) < -1 && !sawRequest { continue }
+            var succeeded: [String] = []
+            var rejected: [String] = []
+            var waiting = false
+            for key in keys {
+                guard let state = file.targets[key] else {
+                    if sawRequest { rejected.append(key) } else { waiting = true }
+                    continue
+                }
+                if ApplyCommit.overlaySucceeded(
+                    requestID: request.requestID,
+                    path: request.path,
+                    requestedAt: request.requestedAt,
+                    reportedRequestID: state.requestID,
+                    reportedPath: state.path,
+                    reportedAt: state.requestedAt,
+                    bound: state.bound,
+                    reason: state.reason
+                ) {
+                    succeeded.append(key)
+                } else if ApplyCommit.overlayFailed(
+                    requestID: request.requestID,
+                    path: request.path,
+                    requestedAt: request.requestedAt,
+                    reportedRequestID: state.requestID,
+                    reportedPath: state.path,
+                    reportedAt: state.requestedAt,
+                    bound: state.bound,
+                    reason: state.reason
+                ) {
+                    rejected.append(key)
+                } else {
+                    waiting = true
+                }
+            }
+            if waiting { continue }
+            if !succeeded.isEmpty {
+                commitOverlay(request, keys: succeeded)
+                committed = true
+            }
+            for key in keys where pendingByTarget[key]?.requestID == request.requestID {
+                pendingByTarget.removeValue(forKey: key)
+            }
+            if !rejected.isEmpty { failed = true }
+            batchSucceeded.append(contentsOf: succeeded)
+            batchRejected.append(contentsOf: rejected)
+        }
+        if !settleRandomBatch(succeeded: batchSucceeded, rejected: batchRejected) {
+            if failed {
+                statusMessage = NSLocalizedString("bind_failed", comment: "")
+                statusTone = .warning
+            } else if pendingByTarget.isEmpty {
+                statusMessage = nil
+            }
+        }
+        if committed || failed {
+            pushAssignments(recordHistory: false)
+        }
+        if committed, canTouchApp {
+            publishCurrentPath()
+        }
+        applyPending = !pendingByTarget.isEmpty
+    }
+
+    /// Updates a waiting shuffle from receipts. Returns true when this call owns the status line.
+    private func settleRandomBatch(succeeded: [String], rejected: [String]) -> Bool {
+        guard var batch = randomBatch else { return false }
+        var touched = false
+        for key in succeeded where batch[key] == .pending {
+            batch[key] = .applied
+            touched = true
+        }
+        for key in rejected where batch[key] == .pending {
+            batch[key] = .failed
+            touched = true
+        }
+        guard touched else { return false }
+        statusMessage = Self.randomStatus(batch, targets: targets)
+        statusTone = Self.randomTone(batch)
+        randomBatch = batch.values.contains(.pending) ? batch : nil
+        return true
+    }
+
+    private func commitOverlay(_ pending: PendingOverlay, keys: [String]) {
+        let keys = keys.filter { pendingByTarget[$0]?.requestID == pending.requestID }
+        guard !keys.isEmpty else { return }
+        catalog.mutate { file in
+            for key in keys {
+                var session = file.sessions.first(where: { $0.targetKey == key }) ?? TargetSession(
+                    targetKey: key,
+                    assetID: pending.assetID,
+                    assetName: pending.assetName,
+                    path: pending.path,
+                    listKind: nil,
+                    playlistID: nil,
+                    folderPath: nil,
+                    includeSubdirectories: nil,
+                    rotationEnabled: false,
+                    paused: false,
+                    pauseReason: nil,
+                    order: "sequential",
+                    interval: "5",
+                    unavailable: false,
+                    provenance: "moonleaf",
+                    lastRotatedAt: nil
+                )
+                session.assetID = pending.assetID
+                session.assetName = pending.assetName
+                session.path = pending.path
+                session.unavailable = false
+                session.provenance = "moonleaf"
+                if !pending.keepPause {
+                    session.paused = false
+                    session.pauseReason = nil
+                }
+                if pending.stopRotation {
+                    session.rotationEnabled = false
+                    session.listKind = nil
+                    session.playlistID = nil
+                } else if let stamp = pending.stamp {
+                    session.listKind = stamp.kind
+                    session.playlistID = stamp.playlistID
+                    session.folderPath = stamp.folderPath
+                    session.includeSubdirectories = stamp.includeSubdirectories
+                    session.rotationEnabled = stamp.rotationEnabled
+                    session.order = stamp.order
+                    session.interval = stamp.interval
+                }
+                if pending.touchRotationClock {
+                    session.lastRotatedAt = Date()
+                }
+                file.suppressedRestoreKeys.removeAll { $0 == key }
+                if let index = file.sessions.firstIndex(where: { $0.targetKey == key }) {
+                    file.sessions[index] = session
+                } else {
+                    file.sessions.append(session)
+                }
+            }
+            if pending.recordHistory {
+                file.history = HistoryLogic.appending(
+                    file.history,
+                    event: HistoryEvent(
+                        id: UUID(),
+                        assetID: pending.assetID,
+                        assetName: pending.assetName,
+                        appliedAt: Date(),
+                        targetKeys: keys,
+                        origin: pending.origin,
+                        playlistID: pending.playlistID,
+                        playlistName: pending.playlistName
+                    ),
+                    enabled: file.historyEnabled,
+                    isRestore: false
+                )
+            }
+        }
+        reloadPublished()
+        guard canTouchApp,
+              let current = currentTarget(displayUUID: SpaceBinding.currentDisplayUUID()),
+              keys.contains(current.key) else { return }
+        MoonleafConfigStore.shared.writeCurrentWallpaperAsync(pending.path)
+    }
+
+    private func reloadPublished() {
+        let snapshot = catalog.snapshot()
+        sessions = snapshot.sessions
+        playlists = snapshot.playlists
+        history = snapshot.history
+        historyEnabled = snapshot.historyEnabled
+        catalogRevision += 1
+        guard canTouchApp else { return }
+        macpaperService.shared.favorites = catalog.favoritePaths()
+    }
+
+    func reloadForChecks() {
+        reloadPublished()
+        statusMessage = nil
+    }
+
+    private func publishCurrentPath() {
+        guard canTouchApp else { return }
+        let display = SpaceBinding.currentDisplayUUID()
+        guard let target = currentTarget(displayUUID: display) else { return }
+        let session = sessions.first(where: { $0.targetKey == target.key })
+        macpaperService.shared.current_wp = session?.path ?? ""
+    }
+
+    private func mediaFiles(in directory: String, recursive: Bool) -> [String] {
+        let root = URL(fileURLWithPath: directory, isDirectory: true)
+        guard let enumerator = FileManager.default.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isSymbolicLinkKey, .isDirectoryKey],
+            options: recursive ? [.skipsHiddenFiles] : [.skipsHiddenFiles, .skipsSubdirectoryDescendants]
+        ) else { return [] }
+        var paths: [String] = []
+        for case let url as URL in enumerator {
+            let values = try? url.resourceValues(forKeys: [.isSymbolicLinkKey, .isDirectoryKey])
+            if values?.isSymbolicLink == true {
+                enumerator.skipDescendants()
+            }
+            if values?.isDirectory == true { continue }
+            if MediaKind.from(path: url.path) != .unknown {
+                paths.append(url.path)
+            }
+        }
+        return paths.sorted()
+    }
+
+    private func intervalSeconds(_ raw: String) -> TimeInterval? {
+        RotationSchedule.seconds(raw)
+    }
+
+    private func message(for error: ScopeError) -> String {
+        switch error {
+        case .noCurrentDesktop: return NSLocalizedString("scope_no_current", comment: "")
+        case .crossDisplayNeedsConfirmation: return NSLocalizedString("scope_cross_display", comment: "")
+        case .unknownTarget: return NSLocalizedString("scope_unknown_target", comment: "")
+        }
+    }
+
+    private func pauseText(_ reason: String) -> String {
+        switch reason {
+        case "manual": return NSLocalizedString("pause_manual", comment: "")
+        case "fullscreen": return NSLocalizedString("pause_fullscreen", comment: "")
+        case "not-visible": return NSLocalizedString("pause_not_visible", comment: "")
+        default: return NSLocalizedString("pause_manual", comment: "")
+        }
+    }
+}

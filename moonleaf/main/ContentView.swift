@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selectedTab: TabSelection = .wallpapers
+    @ObservedObject private var navigation = AppNavigation.shared
     private let version_label_alpha: Double = 0.6
     @State private var previewTarget: PreviewTarget?
     @AppStorage("glassBackground") private var glassBackground = false
@@ -90,17 +90,7 @@ struct ContentView: View {
                             }
                         }
                         .buttonStyle(.plain)
-
-                        ForEach(TabSelection.allCases, id: \.self) { tab in
-                            tabButton(
-                                title: tab.title,
-                                icon: tab.icon,
-                                isSelected: selectedTab == tab,
-                                action: {
-                                    withAnimation(.easeInOut(duration: 0.3)) { selectedTab = tab }
-                                }
-                            )
-                        }
+                        // Settings entry converged to SidebarView
                     }
                 }
                 .padding(.horizontal, 32)
@@ -108,18 +98,28 @@ struct ContentView: View {
                 .background(bg(useGlass: glassBackground))
                 .padding(.horizontal, 16)
 
-                ZStack {
+                HStack(spacing: 0) {
+                    SidebarView()
+                        .padding(.leading, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 16)
+
                     Group {
-                        switch selectedTab {
-                        case .wallpapers:
+                        switch navigation.page {
+                        case .usage:
+                            UsagePage()
+                        case .library:
                             ManagerView(previewTarget: $previewTarget)
-                        case .browse:
+                        case .playlists:
+                            PlaylistsPage()
+                        case .discover:
                             BrowseView(previewTarget: $previewTarget)
+                        case .settings:
+                            SettingsView(embedded: true)
                         }
                     }
-                    .transition(.opacity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .focusable(false)
 
@@ -143,20 +143,28 @@ struct tabButton: View {
     let title: String
     let icon: String
     let isSelected: Bool
+    var fullWidth: Bool = false
     let action: () -> Void
 
     @State private var isHovered = false
 
     var body: some View {
-        RippleButton(action: action) {
-            HStack(spacing: 8) {
+        RippleButton(cornerRadius: 12, action: action) {
+            HStack(spacing: 10) {
                 Image(systemName: icon)
                     .font(Font(font_loader.regular(size: 14)))
+                    .foregroundStyle(isSelected ? MoonleafPalette.periwinkle : Color.secondary)
                 Text(title)
-                    .font(Font(font_loader.regular(size: 14)))
+                    .font(Font(isSelected ? font_loader.bold(size: 14) : font_loader.regular(size: 14)))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: !fullWidth, vertical: false)
+                if fullWidth {
+                    Spacer(minLength: 0)
+                }
             }
             .foregroundStyle(isSelected ? .primary : .secondary)
-            .padding(.horizontal, 16)
+            .frame(maxWidth: fullWidth ? .infinity : nil, alignment: .leading)
+            .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background {
                 if isSelected {
@@ -164,7 +172,11 @@ struct tabButton: View {
                         .fill(.regularMaterial)
                         .overlay {
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(.primary.opacity(0.1), lineWidth: 1)
+                                .fill(MoonleafPalette.periwinkle.opacity(0.12))
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(MoonleafPalette.periwinkle.opacity(0.35), lineWidth: 1)
                         }
                 } else if isHovered {
                     RoundedRectangle(cornerRadius: 12)

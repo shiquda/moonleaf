@@ -44,7 +44,9 @@ final class ScreenPlayer {
     var vizMinHeight: Double = 4.0
     var isDaemon: Bool = false
 
-    init(screen: NSScreen, isDaemon: Bool = false) {
+    private var drawingPaused = false
+
+    init(screen: NSScreen, isDaemon: Bool = false, joinsAllSpaces: Bool = false) {
         self.screen = screen
         self.isDaemon = isDaemon
         
@@ -58,9 +60,10 @@ final class ScreenPlayer {
         wnd.isOpaque = !isDaemon  
         wnd.backgroundColor = .clear  
         wnd.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)) + 1)
-        wnd.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        wnd.collectionBehavior = joinsAllSpaces
+            ? [.canJoinAllSpaces, .stationary, .ignoresCycle]
+            : [.stationary, .ignoresCycle]
         wnd.ignoresMouseEvents = true
-        wnd.makeKeyAndOrderFront(nil)
         self.window = wnd
     }
 
@@ -68,8 +71,8 @@ final class ScreenPlayer {
 
     func play(filePath: String, fade: Bool = true) {
         guard let contentView = window.contentView else { return }
+        window.orderFrontRegardless()
         currentFilePath = filePath
-        contentView.wantsLayer = true
 
         let oldLayer   = currentLayer
         let oldPlayer  = mp
@@ -287,7 +290,8 @@ final class ScreenPlayer {
             forName: .AVPlayerItemDidPlayToEndTime,
             object: item,
             queue: .main
-        ) { _ in
+        ) { [weak self] _ in
+            guard let self, !self.drawingPaused else { return }
             player.seek(to: .zero)
             player.play()
         }
@@ -401,10 +405,38 @@ final class ScreenPlayer {
     private func readVolume() -> Double {
         MoonleafConfigStore.shared.readVolume()
     }
+
+    func setDrawingPaused(_ paused: Bool) {
+        drawingPaused = paused
+        guard let layer = currentLayer else {
+            if paused { mp?.pause() } else { mp?.play() }
+            return
+        }
+        if paused {
+            mp?.pause()
+            let pausedTime = layer.convertTime(CACurrentMediaTime(), from: nil)
+            layer.speed = 0
+            layer.timeOffset = pausedTime
+        } else {
+            let pausedTime = layer.timeOffset
+            layer.speed = 1
+            layer.timeOffset = 0
+            layer.beginTime = 0
+            layer.beginTime = layer.convertTime(CACurrentMediaTime(), from: nil) - pausedTime
+            mp?.play()
+        }
+    }
+
+    var isDrawing: Bool {
+        if drawingPaused { return false }
+        if let mp { return mp.timeControlStatus == .playing }
+        return currentLayer != nil && !currentFilePath.isEmpty
+    }
 }
 
 class GlasswpApp: NSObject, NSApplicationDelegate {
     var screenPlayers: [ScreenPlayer] = []
+    let overlay = SpaceOverlayController()
     var entryFilePath: String = ""
     var isDaemon: Bool = false
 
@@ -429,27 +461,14 @@ class GlasswpApp: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         MoonleafConfigStore.shared.writeDaemonPID(ProcessInfo.processInfo.processIdentifier)
         loadVisualizerSettings()
-        setupWindows()
-
-        if isDaemon {
-            let perScreen = MoonleafConfigStore.shared.readScreenWallpapers()
-            if entryFilePath.isEmpty, let persisted = MoonleafConfigStore.shared.readCurrentWallpaper() {
-                entryFilePath = persisted
-            }
-            if !perDesktopMode {
-                for (idx, player) in screenPlayers.enumerated() {
-                    let candidate = perScreen[idx] ?? entryFilePath
-                    if !candidate.isEmpty && FileManager.default.fileExists(atPath: candidate) {
-                        player.play(filePath: candidate, fade: false)
-                    }
-                }
-            }
-        } else if !perDesktopMode && !entryFilePath.isEmpty && FileManager.default.fileExists(atPath: entryFilePath) {
-            for player in screenPlayers {
-                player.play(filePath: entryFilePath, fade: false)
-            }
+        if entryFilePath.isEmpty, let persisted = MoonleafConfigStore.shared.readCurrentWallpaper() {
+            entryFilePath = persisted
         }
-
+        overlay.configure = { [weak self] player in
+            guard let self else { return }
+            self.applyCurrentSettings(to: player)
+        }
+        overlay.start(entryPath: entryFilePath)
         registerNotifications()
     }
 
@@ -463,15 +482,11 @@ class GlasswpApp: NSObject, NSApplicationDelegate {
     /// Point every screen at either the overlay picture or the system desktop
     /// pictures, depending on the per-desktop setting.
     private func applyDrawingMode() {
-        if perDesktopMode {
-            for p in screenPlayers { p.clear() }
-            return
+        for player in overlay.players where !player.currentFilePath.isEmpty {
+            applyCurrentSettings(to: player)
+            player.play(filePath: player.currentFilePath, fade: false)
         }
-        for p in screenPlayers {
-            let path = p.currentFilePath.isEmpty ? entryFilePath : p.currentFilePath
-            guard !path.isEmpty else { continue }
-            p.play(filePath: path, fade: false)
-        }
+        overlay.reconcile()
     }
 
     
@@ -530,7 +545,7 @@ class GlasswpApp: NSObject, NSApplicationDelegate {
     @objc private func handleVolumeChange(_ notification: Notification) {
         if let vol = notification.userInfo?["volume"] as? Float {
             DispatchQueue.main.async {
-                for p in self.screenPlayers { p.updateVolume(vol) }
+                for p in self.overlay.players { p.updateVolume(vol) }
             }
         }
     }
@@ -538,91 +553,36 @@ class GlasswpApp: NSObject, NSApplicationDelegate {
     @objc private func handleVizSettingsChange() {
         loadVisualizerSettings()
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            for p in self.screenPlayers {
-                self.applyCurrentSettings(to: p)
-            }
-            self.applyDrawingMode()
+            self?.applyDrawingMode()
         }
     }
 
     @objc private func handleAutoPause(_ notification: Notification) {
-        if let enabled = notification.userInfo?["ap_is_enabled"] as? Bool, enabled {
-            NSWorkspace.shared.notificationCenter.addObserver(
-                self, selector: #selector(handleWorkspaceChange),
-                name: NSWorkspace.activeSpaceDidChangeNotification, object: nil)
-        } else {
-            NSWorkspace.shared.notificationCenter.removeObserver(self)
-        }
+        _ = notification
     }
 
-    @objc private func handleWorkspaceChange() {}
+    @objc private func handleWorkspaceChange() {
+        overlay.spaceChanged()
+    }
+
     @objc private func handleChangeWallpaper(_ notification: Notification) {
-        guard let path = notification.userInfo?["filePath"] as? String else { return }
-        let screenIndex = notification.userInfo?["screenIndex"] as? Int
-
+        let path = notification.userInfo?["filePath"] as? String ?? ""
         DispatchQueue.main.async {
-            if self.perDesktopMode {
-                
-                self.entryFilePath = path
-                if let idx = screenIndex, idx >= 0, idx < self.screenPlayers.count {
-                    self.screenPlayers[idx].currentFilePath = path
-                } else {
-                    for p in self.screenPlayers { p.currentFilePath = path }
-                }
-                return
+            if !path.isEmpty && SpaceBinding.readAssignments().targets.isEmpty {
+                self.overlay.seedCurrentOnly(path: path)
             }
-            if let idx = screenIndex {
-                guard idx >= 0 && idx < self.screenPlayers.count else { return }
-                self.screenPlayers[idx].play(filePath: path, fade: true)
-            } else {
-                
-                for p in self.screenPlayers {
-                    p.play(filePath: path, fade: true)
-                }
-                self.entryFilePath = path
-            }
+            self.overlay.reconcile()
         }
     }
-
 
     @objc private func handlePerDesktopMode(_ notification: Notification) {
-        guard let enabled = notification.userInfo?["enabled"] as? Bool else { return }
-        DispatchQueue.main.async {
-            guard self.perDesktopMode != enabled else { return }
-            self.perDesktopMode = enabled
-            self.applyDrawingMode()
-        }
+        _ = notification
+        DispatchQueue.main.async { self.overlay.reconcile() }
     }
+
     @objc private func handleScreenParameterChange() {
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            let current = NSScreen.screens
-
-            
-            var keepPlayers: [ScreenPlayer] = []
-            for p in self.screenPlayers {
-                if current.contains(p.screen) {
-                    keepPlayers.append(p)
-                } else {
-                    p.window.close()
-                }
-            }
-
-            
-            let existingScreens = Set(keepPlayers.map { ObjectIdentifier($0.screen) })
-            for screen in current {
-                if !existingScreens.contains(ObjectIdentifier(screen)) {
-                    let p = self.makePlayer(for: screen)
-                    
-                    let path = self.entryFilePath.isEmpty ? keepPlayers.first?.currentFilePath ?? "" : self.entryFilePath
-                    if !self.perDesktopMode && !path.isEmpty {
-                        p.play(filePath: path, fade: false)
-                    }
-                    keepPlayers.append(p)
-                }
-            }
-            self.screenPlayers = keepPlayers
+            self?.overlay.reconcile()
         }
     }
 

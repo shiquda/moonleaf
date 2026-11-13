@@ -5,6 +5,44 @@ All notable changes to **Moonleaf** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Wallpapers are applied to a desktop, which is one display plus one Space, instead of one overlay across every Space.
+- Usage history keeps the latest 1000 successful applies, with a recent view and a timeline.
+- The menu bar can switch the current desktop to a playlist.
+- The library can search by name and add a selection to a playlist without changing what is playing.
+- Discover saves a chosen file into the library. Pexels video quality is chosen before saving.
+- The overview page can shuffle every desktop from the header, or one desktop from its card, without turning rotation on or off.
+- The asset detail image opens the preview on a double-click, and shows a preview button while the pointer is over it. The path row copies the image itself.
+
+### Changed
+- Separate wallpapers per desktop cannot be turned off.
+- New downloads use the current library folder. A future save folder applies only to later downloads.
+- The overview shuffle-all button changes every desktop immediately, without a confirmation.
+
+
+### Fixed
+- Switching Spaces refreshes the current desktop before a menu or apply, and a still is not painted onto the visible Space unless that Space is the target.
+- A playlist add no longer re-enters the catalog queue.
+- Video and GIF history, sessions, and playlist checks update only after the engine reports the same request, path, and time. A failed bind pauses the player.
+- Each playlist rotates on its own interval even when library shuffle is off.
+- Each desktop keeps its own unconfirmed video request. Clearing a desktop or applying a new wallpaper invalidates the old request, so a late engine report cannot restore it.
+- A failed Space lookup pauses and hides a player that was already open.
+- A failed bind republishes the last committed wallpaper, so the engine no longer retries the rejected one.
+- A one-shot library shuffle keeps the nil or library source, so turning library rotation off still stops that desktop.
+- An unconfirmed video shuffle is not reported as changed. The final note names each desktop after the engine replies.
+- A video shuffle no longer stays on "waiting" after its receipt arrives while the next desktop is still being applied.
+- The asset detail preview covers the manager window, the same full-window preview used by Discover and Library.
+- Icon buttons show their action in a tooltip while the pointer is over them.
+- Escape closes the detail preview, and closing the detail closes its preview.
+- A status line that reports a finished change uses a check mark instead of a warning triangle.
+- The library menu button stays readable on a light wallpaper.
+- A linked wallpaper reports the size of the file it points at, not of the link.
+- Changing every desktop repaints them off the main thread, so the window keeps responding.
+- A wallpaper that failed to reach the screen only restores what it replaced: an older failure cannot undo a newer wallpaper.
+- The library add button, its menu, the detail source, and the settings page are translated.
+
 ## [4.1.1] - 2026-10-23
 
 ### Added

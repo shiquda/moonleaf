@@ -388,6 +388,7 @@ struct QuickPreviewOverlay: View {
         .onReceive(timer) { _ in
             currentTime = Date()
         }
+        .onExitCommand(perform: onClose)
     }
     
     private func formatTime(_ date: Date) -> String {

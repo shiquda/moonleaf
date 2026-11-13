@@ -99,8 +99,7 @@ class macpaperService: NSObject, ObservableObject {
     }
 
     public func launchGlasswpDaemon() {
-        let perDesktop = UserDefaults.standard.bool(forKey: macpaperService.perSpaceShuffleKey)
-        GlasswpProcessManager.shared.ensureRunning(perDesktopMode: perDesktop)
+        GlasswpProcessManager.shared.ensureRunning(perDesktopMode: true)
     }
 
     func select_wp(_ wallpaper: endup_wp?) {
@@ -108,11 +107,9 @@ class macpaperService: NSObject, ObservableObject {
     }
 
     func toggleFavorite(_ wallpaper: endup_wp) {
-        if favorites.contains(wallpaper.path) {
-            favorites.remove(wallpaper.path)
-        } else {
-            favorites.insert(wallpaper.path)
-        }
+        let next = !favorites.contains(wallpaper.path)
+        LibraryCatalog.shared.setFavorite(path: wallpaper.path, name: wallpaper.name, favorite: next)
+        favorites = LibraryCatalog.shared.favoritePaths()
         saveFavorites()
     }
 
@@ -153,12 +150,28 @@ class macpaperService: NSObject, ObservableObject {
     func setShuffleEnabled(_ enabled: Bool) {
         shuffleEnabled = enabled
         UserDefaults.standard.set(enabled, forKey: macpaperService.shuffleEnabledKey)
+        if enabled {
+            DispatchQueue.main.async {
+                PlaybackCoordinator.shared.enableRotationOnCurrentDesktop()
+            }
+        }
         macpaperService.syncShuffleLoop()
     }
 
     func setShuffleInterval(_ interval: ShuffleInterval) {
         shuffleInterval = interval
         UserDefaults.standard.set(interval.rawValue, forKey: macpaperService.shuffleIntervalKey)
+        let raw = interval.rawValue
+        let update = {
+            MainActor.assumeIsolated {
+                PlaybackCoordinator.shared.setLibraryShuffleInterval(raw)
+            }
+        }
+        if Thread.isMainThread {
+            update()
+        } else {
+            DispatchQueue.main.async(execute: update)
+        }
         if shuffleEnabled {
             macpaperService.restartShuffleLoop()
         }
@@ -236,17 +249,8 @@ class macpaperService: NSObject, ObservableObject {
     }
 
     private static func shuffleTick() {
-        let candidates = library_candidates()
-        guard !candidates.isEmpty else { return }
-
-        if UserDefaults.standard.bool(forKey: perSpaceShuffleKey) {
-            rotateDesktops(candidates)
-            return
-        }
-
-        guard let next = random_library_wallpaper(from: candidates) else { return }
         DispatchQueue.main.async {
-            macpaperService.shared.set_wp(next)
+            PlaybackCoordinator.shared.rotateDueSessions()
         }
     }
 
@@ -377,11 +381,16 @@ class macpaperService: NSObject, ObservableObject {
     /// Applies an already chosen picture, without going through the wallpaper
     /// picker's per-desktop pinning.
     func set_wp_path(_ path: String) {
-        didMutateWallpaperBeforeInitialLoad = true
-        MoonleafConfigStore.shared.writeCurrentWallpaperAsync(path)
-        _exec_wallpaper(["set", path]) { _ in }
-        GlasswpProcessManager.shared.ensureRunning(perDesktopMode: perSpaceShuffle)
-        postOverlayNotification(path: path)
+        let wallpaper = endup_wp(
+            id: UUID(),
+            name: URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent,
+            path: path,
+            preview: nil,
+            createdDate: Date(),
+            fileSize: 0,
+            isFolder: false
+        )
+        set_wp(wallpaper)
     }
 
     private func loadInMemoryDefaults() {
@@ -427,7 +436,9 @@ class macpaperService: NSObject, ObservableObject {
             }
 
             if !self.didMutateWallpaperBeforeInitialLoad {
-                self.current_wp = snapshot.currentWallpaper
+                if self.current_wp == nil {
+                    self.current_wp = snapshot.currentWallpaper
+                }
                 if !snapshot.screenWallpapers.isEmpty {
                     self.screenWallpapers = snapshot.screenWallpapers
                     let loaded = snapshot.screenWallpapers
@@ -494,8 +505,11 @@ class macpaperService: NSObject, ObservableObject {
             let isFolder = isDir.boolValue
             if !isFolder && !validExts.contains(url.pathExtension.lowercased()) { return nil }
 
-            let rv = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
-            let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+            // A linked asset is a reference: the link itself is a few dozen
+            // bytes, and its own size would misreport the wallpaper.
+            let statURL = url.resolvingSymlinksInPath()
+            let rv = try? statURL.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+            let attrs = try? FileManager.default.attributesOfItem(atPath: statURL.path)
             let modDate = rv?.contentModificationDate
                 ?? (attrs?[.modificationDate] as? Date)
                 ?? Date.distantPast
@@ -529,7 +543,11 @@ class macpaperService: NSObject, ObservableObject {
         let scanPath = currentPath ?? wp_storage_dir
 
         DispatchQueue.global(qos: .background).async { [weak self] in
-            let items = macpaperService.scan_library(scanPath)
+            var items = macpaperService.scan_library(scanPath)
+            if let extra = LibraryCatalog.shared.snapshot().futureSaveDirectory.flatMap(URL.init(fileURLWithPath:)) ?? nil,
+               extra.resolvingSymlinksInPath().path != scanPath.resolvingSymlinksInPath().path {
+                items += macpaperService.scan_library(extra).filter { !$0.isFolder }
+            }
 
             DispatchQueue.main.async {
                 guard let self = self else { return }
@@ -543,55 +561,61 @@ class macpaperService: NSObject, ObservableObject {
     }
 
     func set_wp(_ wallpaper: endup_wp) {
+        applyWallpaper(
+            wallpaper,
+            scope: .currentDesktop,
+            displayUUID: SpaceBinding.currentDisplayUUID(),
+            explicitKeys: [],
+            confirmedCrossDisplay: false,
+            stopRotation: true
+        )
+    }
+
+    func applyToDisplayDesktops(_ wallpaper: endup_wp, displayUUID: String, confirmedCrossDisplay: Bool) {
+        applyWallpaper(
+            wallpaper,
+            scope: .displayDesktops,
+            displayUUID: displayUUID,
+            explicitKeys: [],
+            confirmedCrossDisplay: confirmedCrossDisplay,
+            stopRotation: true
+        )
+    }
+
+    func applyWallpaper(
+        _ wallpaper: endup_wp,
+        scope: ScopeKind,
+        displayUUID: String?,
+        explicitKeys: [String],
+        confirmedCrossDisplay: Bool,
+        stopRotation: Bool
+    ) {
         let ext = (wallpaper.path as NSString).pathExtension.lowercased()
-        let isMoving = ["mov", "mp4", "gif"].contains(ext)
-        let isStill = ["jpg", "jpeg", "png"].contains(ext)
-
-        guard isMoving || isStill else { return }
-
-        if isMoving && perSpaceShuffle {
-            // An animated wallpaper is drawn by the overlay engine across every
-            // desktop, so it cannot live next to the per-desktop rotation.
-            setPerSpaceShuffle(false)
-        }
-
-        didMutateWallpaperBeforeInitialLoad = true
-        DispatchQueue.main.async { self.selected_wp = wallpaper }
-
-        MoonleafConfigStore.shared.writeCurrentWallpaperAsync(wallpaper.path)
-        MoonleafConfigStore.shared.writeScreenWallpapersAsync([:])
-        GlasswpProcessManager.shared.ensureRunning(perDesktopMode: perSpaceShuffle)
-        if isStill {
-            let cliPath = Bundle.main.bundlePath + "/Contents/Resources/bin/wallpaper"
-            if FileManager.default.fileExists(atPath: cliPath) {
-                _exec_wallpaper(["set", wallpaper.path]) { [weak self] _ in
-                    guard let self = self else { return }
-                    self.pin_to_current_desktop(wallpaper.path)
-                    self.postOverlayNotification(path: wallpaper.path)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        self.current_wp = wallpaper.path
-                        self.screenWallpapers.removeAll()
-                        self.saveScreenWallpapers()
-                    }
-                }
-            } else {
-                self.pin_to_current_desktop(wallpaper.path)
-                self.postOverlayNotification(path: wallpaper.path)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    self.current_wp = wallpaper.path
-                    self.screenWallpapers.removeAll()
-                    self.saveScreenWallpapers()
-                }
+        guard ["mov", "mp4", "gif", "jpg", "jpeg", "png"].contains(ext) else { return }
+        let work = {
+            self.didMutateWallpaperBeforeInitialLoad = true
+            self.selected_wp = wallpaper
+            let ok = MainActor.assumeIsolated {
+                PlaybackCoordinator.shared.apply(
+                    path: wallpaper.path,
+                    name: wallpaper.name,
+                    scope: scope,
+                    displayUUID: displayUUID,
+                    explicitKeys: explicitKeys,
+                    stopRotation: stopRotation,
+                    origin: "manual",
+                    confirmedCrossDisplay: confirmedCrossDisplay,
+                    recordHistory: true
+                )
             }
-            return
+            if ok {
+                MoonleafConfigStore.shared.writeCurrentWallpaperAsync(wallpaper.path)
+            }
         }
-
-        self.postOverlayNotification(path: wallpaper.path)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            self.current_wp = wallpaper.path
-            self.screenWallpapers.removeAll()
-            self.saveScreenWallpapers()
+        if Thread.isMainThread {
+            work()
+        } else {
+            DispatchQueue.main.async(execute: work)
         }
     }
 
@@ -637,48 +661,34 @@ class macpaperService: NSObject, ObservableObject {
     }
 
     func set_wp_on_screen(_ wallpaper: endup_wp, screenIndex: Int) {
-        let ext = (wallpaper.path as NSString).pathExtension.lowercased()
-        let isMoving = ["mov", "mp4", "gif"].contains(ext)
-        let isStill = ["jpg", "jpeg", "png"].contains(ext)
-        guard isMoving || isStill else { return }
-
-        if isMoving && perSpaceShuffle {
-            setPerSpaceShuffle(false)
-        }
-
-        if isStill {
-            set_wp(wallpaper)
-            return
-        }
-
-        didMutateWallpaperBeforeInitialLoad = true
-        MoonleafConfigStore.shared.writeCurrentWallpaperAsync(wallpaper.path)
-        DispatchQueue.main.async {
-            self.screenWallpapers[screenIndex] = wallpaper.path
-            self.saveScreenWallpapers()
-            self.current_wp = wallpaper.path
-        }
-
-        GlasswpProcessManager.shared.ensureRunning(perDesktopMode: perSpaceShuffle)
-
-        DistributedNotificationCenter.default().postNotificationName(
-            Notification.Name("com.naomisphere.moonleaf.changeWallpaper"),
-            object: nil,
-            userInfo: ["filePath": wallpaper.path, "screenIndex": screenIndex],
-            deliverImmediately: true
+        let screens = NSScreen.screens
+        guard screens.indices.contains(screenIndex),
+              let uuid = SpaceBinding.displayUUID(for: screens[screenIndex]) else { return }
+        applyWallpaper(
+            wallpaper,
+            scope: .currentDesktop,
+            displayUUID: uuid,
+            explicitKeys: [],
+            confirmedCrossDisplay: false,
+            stopRotation: true
         )
     }
 
     func unset_wp() {
         didMutateWallpaperBeforeInitialLoad = true
-        DispatchQueue.main.async {
+        let work = {
             self.selected_wp = nil
+            MainActor.assumeIsolated {
+                PlaybackCoordinator.shared.clearCurrent()
+            }
             self.current_wp = nil
-            self.screenWallpapers.removeAll()
+        }
+        if Thread.isMainThread {
+            work()
+        } else {
+            DispatchQueue.main.async(execute: work)
         }
         MoonleafConfigStore.shared.writeCurrentWallpaperAsync(nil)
-        MoonleafConfigStore.shared.writeScreenWallpapersAsync([:])
-        GlasswpProcessManager.shared.stopDaemon()
     }
 
     func syncAutoStartState(_ enabled: Bool) {
