@@ -72,6 +72,7 @@ struct PlaybackChecks {
         testLibraryShuffleStopsAfterRandom(playback)
         testRandomVideoReceiptSummary(playback)
         testRandomReceiptArrivesBeforeNextApply(playback)
+        testStatusTone()
 
         if Check.failed == 0 {
             print("playback behavior checks passed")
@@ -79,6 +80,26 @@ struct PlaybackChecks {
             fputs("\(Check.failed) checks failed\n", stderr)
             exit(1)
         }
+    }
+
+    /// A finished change must not look like a warning; a wait is a notice.
+    static func testStatusTone() {
+        Check.expect(
+            PlaybackCoordinator.randomTone(["a": .applied, "b": .applied]) == .success,
+            "a change that finished everywhere reads as success"
+        )
+        Check.expect(
+            PlaybackCoordinator.randomTone(["a": .applied, "b": .pending]) == .info,
+            "a pending receipt reads as a notice"
+        )
+        Check.expect(
+            PlaybackCoordinator.randomTone(["a": .applied, "b": .failed]) == .warning,
+            "a desktop left behind reads as a warning"
+        )
+        Check.expect(
+            PlaybackCoordinator.randomTone(["a": .noSource]) == .warning,
+            "a desktop without a source reads as a warning"
+        )
     }
 
     static func testPlaylistAdd(_ playback: PlaybackCoordinator) {

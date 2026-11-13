@@ -38,6 +38,13 @@ struct PendingOverlay {
     var keepPause: Bool = false
 }
 
+/// Whether a status line reports a problem, a finished change, or a wait.
+enum PlaybackStatusTone {
+    case warning
+    case success
+    case info
+}
+
 enum RandomApplyOutcome: String, Equatable {
     case applied
     case pending
@@ -60,6 +67,9 @@ final class PlaybackCoordinator: ObservableObject {
     @Published private(set) var historyEnabled = true
     @Published private(set) var playerState: [String: PlaybackTargetState] = [:]
     @Published private(set) var statusMessage: String?
+    /// How the status should read: most messages report a problem, and the
+    /// shuffle result says whether anything changed.
+    @Published private(set) var statusTone: PlaybackStatusTone = .warning
     @Published private(set) var catalogRevision = 0
 
     private let catalog = LibraryCatalog.shared
@@ -78,6 +88,8 @@ final class PlaybackCoordinator: ObservableObject {
     private var rotationTimer: DispatchSourceTimer?
     /// One-shot shuffle whose video targets are still waiting for an engine receipt.
     private var randomBatch: [String: RandomApplyOutcome]?
+    /// Serial so two changes to the same desktop land in order.
+    private static let stillPaintQueue = DispatchQueue(label: "com.naomisphere.moonleaf.still-paint", qos: .userInitiated)
 
 
     private init() {
@@ -480,6 +492,7 @@ final class PlaybackCoordinator: ObservableObject {
         }
         let batch = randomBatch ?? outcomes
         statusMessage = Self.randomStatus(batch, targets: targets)
+        statusTone = Self.randomTone(batch)
         randomBatch = batch.values.contains(.pending) ? batch : nil
         applyPending = !pendingByTarget.isEmpty
         return batch
@@ -489,6 +502,14 @@ final class PlaybackCoordinator: ObservableObject {
         if randomBatch?[key] == nil || randomBatch?[key] == .pending {
             randomBatch?[key] = outcomes[key]
         }
+    }
+
+    /// Only a change that finished everywhere reads as success; a wait is a
+    /// notice, anything left behind is a problem.
+    static func randomTone(_ outcomes: [String: RandomApplyOutcome]) -> PlaybackStatusTone {
+        if outcomes.values.contains(where: { $0 != .applied && $0 != .pending }) { return .warning }
+        if outcomes.values.contains(where: { $0 == .pending }) { return .info }
+        return outcomes.isEmpty ? .warning : .success
     }
 
     static func randomStatus(_ outcomes: [String: RandomApplyOutcome], targets: [DesktopTarget]) -> String? {
@@ -899,12 +920,22 @@ final class PlaybackCoordinator: ObservableObject {
         guard VisiblePaint.allowed(targetSpaceUUID: target.spaceUUID, liveCurrentSpaceUUIDs: liveCurrent) else {
             return true
         }
+        var paints: [(URL, NSScreen)] = []
         for space in spaces where space.isCurrent {
             guard let screen = SpaceBinding.screen(for: space.displayUUID) else { return false }
-            do {
-                try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
-            } catch {
-                return false
+            paints.append((url, screen))
+        }
+        guard !paints.isEmpty else { return true }
+        // Each picture is a synchronous call into WallpaperAgent. A dozen of
+        // them in a row blocked the window long enough to miss events, so the
+        // paint goes off the main thread in the order the desktops were changed.
+        Self.stillPaintQueue.async {
+            for (url, screen) in paints {
+                do {
+                    try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
+                } catch {
+                    NSLog("[PlaybackCoordinator] desktop picture failed: %@", error.localizedDescription)
+                }
             }
         }
         return true
@@ -1185,6 +1216,7 @@ final class PlaybackCoordinator: ObservableObject {
         }
         guard touched else { return false }
         statusMessage = Self.randomStatus(batch, targets: targets)
+        statusTone = Self.randomTone(batch)
         randomBatch = batch.values.contains(.pending) ? batch : nil
         return true
     }

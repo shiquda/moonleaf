@@ -619,6 +619,14 @@ private struct IconTooltipProbe: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView { NSView() }
 
+    /// A button that disappears while the pointer is still over it would
+    /// otherwise leave the pending label behind.
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.showing = false
+        coordinator.text = nil
+        IconTooltip.shared.cancel(owner: ObjectIdentifier(nsView))
+    }
+
     func updateNSView(_ nsView: NSView, context: Context) {
         let label = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let wants = hovered && !label.isEmpty
@@ -728,9 +736,11 @@ struct CircleMenuLabel: View {
                 .frame(width: size, height: size)
                 .overlay {
                     if darkFrosted {
+                        // A material turns white over a bright wallpaper, so the
+                        // dots need a solid backdrop to stay visible.
                         Circle()
-                            .fill(Color.black.opacity(0.48))
-                            .padding(2)
+                            .fill(Color.black.opacity(0.62))
+                            .padding(1.5)
                     } else {
                         Circle()
                             .fill(Color(nsColor: .windowBackgroundColor).opacity(0.22))
@@ -738,11 +748,12 @@ struct CircleMenuLabel: View {
                 }
                 .overlay {
                     Circle()
-                        .stroke(darkFrosted ? Color.white.opacity(0.24) : Color.primary.opacity(0.14), lineWidth: 0.9)
+                        .stroke(darkFrosted ? Color.white.opacity(0.3) : Color.primary.opacity(0.14), lineWidth: 0.9)
                 }
             Image(systemName: icon)
                 .font(.system(size: size * 0.43, weight: .semibold))
                 .foregroundStyle(darkFrosted ? Color.white.opacity(0.95) : Color.primary.opacity(0.85))
+                .shadow(color: darkFrosted ? Color.black.opacity(0.4) : .clear, radius: 1.5, y: 0.5)
         }
         .frame(width: max(size, 30), height: max(size, 30))
         .contentShape(Circle())
@@ -918,17 +929,38 @@ struct GlassEmptyState: View {
     }
 }
 
+enum InlineBannerTone {
+    case warning
+    case success
+    case info
+
+    var icon: String {
+        switch self {
+        case .warning: return "exclamationmark.triangle.fill"
+        case .success: return "checkmark.circle.fill"
+        case .info: return "info.circle.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .warning: return MoonleafPalette.amber
+        case .success: return MoonleafPalette.mint
+        case .info: return MoonleafPalette.periwinkle
+        }
+    }
+}
+
 struct InlineBanner: View {
     let message: String
-    var icon: String = "exclamationmark.triangle.fill"
-    var tint: Color = MoonleafPalette.amber
+    var tone: InlineBannerTone = .warning
     var onDismiss: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: icon)
+            Image(systemName: tone.icon)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(tint)
+                .foregroundStyle(tone.tint)
             Text(message)
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundStyle(.primary.opacity(0.9))
@@ -947,10 +979,10 @@ struct InlineBanner: View {
         .padding(.vertical, 10)
         .background {
             RoundedRectangle(cornerRadius: 12)
-                .fill(tint.opacity(0.14))
+                .fill(tone.tint.opacity(0.14))
                 .overlay {
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(tint.opacity(0.35), lineWidth: 0.8)
+                        .stroke(tone.tint.opacity(0.35), lineWidth: 0.8)
                 }
         }
     }

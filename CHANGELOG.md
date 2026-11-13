@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A video shuffle no longer stays on "waiting" after its receipt arrives while the next desktop is still being applied.
 - The asset detail preview covers the manager window, the same full-window preview used by Discover and Library.
 - Icon buttons show their action in a tooltip while the pointer is over them.
+- Escape closes the detail preview, and closing the detail closes its preview.
+- A status line that reports a finished change uses a check mark instead of a warning triangle.
+- The library menu button stays readable on a light wallpaper.
+- A linked wallpaper reports the size of the file it points at, not of the link.
+- Changing every desktop repaints them off the main thread, so the window keeps responding.
+- The library add button, its menu, the detail source, and the settings page are translated.
 
 ## [4.1.1] - 2026-10-23
 

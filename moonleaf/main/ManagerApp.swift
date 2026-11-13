@@ -156,7 +156,7 @@ struct ManagerView: View {
             HStack(spacing: 6) {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .bold))
-                Text("add wallpaper")
+                Text(NSLocalizedString("add_wallpaper", comment: ""))
                     .font(Font(font_loader.bold(size: 13)))
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
@@ -184,7 +184,7 @@ struct ManagerView: View {
                 }) {
                     HStack {
                         Image(systemName: "doc.fill")
-                        Text("file")
+                        Text(NSLocalizedString("add_file", comment: ""))
                         Spacer()
                     }
                     .font(.system(size: 13, weight: .medium))
@@ -203,7 +203,7 @@ struct ManagerView: View {
                 }) {
                     HStack {
                         Image(systemName: "folder.fill")
-                        Text("folder")
+                        Text(NSLocalizedString("add_folder", comment: ""))
                         Spacer()
                     }
                     .font(.system(size: 13, weight: .medium))
@@ -489,7 +489,7 @@ struct ManagerView: View {
                     Button(action: { service.back() }) {
                         HStack(spacing: 8) {
                             Image(systemName: "arrow.left")
-                            Text("Back")
+                            Text(NSLocalizedString("back", comment: ""))
                         }
                         .font(.system(size: 13, weight: .medium))
                         .padding(.horizontal, 12)

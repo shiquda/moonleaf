@@ -505,8 +505,11 @@ class macpaperService: NSObject, ObservableObject {
             let isFolder = isDir.boolValue
             if !isFolder && !validExts.contains(url.pathExtension.lowercased()) { return nil }
 
-            let rv = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
-            let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+            // A linked asset is a reference: the link itself is a few dozen
+            // bytes, and its own size would misreport the wallpaper.
+            let statURL = url.resolvingSymlinksInPath()
+            let rv = try? statURL.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+            let attrs = try? FileManager.default.attributesOfItem(atPath: statURL.path)
             let modDate = rv?.contentModificationDate
                 ?? (attrs?[.modificationDate] as? Date)
                 ?? Date.distantPast

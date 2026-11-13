@@ -199,7 +199,7 @@ struct SettingsView: View {
                         .padding(20)
                 }
             } else {
-                Text("No changelog available.")
+                Text(NSLocalizedString("settings_no_changelog", comment: ""))
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(40)
@@ -267,7 +267,7 @@ struct SettingsView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Update Server")
+                        Text(NSLocalizedString("settings_update_server", comment: ""))
                             .font(Font(font_loader.regular(size: 14)))
                         
                         HStack(spacing: 12) {
@@ -445,15 +445,15 @@ struct SettingsView: View {
                         .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
                 )
             }
-            Section(title: "Import Method") {
+            Section(title: NSLocalizedString("settings_import_method", comment: "")) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Choose how wallpapers are added to your library.")
+                    Text(NSLocalizedString("settings_import_hint", comment: ""))
                         .font(Font(font_loader.regular(size: 12)))
                         .foregroundColor(.secondary)
 
                     Picker("", selection: $service.importMethod) {
-                        Text("Link/Reference").tag(macpaperService.ImportMethod.link)
-                        Text("Copy").tag(macpaperService.ImportMethod.copy)
+                        Text(NSLocalizedString("settings_import_link", comment: "")).tag(macpaperService.ImportMethod.link)
+                        Text(NSLocalizedString("settings_import_copy", comment: "")).tag(macpaperService.ImportMethod.copy)
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     .onChange(of: service.importMethod) { _ in service.saveSettings() }
@@ -527,30 +527,30 @@ struct SettingsView: View {
                 }
             }
 
-            Section(title: "Playback Effects") {
+            Section(title: NSLocalizedString("settings_playback_effects", comment: "")) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Wallpaper Scaling")
+                    Text(NSLocalizedString("settings_wallpaper_scaling", comment: ""))
                         .font(Font(font_loader.regular(size: 14)))
                     
                     Picker("", selection: $scalingMode) {
-                        Text("Fill Screen").tag("fill")
-                        Text("Fit to Screen").tag("fit")
-                        Text("Stretch to Fill").tag("stretch")
-                        Text("Center").tag("center")
-                        Text("Tile").tag("tile")
+                        Text(NSLocalizedString("scaling_fill", comment: "")).tag("fill")
+                        Text(NSLocalizedString("scaling_fit", comment: "")).tag("fit")
+                        Text(NSLocalizedString("scaling_stretch", comment: "")).tag("stretch")
+                        Text(NSLocalizedString("scaling_center", comment: "")).tag("center")
+                        Text(NSLocalizedString("scaling_tile", comment: "")).tag("tile")
                     }
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: scalingMode) { _ in saveVisualizerSettings() }
                     
-                    Text("Video Filter")
+                    Text(NSLocalizedString("settings_video_filter", comment: ""))
                         .font(Font(font_loader.regular(size: 14)))
                         .padding(.top, 8)
                     
                     Picker("", selection: $videoFilter) {
-                        Text("None").tag("none")
-                        Text("Grayscale").tag("grayscale")
-                        Text("Invert").tag("invert")
-                        Text("Sepia").tag("sepia")
+                        Text(NSLocalizedString("filter_none", comment: "")).tag("none")
+                        Text(NSLocalizedString("filter_grayscale", comment: "")).tag("grayscale")
+                        Text(NSLocalizedString("filter_invert", comment: "")).tag("invert")
+                        Text(NSLocalizedString("filter_sepia", comment: "")).tag("sepia")
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     .onChange(of: videoFilter) { _ in saveVisualizerSettings() }
@@ -563,32 +563,32 @@ struct SettingsView: View {
                         .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.1), lineWidth: 0.8) }
                 )
             }
-            Section(title: "Audio Visualizer (beta)") {
+            Section(title: NSLocalizedString("settings_audio_visualizer", comment: "")) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Visualizer Mode")
+                    Text(NSLocalizedString("settings_visualizer_mode", comment: ""))
                         .font(Font(font_loader.regular(size: 14)))
 
                     Picker("", selection: $visualizer_mode) {
-                        Text("Disabled").tag("disabled")
-                        Text("Wallpaper Audio").tag("wallpaper")
+                        Text(NSLocalizedString("visualizer_disabled", comment: "")).tag("disabled")
+                        Text(NSLocalizedString("visualizer_wallpaper_audio", comment: "")).tag("wallpaper")
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     .onChange(of: visualizer_mode) { _ in saveVisualizerSettings() }
 
-                    Text("Color Mode")
+                    Text(NSLocalizedString("settings_color_mode", comment: ""))
                         .font(Font(font_loader.regular(size: 14)))
                         .padding(.top, 8)
 
                     Picker("", selection: $visualizer_colorMode) {
-                        Text("Rainbow").tag("rainbow")
-                        Text("Custom").tag("custom")
+                        Text(NSLocalizedString("color_rainbow", comment: "")).tag("rainbow")
+                        Text(NSLocalizedString("color_custom", comment: "")).tag("custom")
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     .onChange(of: visualizer_colorMode) { _ in saveVisualizerSettings() }
 
                     if visualizer_colorMode == "custom" {
                         HStack {
-                            Text("Color:")
+                            Text(NSLocalizedString("settings_color", comment: ""))
                             TextField("#FF00FF", text: $visualizer_customColor)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .frame(width: 100)
@@ -598,7 +598,7 @@ struct SettingsView: View {
                     }
 
                     HStack {
-                        Text("Transparency:")
+                        Text(NSLocalizedString("settings_transparency", comment: ""))
                         Slider(value: $visualizer_transparency, in: 0.1...1.0, step: 0.05)
                             .frame(width: 150)
                             .onChange(of: visualizer_transparency) { _ in saveVisualizerSettings() }
@@ -609,7 +609,7 @@ struct SettingsView: View {
                     .padding(.top, 8)
 
                     HStack {
-                        Text("Bar Count:")
+                        Text(NSLocalizedString("settings_bar_count", comment: ""))
                         Picker("", selection: $visualizer_barCount) {
                             Text("32").tag(32)
                             Text("48").tag(48)
@@ -625,7 +625,7 @@ struct SettingsView: View {
                     .padding(.top, 8)
 
                     HStack {
-                        Text("Max Height:")
+                        Text(NSLocalizedString("settings_max_height", comment: ""))
                         Slider(value: $visualizer_maxHeight, in: 0.1...1.0, step: 0.05)
                             .frame(width: 150)
                             .onChange(of: visualizer_maxHeight) { _ in saveVisualizerSettings() }
@@ -636,7 +636,7 @@ struct SettingsView: View {
                     .padding(.top, 4)
 
                     HStack {
-                        Text("Min Height:")
+                        Text(NSLocalizedString("settings_min_height", comment: ""))
                         Slider(value: $visualizer_minHeight, in: 1.0...20.0, step: 1.0)
                             .frame(width: 150)
                             .onChange(of: visualizer_minHeight) { _ in saveVisualizerSettings() }

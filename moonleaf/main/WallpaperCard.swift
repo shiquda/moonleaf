@@ -322,7 +322,7 @@ struct WallpaperCard: View {
                                         VStack(spacing: 3) {
                                             Image(systemName: "display.2")
                                                 .font(.system(size: 13, weight: .medium))
-                                            Text("All")
+                                            Text(NSLocalizedString("filter_all", comment: ""))
                                                 .font(.system(size: 9, weight: .medium))
                                         }
                                         .foregroundStyle(.white)

@@ -111,7 +111,7 @@ struct UsagePage: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     if let status = playback.statusMessage {
-                        InlineBanner(message: status)
+                        InlineBanner(message: status, tone: bannerTone(playback.statusTone))
                     }
 
                     desktopsSection
@@ -153,6 +153,14 @@ struct UsagePage: View {
         }
     }
 
+
+    private func bannerTone(_ tone: PlaybackStatusTone) -> InlineBannerTone {
+        switch tone {
+        case .success: return .success
+        case .info: return .info
+        case .warning: return .warning
+        }
+    }
 
     private var randomControl: some View {
         PrimaryGradientButton(
@@ -1658,16 +1666,40 @@ private struct PlaylistDropDelegate: DropDelegate {
         }
     }
 }
+/// A borderless window takes no key focus unless it says so, and a preview the
+/// reader cannot dismiss with Escape is a dead end: the sheet below would keep
+/// the keyboard and swallow the key.
+private final class DetailPreviewWindow: NSWindow {
+    var onEscape: (() -> Void)?
+
+    override var canBecomeKey: Bool { true }
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 {
+            onEscape?()
+            return
+        }
+        super.keyDown(with: event)
+    }
+
+    override func cancelOperation(_ sender: Any?) {
+        onEscape?()
+    }
+}
+
 private final class DetailPreviewHost {
     static let shared = DetailPreviewHost()
-    private var window: NSWindow?
+    private var window: DetailPreviewWindow?
+    /// The detail sheet the preview belongs to; it gets the keyboard back.
+    private var sheetWindow: NSWindow?
 
     func show(path: String, title: String, detail: String?) {
         close()
         let target = PreviewTarget(url: URL(fileURLWithPath: path), title: title, detail: detail)
         let host = NSHostingView(rootView: QuickPreviewOverlay(target: target, onClose: { DetailPreviewHost.shared.close() }))
         let frame = Self.managerFrame()
-        let window = NSWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        let window = DetailPreviewWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.onEscape = { DetailPreviewHost.shared.close() }
         window.isReleasedWhenClosed = false
         window.isOpaque = false
         window.hasShadow = false
@@ -1676,8 +1708,14 @@ private final class DetailPreviewHost {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.contentView = host
         window.setFrame(frame, display: true)
+        window.makeFirstResponder(host)
+        sheetWindow = Self.detailSheetWindow()
         window.makeKeyAndOrderFront(nil)
         self.window = window
+    }
+
+    private static func detailSheetWindow() -> NSWindow? {
+        NSApp.windows.first { $0.sheetParent != nil }
     }
 
     /// The detail sheet is the key window. Discover and library cover the manager
@@ -1696,6 +1734,10 @@ private final class DetailPreviewHost {
     func close() {
         window?.orderOut(nil)
         window = nil
+        if let sheet = sheetWindow, sheet.parent != nil {
+            sheet.makeKey()
+        }
+        sheetWindow = nil
     }
 }
 
@@ -1968,6 +2010,7 @@ struct AssetDetailSheet: View {
         .frame(width: 484)
         .frame(minHeight: 420, idealHeight: 540, maxHeight: 560)
         .onAppear(perform: loadFacts)
+        .onDisappear { DetailPreviewHost.shared.close() }
     }
 
     private func factCell(label: String, value: String) -> some View {
@@ -2000,10 +2043,25 @@ struct AssetDetailSheet: View {
     }
 
     private var sourceDisplay: String {
-        if let origin = assetRecord?.origin, !origin.isEmpty {
-            return origin
+        let origin = assetRecord?.origin?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        switch origin {
+        case "wallhaven", "pexels": return origin.capitalized
+        default: break
         }
-        return assetRecord?.source ?? NSLocalizedString("detail_unknown", comment: "")
+        switch assetRecord?.source ?? "" {
+        case "library": return NSLocalizedString("source_library", comment: "")
+        case "external": return NSLocalizedString("source_external", comment: "")
+        case "discover": return NSLocalizedString("source_discover", comment: "")
+        case "": break
+        case let other: return other
+        }
+        switch origin {
+        case "manual": return NSLocalizedString("origin_manual", comment: "")
+        case "automatic": return NSLocalizedString("origin_auto", comment: "")
+        case "restore": return NSLocalizedString("origin_restore", comment: "")
+        case "": return NSLocalizedString("detail_unknown", comment: "")
+        case let other: return other
+        }
     }
 
     private var locationDisplay: String {
