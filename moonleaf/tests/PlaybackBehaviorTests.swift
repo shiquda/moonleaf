@@ -54,6 +54,8 @@ struct PlaybackChecks {
             SpaceWallpapers.targetAssignmentsOverride = nil
             playback.libraryPoolOverride = nil
             playback.assignmentsSink = nil
+            playback.setCommandRefreshForChecks(false)
+            SpaceBinding.stateReader = nil
             try? FileManager.default.removeItem(at: root)
         }
 
@@ -69,6 +71,7 @@ struct PlaybackChecks {
         testRandomWallpaperKeepsOtherDesktops(playback)
         testLibraryShuffleStopsAfterRandom(playback)
         testRandomVideoReceiptSummary(playback)
+        testRandomReceiptArrivesBeforeNextApply(playback)
 
         if Check.failed == 0 {
             print("playback behavior checks passed")
@@ -848,6 +851,126 @@ struct PlaybackChecks {
         let failed = String(format: NSLocalizedString("random_failed_targets", comment: ""), label(second))
         Check.expect(playback.statusMessage == "\(done) \(failed)", "the final note names success and failure, got \(playback.statusMessage ?? "nil")")
         Check.expect(playback.statusMessage != NSLocalizedString("bind_failed", comment: ""), "a partial shuffle does not collapse to a generic bind failure")
+    }
+
+    static func testRandomReceiptArrivesBeforeNextApply(_ playback: PlaybackCoordinator) {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("moonleaf-early-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let files = ["a.mp4", "b.mp4", "c.mp4", "d.mp4"].map { dir.appendingPathComponent($0) }
+        for url in files {
+            try? Data([0x00, 0x00, 0x00, 0x18]).write(to: url)
+        }
+        defer {
+            playback.setCommandRefreshForChecks(false)
+            playback.assignmentsSink = nil
+            playback.pendingByTarget = [:]
+            SpaceBinding.stateReader = nil
+            SpaceBinding.factsOverride = nil
+            try? FileManager.default.removeItem(at: dir)
+        }
+        guard let listA = playback.createPlaylist(name: "Early A"),
+              let listB = playback.createPlaylist(name: "Early B") else {
+            Check.expect(false, "early-receipt playlists were not created")
+            return
+        }
+        playback.addToPlaylist(paths: [files[0].path, files[1].path], playlistID: listA)
+        playback.addToPlaylist(paths: [files[2].path, files[3].path], playlistID: listB)
+        func asset(_ suffix: String) -> AssetRecord? {
+            LibraryCatalog.shared.snapshot().assets.first { $0.path.hasSuffix(suffix) }
+        }
+        guard let assetA = asset("a.mp4"), let assetC = asset("c.mp4") else {
+            Check.expect(false, "early-receipt assets were not saved")
+            return
+        }
+        SpaceBinding.factsOverride = [
+            SpaceFact(displayUUID: "DISP-A", displayName: "Built-in", spaceUUID: "space-e1", managedID: 51, isCurrent: false, type: 0),
+            SpaceFact(displayUUID: "DISP-A", displayName: "Built-in", spaceUUID: "space-e2", managedID: 52, isCurrent: false, type: 0),
+        ]
+        playback.refreshTopology(restoreMatching: false)
+        guard let first = playback.targets.first(where: { $0.spaceUUID == "space-e1" }),
+              let second = playback.targets.first(where: { $0.spaceUUID == "space-e2" }) else {
+            Check.expect(false, "early-receipt desktops were not recognized")
+            return
+        }
+        let k1 = first.key
+        let k2 = second.key
+        func installSessions() {
+            LibraryCatalog.shared.mutate { file in
+                file.history = []
+                file.sessions = [
+                    TargetSession(
+                        targetKey: k1, assetID: assetA.id, assetName: assetA.name, path: assetA.path,
+                        listKind: "playlist", playlistID: listA, folderPath: nil, includeSubdirectories: nil,
+                        rotationEnabled: false, paused: true, pauseReason: "manual", order: "random",
+                        interval: "5", unavailable: false, provenance: "moonleaf", lastRotatedAt: nil
+                    ),
+                    TargetSession(
+                        targetKey: k2, assetID: assetC.id, assetName: assetC.name, path: assetC.path,
+                        listKind: "playlist", playlistID: listB, folderPath: nil, includeSubdirectories: nil,
+                        rotationEnabled: false, paused: false, pauseReason: nil, order: "random",
+                        interval: "5", unavailable: false, provenance: "moonleaf", lastRotatedAt: nil
+                    ),
+                ]
+            }
+            playback.reloadForChecks()
+        }
+        func label(_ target: DesktopTarget) -> String {
+            "\(target.displayName) \(String(format: NSLocalizedString("desktop_n", comment: ""), target.spaceIndex))"
+        }
+        var seen: [String: PlaybackAssignment] = [:]
+        playback.assignmentsSink = { file in
+            for (key, assignment) in file.targets {
+                seen[key] = assignment
+            }
+        }
+        playback.setCommandRefreshForChecks(true)
+
+        installSessions()
+        seen = [:]
+        playback.pendingByTarget = [:]
+        SpaceBinding.stateReader = {
+            guard let assignment = seen[k1] else { return nil }
+            return PlaybackStateFile(
+                updatedAt: Date(),
+                targets: [
+                    k1: PlaybackTargetState(
+                        path: assignment.path, playing: false, paused: assignment.paused, reason: nil, bound: true,
+                        requestID: assignment.requestID, requestedAt: assignment.requestedAt
+                    ),
+                ]
+            )
+        }
+        let success = playback.randomWallpaper(keys: [k1, k2]) { _ in 0 }
+        Check.expect(success[k1] == .applied, "a receipt before the next apply is already done, got \(success)")
+        Check.expect(success[k2] == .pending, "the later desktop is still waiting, got \(success)")
+        Check.expect(playback.history.contains { $0.targetKeys.contains(k1) }, "the early success is recorded")
+        let done = String(format: NSLocalizedString("random_done", comment: ""), 1)
+        let waitingSecond = String(format: NSLocalizedString("random_waiting", comment: ""), label(second))
+        Check.expect(playback.statusMessage == "\(done) \(waitingSecond)", "the finished desktop is not still waiting, got \(playback.statusMessage ?? "nil")")
+
+        installSessions()
+        seen = [:]
+        playback.pendingByTarget = [:]
+        SpaceBinding.stateReader = {
+            guard let assignment = seen[k1] else { return nil }
+            return PlaybackStateFile(
+                updatedAt: Date(),
+                targets: [
+                    k1: PlaybackTargetState(
+                        path: assignment.path, playing: false, paused: true, reason: "space-bind-failed", bound: false,
+                        requestID: assignment.requestID, requestedAt: assignment.requestedAt
+                    ),
+                ]
+            )
+        }
+        let failure = playback.randomWallpaper(keys: [k1, k2]) { _ in 0 }
+        Check.expect(failure[k1] == .failed, "an early bind failure is not left waiting, got \(failure)")
+        Check.expect(playback.session(for: k1)?.path == assetA.path, "an early bind failure keeps the old wallpaper")
+        Check.expect(playback.history.contains { $0.targetKeys.contains(k1) } == false, "an early bind failure is not a success")
+        let failed = String(format: NSLocalizedString("random_failed_targets", comment: ""), label(first))
+        let waiting = String(format: NSLocalizedString("random_waiting", comment: ""), label(second))
+        Check.expect(playback.statusMessage == "\(waiting) \(failed)", "the early failure is named and only the later desktop waits, got \(playback.statusMessage ?? "nil")")
+        Check.expect(playback.statusMessage != NSLocalizedString("bind_failed", comment: ""), "an early bind failure does not collapse to the generic note")
     }
 
 }

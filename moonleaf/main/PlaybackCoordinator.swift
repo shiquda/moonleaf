@@ -97,6 +97,11 @@ final class PlaybackCoordinator: ObservableObject {
         startRotationTimer()
     }
 
+    /// Lets behavior checks exercise command refresh without starting the live app.
+    func setCommandRefreshForChecks(_ enabled: Bool) {
+        canTouchApp = enabled
+    }
+
     func refreshForCommand() {
         refreshTopology(restoreMatching: false)
         acceptReported(SpaceBinding.readState())
@@ -409,9 +414,11 @@ final class PlaybackCoordinator: ObservableObject {
             return [:]
         }
         var outcomes: [String: RandomApplyOutcome] = [:]
+        randomBatch = Dictionary(uniqueKeysWithValues: keys.map { ($0, RandomApplyOutcome.pending) })
         for key in keys {
             guard targets.contains(where: { $0.key == key }), !targetUnavailable(key) else {
                 outcomes[key] = .unavailable
+                recordRandom(key, outcomes: outcomes)
                 continue
             }
             let session = sessions.first { $0.targetKey == key }
@@ -430,6 +437,7 @@ final class PlaybackCoordinator: ObservableObject {
             case .pick(let id):
                 guard let item = items.first(where: { $0.id == id }) else {
                     outcomes[key] = .failed
+                    recordRandom(key, outcomes: outcomes)
                     continue
                 }
                 let target = targets.first { $0.key == key }
@@ -468,11 +476,19 @@ final class PlaybackCoordinator: ObservableObject {
                     outcomes[key] = .failed
                 }
             }
+            recordRandom(key, outcomes: outcomes)
         }
-        randomBatch = outcomes.values.contains(.pending) ? outcomes : nil
-        statusMessage = Self.randomStatus(outcomes, targets: targets)
+        let batch = randomBatch ?? outcomes
+        statusMessage = Self.randomStatus(batch, targets: targets)
+        randomBatch = batch.values.contains(.pending) ? batch : nil
         applyPending = !pendingByTarget.isEmpty
-        return outcomes
+        return batch
+    }
+
+    private func recordRandom(_ key: String, outcomes: [String: RandomApplyOutcome]) {
+        if randomBatch?[key] == nil || randomBatch?[key] == .pending {
+            randomBatch?[key] = outcomes[key]
+        }
     }
 
     static func randomStatus(_ outcomes: [String: RandomApplyOutcome], targets: [DesktopTarget]) -> String? {

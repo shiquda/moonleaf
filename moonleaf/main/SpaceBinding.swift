@@ -116,6 +116,8 @@ enum PlaybackFiles {
 enum SpaceBinding {
     /// Tests substitute live Space facts. Production leaves this nil.
     static var factsOverride: [SpaceFact]?
+    /// Tests substitute the engine state file. Production leaves this nil.
+    static var stateReader: (() -> PlaybackStateFile?)?
     private static let skyLight = dlopen(
         "/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY)
 
@@ -234,6 +236,7 @@ enum SpaceBinding {
     }
 
     static func readState() -> PlaybackStateFile? {
+        if let stateReader { return stateReader() }
         guard let data = try? Data(contentsOf: PlaybackFiles.state) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

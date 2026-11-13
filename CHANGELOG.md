@@ -14,10 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The library can search by name and add a selection to a playlist without changing what is playing.
 - Discover saves a chosen file into the library. Pexels video quality is chosen before saving.
 - The overview page can shuffle every desktop from the header, or one desktop from its card, without turning rotation on or off.
+- The asset detail image opens the preview on a double-click, and shows a preview button while the pointer is over it. The path row copies the image itself.
 
 ### Changed
 - Separate wallpapers per desktop cannot be turned off.
 - New downloads use the current library folder. A future save folder applies only to later downloads.
+
 
 ### Fixed
 - Switching Spaces refreshes the current desktop before a menu or apply, and a still is not painted onto the visible Space unless that Space is the target.
@@ -29,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A failed bind republishes the last committed wallpaper, so the engine no longer retries the rejected one.
 - A one-shot library shuffle keeps the nil or library source, so turning library rotation off still stops that desktop.
 - An unconfirmed video shuffle is not reported as changed. The final note names each desktop after the engine replies.
+- A video shuffle no longer stays on "waiting" after its receipt arrives while the next desktop is still being applied.
 
 ## [4.1.1] - 2026-10-23
 
