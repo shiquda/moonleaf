@@ -141,17 +141,40 @@
   </script>
 
   <style>
+    @font-face {
+      font-family: 'Comfortaa';
+      src: url('fonts/Comfortaa-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'Comfortaa';
+      src: url('fonts/Comfortaa-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
     :root {
-      --bg: #0b0f19;
-      --card-bg: rgba(22, 30, 48, 0.7);
-      --card-border: rgba(56, 75, 115, 0.4);
-      --text: #f0f6fc;
-      --text-muted: #8b949e;
-      --accent: #388bfd;
-      --accent-glow: rgba(56, 139, 253, 0.25);
-      --badge-bg: rgba(56, 139, 253, 0.15);
-      --badge-border: rgba(56, 139, 253, 0.35);
-      --code-bg: #111726;
+      --bg: #111629;
+      --bg-deep: #0c1020;
+      --panel-bg: rgba(25, 33, 58, 0.58);
+      --panel-strong: rgba(31, 40, 70, 0.78);
+      --panel-inner: rgba(16, 22, 41, 0.65);
+      --stroke: rgba(255, 255, 255, 0.11);
+      --stroke-hover: rgba(137, 156, 232, 0.45);
+      --text: #f3f5fc;
+      --text-muted: #9aa6c7;
+      --periwinkle: #899ce8;
+      --periwinkle-soft: #c5d0fa;
+      --primary-grad: linear-gradient(135deg, #6b78d9 0%, #525ebf 100%);
+      --mint: #3dbf85;
+      --amber: #ebad52;
+      --yellow: #f2ba24;
+      --rose: #e04d57;
+      --code-bg: rgba(14, 19, 36, 0.85);
     }
 
     * {
@@ -162,67 +185,94 @@
 
     html, body {
       overflow-x: hidden;
+      scroll-behavior: smooth;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at 50% -10%, rgba(107, 120, 217, 0.24) 0%, rgba(17, 22, 41, 0) 52%), var(--bg);
       color: var(--text);
-      line-height: 1.6;
+      line-height: 1.55;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Ambient background glow */
-    .glow-top {
-      position: absolute;
-      top: -150px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(800px, 100%);
-      height: 450px;
-      background: radial-gradient(circle, rgba(56, 139, 253, 0.2) 0%, rgba(138, 92, 246, 0.1) 40%, transparent 70%);
+    h1, h2, h3, .brand span {
+      font-family: 'Comfortaa', -apple-system, BlinkMacSystemFont, "SF Pro Rounded", sans-serif;
+    }
+
+    /* Ambient Moonleaf glow */
+    .ambient-glow {
+      position: fixed;
+      inset: 0;
       pointer-events: none;
       z-index: 0;
+      background:
+        radial-gradient(640px 320px at 20% 8%, rgba(137, 156, 232, 0.14), transparent 70%),
+        radial-gradient(560px 320px at 85% 18%, rgba(82, 94, 191, 0.16), transparent 72%);
+    }
+
+    /* Floating GlassToolbar Header (matches Moonleaf in-app toolbar) */
+    .header-wrap {
+      position: relative;
+      z-index: 20;
+      max-width: 1120px;
+      margin: 18px auto 0;
+      padding: 0 20px;
     }
 
     header {
-      position: relative;
-      z-index: 10;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 24px 20px;
+      background: rgba(25, 33, 58, 0.72);
+      backdrop-filter: blur(22px) saturate(140%);
+      -webkit-backdrop-filter: blur(22px) saturate(140%);
+      border: 1px solid var(--stroke);
+      border-radius: 22px;
+      padding: 12px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-shadow: 0 12px 32px rgba(7, 10, 22, 0.35);
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 11px;
       text-decoration: none;
       color: var(--text);
       font-weight: 700;
-      font-size: 1.25rem;
+      font-size: 1.2rem;
+      letter-spacing: -0.01em;
     }
 
     .brand img {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+    }
+
+    .brand-ver {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--periwinkle-soft);
+      background: rgba(137, 156, 232, 0.15);
+      border: 1px solid rgba(137, 156, 232, 0.3);
+      padding: 2px 8px;
+      border-radius: 999px;
     }
 
     .nav-links {
       display: flex;
-      gap: 20px;
+      gap: 18px;
       align-items: center;
     }
 
     .nav-links a {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 0.95rem;
-      transition: color 0.2s;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: color 0.18s;
     }
 
     .nav-links a:hover {
@@ -233,579 +283,1195 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 14px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
+      padding: 7px 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
       color: var(--text) !important;
-      font-weight: 500;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: border-color 0.18s, background 0.18s;
     }
 
     .github-btn:hover {
-      border-color: var(--accent);
+      border-color: var(--periwinkle);
+      background: rgba(137, 156, 232, 0.14);
     }
 
-    .hero {
+    main {
       position: relative;
       z-index: 10;
-      max-width: 900px;
-      margin: 40px auto 30px;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 26px 20px 64px;
+    }
+
+    /* Signature Moonleaf Wave Hero Shell */
+    .hero-shell {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(33, 43, 76, 0.65) 0%, rgba(22, 29, 52, 0.78) 100%);
+      backdrop-filter: blur(22px) saturate(140%);
+      -webkit-backdrop-filter: blur(22px) saturate(140%);
+      border: 1px solid var(--stroke);
+      border-radius: 26px;
+      padding: 46px 36px 40px;
       text-align: center;
-      padding: 0 20px;
+      box-shadow: 0 24px 60px rgba(6, 9, 20, 0.45);
+    }
+
+    .hero-wave-bg {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -2px;
+      height: 110px;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
     }
 
     .pill-badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 16px;
-      background: var(--badge-bg);
-      border: 1px solid var(--badge-border);
-      border-radius: 50px;
-      font-size: 0.88rem;
-      color: #79c0ff;
-      margin-bottom: 24px;
-      backdrop-filter: blur(8px);
-    }
-
-    h1 {
-      font-size: 3.2rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1.15;
+      gap: 7px;
+      padding: 5px 14px;
+      background: rgba(137, 156, 232, 0.14);
+      border: 1px solid rgba(137, 156, 232, 0.35);
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--periwinkle-soft);
       margin-bottom: 18px;
     }
 
-    .gradient-text {
-      background: linear-gradient(135deg, #ffffff 40%, #79c0ff 100%);
+    h1 {
+      font-size: clamp(2.1rem, 4.2vw, 3.15rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.18;
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, #ffffff 35%, #b9c7fa 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .hero-desc {
-      font-size: 1.25rem;
+      font-size: 1.08rem;
       color: var(--text-muted);
-      max-width: 700px;
-      margin: 0 auto 36px;
-      font-weight: 400;
+      max-width: 600px;
+      margin: 0 auto 26px;
     }
 
-    .cta-group {
+    .cta-row {
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
-      gap: 16px;
-      margin-bottom: 30px;
-    }
-
-    .brew-box {
-      display: inline-flex;
-      align-items: center;
-      background: var(--code-bg);
-      border: 1px solid var(--accent);
-      box-shadow: 0 0 20px var(--accent-glow);
-      border-radius: 12px;
-      padding: 10px 18px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 1rem;
-      color: #79c0ff;
-      cursor: pointer;
-      transition: transform 0.15s, border-color 0.2s;
-    }
-
-    .brew-box:hover {
-      transform: translateY(-1px);
-    }
-
-    .brew-box span.prefix {
-      color: var(--text-muted);
-      margin-right: 8px;
-      user-select: none;
-    }
-
-    .copy-icon {
-      margin-left: 14px;
-      color: var(--text-muted);
-      font-size: 0.85rem;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 22px;
     }
 
     .btn-download {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      padding: 14px 28px;
-      background: linear-gradient(180deg, #2f81f7 0%, #1f6feb 100%);
-      color: white;
+      gap: 9px;
+      padding: 12px 22px;
+      background: var(--primary-grad);
+      color: #ffffff;
       text-decoration: none;
       font-weight: 600;
-      font-size: 1.05rem;
-      border-radius: 10px;
-      box-shadow: 0 4px 14px rgba(31, 111, 235, 0.4);
-      transition: all 0.2s;
+      font-size: 0.98rem;
+      border-radius: 13px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 10px 24px rgba(82, 94, 191, 0.42);
+      transition: transform 0.16s, filter 0.16s;
     }
 
     .btn-download:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(31, 111, 235, 0.5);
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    .brew-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--code-bg);
+      border: 1px solid rgba(137, 156, 232, 0.35);
+      border-radius: 13px;
+      padding: 11px 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.9rem;
+      color: var(--periwinkle-soft);
+      cursor: pointer;
+      transition: border-color 0.18s, transform 0.15s;
+    }
+
+    .brew-box:hover {
+      border-color: var(--periwinkle);
+      transform: translateY(-1px);
+    }
+
+    .brew-box .prefix {
+      color: var(--text-muted);
+      user-select: none;
+    }
+
+    .copy-icon {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--periwinkle);
+      background: rgba(137, 156, 232, 0.14);
+      padding: 2px 8px;
+      border-radius: 7px;
+      margin-left: 4px;
     }
 
     .meta-badges {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-bottom: 28px;
     }
 
     .meta-badge {
-      font-size: 0.82rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
       color: var(--text-muted);
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
-      padding: 4px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 999px;
+      padding: 4px 11px;
     }
 
-    /* Preview Showcase */
-    .preview-container {
-      position: relative;
-      z-index: 10;
-      max-width: 1000px;
-      margin: 40px auto;
-      padding: 0 20px;
+    .dot-mint {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--mint);
+      display: inline-block;
     }
 
-    .preview-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
+    /* Native App Window Frame for Demo GIF */
+    .app-frame {
+      max-width: 920px;
+      margin: 0 auto;
+      background: rgba(14, 19, 36, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 18px;
       overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(12px);
+      box-shadow: 0 24px 54px rgba(4, 7, 16, 0.65);
     }
 
-    .preview-card img {
+    .app-titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(25, 33, 58, 0.75);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .traffic-lights {
+      display: flex;
+      gap: 7px;
+    }
+
+    .traffic-lights span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: block;
+    }
+
+    .tl-red { background: #ff5f57; }
+    .tl-yellow { background: #febc2e; }
+    .tl-green { background: #28c840; }
+
+    .app-titlebar-label {
+      font-family: 'Comfortaa', sans-serif;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+
+    .app-frame img {
       width: 100%;
       height: auto;
       display: block;
     }
 
-    /* Feature Cards */
-    .section-title {
+    /* Section Headings */
+    .section-head {
       text-align: center;
-      font-size: 2.2rem;
+      margin: 60px 0 26px;
+    }
+
+    .section-head h2 {
+      font-size: clamp(1.55rem, 2.8vw, 2.05rem);
       font-weight: 700;
-      margin: 80px 0 16px;
+      margin-bottom: 8px;
     }
 
-    .section-desc {
-      text-align: center;
+    .section-head p {
       color: var(--text-muted);
-      font-size: 1.1rem;
-      max-width: 600px;
-      margin: 0 auto 50px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-      max-width: 1100px;
+      font-size: 0.98rem;
+      max-width: 540px;
       margin: 0 auto;
-      padding: 0 20px;
     }
 
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 28px;
-      transition: transform 0.2s, border-color 0.2s;
+    /* Visual Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
     }
 
-    .card:hover {
-      transform: translateY(-3px);
-      border-color: rgba(56, 139, 253, 0.5);
-    }
-
-    .card-icon {
-      font-size: 2rem;
-      margin-bottom: 16px;
-      display: inline-block;
-    }
-
-    .card h3 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-
-    .card p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      line-height: 1.55;
-    }
-
-    /* Migration Section */
-    .migration-box {
-      max-width: 900px;
-      margin: 80px auto;
-      padding: 36px 32px;
-      background: linear-gradient(180deg, rgba(30, 42, 68, 0.7) 0%, rgba(20, 28, 46, 0.7) 100%);
-      border: 1px solid rgba(88, 166, 255, 0.3);
-      border-radius: 16px;
-      backdrop-filter: blur(12px);
-    }
-
-    .migration-box h2 {
-      font-size: 1.7rem;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .migration-box p {
-      color: var(--text-muted);
-      font-size: 1.05rem;
-      margin-bottom: 20px;
-    }
-
-    .migration-steps {
+    .bento-card {
+      grid-column: span 4;
+      background: var(--panel-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--stroke);
+      border-radius: 22px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 14px;
-      margin-top: 20px;
+      transition: transform 0.18s, border-color 0.18s;
     }
 
-    .step-item {
+    .bento-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--stroke-hover);
+    }
+
+    .bento-wide {
+      grid-column: span 7;
+    }
+
+    .bento-mid {
+      grid-column: span 5;
+    }
+
+    .bento-full {
+      grid-column: span 12;
+    }
+
+    .spec-strip {
       display: flex;
-      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    /* Mini In-App UI Diagrams inside Cards */
+    .ui-diagram {
+      background: var(--panel-inner);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 14px;
+      min-height: 132px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .card-body h3 {
+      font-size: 1.08rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: var(--text);
+    }
+
+    .card-body p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .card-links {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.84rem;
+    }
+
+    .card-links a {
+      color: var(--periwinkle-soft);
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card-links a:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    /* Diagram Primitives matching Moonleaf Components.swift */
+    .mini-flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .flow-step {
+      background: rgba(31, 41, 72, 0.72);
+      border: 1px solid rgba(137, 156, 232, 0.24);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .flow-step.is-mint {
+      border-color: rgba(61, 191, 133, 0.42);
+      background: rgba(61, 191, 133, 0.1);
+    }
+
+    .flow-step-num {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--periwinkle);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .flow-step.is-mint .flow-step-num {
+      color: #7ee2b4;
+    }
+
+    .flow-step-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.25;
+    }
+
+    .flow-step-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.25;
+    }
+
+    .mini-desktops {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .mini-space-card {
+      background: rgba(31, 41, 72, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 9px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .mini-space-card.active {
+      border-color: rgba(137, 156, 232, 0.55);
+    }
+
+    .mini-thumb {
+      height: 36px;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .thumb-aurora {
+      background: linear-gradient(125deg, #3c4f9c 0%, #6b78d9 48%, #3dbf85 100%);
+    }
+
+    .thumb-dusk {
+      background: linear-gradient(125deg, #27325c 0%, #7d67c7 55%, #ebad52 100%);
+    }
+
+    .mini-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 0.74rem;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .mini-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      background: rgba(137, 156, 232, 0.16);
+      color: var(--periwinkle-soft);
+      border: 1px solid rgba(137, 156, 232, 0.3);
+      white-space: nowrap;
+    }
+
+    .mini-pill.mint {
+      background: rgba(61, 191, 133, 0.15);
+      color: #84e6b8;
+      border-color: rgba(61, 191, 133, 0.35);
+    }
+
+    .mini-pill.amber {
+      background: rgba(235, 173, 82, 0.15);
+      color: #f6ca82;
+      border-color: rgba(235, 173, 82, 0.35);
+    }
+
+    .circle-dots {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .circle-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      color: #fff;
+      background: rgba(137, 156, 232, 0.85);
+    }
+
+    .circle-dot.mint { background: var(--mint); }
+    .circle-dot.blue { background: #3d85f0; }
+
+    .playlist-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .playlist-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 11px;
+      background: rgba(31, 41, 72, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.78rem;
+    }
+
+    .playlist-row.active {
+      border-color: rgba(137, 156, 232, 0.5);
+      background: rgba(137, 156, 232, 0.14);
+    }
+
+    .storage-bar {
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .seg-lib { width: 52%; background: #6b78d9; }
+    .seg-ext { width: 28%; background: var(--mint); }
+    .seg-cache { width: 20%; background: var(--amber); }
+
+    .storage-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-swatch {
+      width: 8px;
+      height: 8px;
+      border-radius: 3px;
+    }
+
+    .preview-mock {
+      position: relative;
+      height: 98px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1b2547 0%, #3d4d8f 55%, #23305e 100%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+    }
+
+    .preview-clock {
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: rgba(255, 255, 255, 0.94);
+    }
+
+    .preview-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    .kbd-pill {
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.68rem;
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+    }
+
+    .spec-chip {
+      background: rgba(31, 41, 72, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 7px 9px;
+      font-size: 0.74rem;
+      color: var(--periwinkle-soft);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Compact Guides Grid */
+    .guides-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .guide-card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--stroke);
+      border-radius: 20px;
+      padding: 18px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      transition: transform 0.18s, border-color 0.18s;
+    }
+
+    .guide-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--periwinkle);
+    }
+
+    .guide-card h3 {
+      font-size: 0.98rem;
+      line-height: 1.35;
+      color: var(--periwinkle-soft);
+    }
+
+    .guide-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Compact 3-Step Migration Strip */
+    .upgrade-strip {
+      margin-top: 48px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(137, 156, 232, 0.28);
+      border-radius: 22px;
+      padding: 24px 26px;
+    }
+
+    .upgrade-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .upgrade-head h2 {
+      font-size: 1.28rem;
+    }
+
+    .upgrade-head span {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+    }
+
+    .upgrade-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
     }
 
-    .step-num {
-      background: var(--accent);
-      color: white;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
+    .upgrade-step {
+      background: var(--panel-inner);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px;
       display: flex;
+      gap: 11px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary-grad);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.85rem;
-      font-weight: 700;
       flex-shrink: 0;
-      margin-top: 2px;
     }
 
-    /* FAQ Section */
-    .faq-container {
-      max-width: 860px;
-      margin: 0 auto 100px;
-      padding: 0 20px;
+    .upgrade-step strong {
+      display: block;
+      font-size: 0.88rem;
+      margin-bottom: 3px;
     }
 
-    .faq-item {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      margin-bottom: 16px;
-      padding: 22px 26px;
-    }
-
-    .faq-item h3 {
-      font-size: 1.15rem;
-      font-weight: 600;
-      margin-bottom: 10px;
-      color: #e6edf3;
-    }
-
-    .faq-item p {
+    .upgrade-step p {
+      font-size: 0.82rem;
       color: var(--text-muted);
+      line-height: 1.42;
+    }
+
+    .upgrade-step code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--periwinkle-soft);
+      font-size: 0.78rem;
+    }
+
+    /* Compact Collapsible FAQ Accordion */
+    .faq-list {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    details.faq-item {
+      background: var(--panel-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      padding: 15px 20px;
+      transition: border-color 0.18s;
+    }
+
+    details.faq-item[open] {
+      border-color: rgba(137, 156, 232, 0.42);
+    }
+
+    details.faq-item summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-family: 'Comfortaa', -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 0.98rem;
-      line-height: 1.6;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    details.faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.faq-item summary::after {
+      content: "+";
+      font-size: 1.15rem;
+      color: var(--periwinkle);
+      flex-shrink: 0;
+      transition: transform 0.18s;
+    }
+
+    details.faq-item[open] summary::after {
+      content: "−";
+    }
+
+    details.faq-item p {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    details.faq-item code {
+      background: var(--code-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-size: 0.84em;
+      color: var(--periwinkle-soft);
     }
 
     footer {
+      position: relative;
+      z-index: 10;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px 20px 44px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 40px 20px;
       text-align: center;
       color: var(--text-muted);
-      font-size: 0.9rem;
+      font-size: 0.86rem;
     }
 
     footer a {
-      color: var(--text-muted);
+      color: var(--periwinkle-soft);
       text-decoration: none;
     }
 
     footer a:hover {
-      color: var(--text);
+      text-decoration: underline;
+    }
+
+    @media (max-width: 960px) {
+      .bento-card, .bento-wide, .bento-mid { grid-column: span 6; }
+      .bento-full { grid-column: span 12; }
+      .guides-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .upgrade-steps { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 768px) {
-      header { flex-wrap: wrap; gap: 12px; }
-      .nav-links { gap: 14px; flex-wrap: wrap; }
-      h1 { font-size: 2.3rem; }
-      .hero-desc { font-size: 1.1rem; }
-      .brew-box { font-size: 0.85rem; padding: 8px 12px; max-width: 100%; overflow-x: auto; }
-      .grid { grid-template-columns: 1fr; }
-      .migration-box { margin: 56px 16px; padding: 26px 20px; }
+      header { flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
+      .nav-links { gap: 12px; flex-wrap: wrap; }
+      .hero-shell { padding: 30px 18px 26px; border-radius: 20px; }
+      .bento-card, .bento-wide, .bento-mid, .bento-full { grid-column: span 12; }
+      .mini-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .guides-grid { grid-template-columns: 1fr; }
+      .brew-box { max-width: 100%; overflow-x: auto; font-size: 0.8rem; }
+      .upgrade-strip { padding: 20px 16px; }
     }
   </style>
 </head>
 <body>
-  <div class="glow-top"></div>
+  <div class="ambient-glow"></div>
 
-  <header>
-    <a href="https://github.com/shiquda/moonleaf" class="brand">
-      <img src="icon.png" alt="Moonleaf icon">
-      <span>moonleaf</span>
-    </a>
-    <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#guides">Guides</a>
-      <a href="#upgrade">Migration</a>
-      <a href="#faq">FAQ</a>
-      <a href="https://github.com/shiquda/moonleaf" class="github-btn" target="_blank" rel="noopener">
-        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
-        GitHub
+  <div class="header-wrap">
+    <header>
+      <a href="https://github.com/shiquda/moonleaf" class="brand">
+        <img src="icon.png" alt="Moonleaf icon">
+        <span>moonleaf</span>
+        <em class="brand-ver" style="font-style: normal;">4.2.0</em>
       </a>
-    </div>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="pill-badge">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#58a6ff"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"/></svg>
-        <span>Actively Maintained Fork (formerly macpaper)</span>
-      </div>
-
-      <h1>
-        <span class="gradient-text">The Wallpaper Manager</span><br>for macOS
-      </h1>
-
-      <p class="hero-desc">
-        A native macOS wallpaper manager built in Swift and AppKit. Organize static wallpapers per monitor and Space, rotate named playlists from the menu bar, track your last 1,000 changes, and play MP4, MOV, and GIF wallpapers.
-      </p>
-
-      <div class="cta-group">
-        <div class="brew-box" id="brewCmd" onclick="copyBrew()">
-          <span class="prefix">$</span>
-          <span>brew install shiquda/moonleaf/moonleaf</span>
-          <span class="copy-icon" id="copyLabel">📋 copy</span>
-        </div>
-
-        <a href="https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg" class="btn-download">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          Download moonleaf.dmg
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#guides">Guides</a>
+        <a href="#upgrade">Upgrade</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/shiquda/moonleaf" class="github-btn" target="_blank" rel="noopener">
+          <svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          GitHub
         </a>
       </div>
+    </header>
+  </div>
 
-      <div class="meta-badges">
-        <span class="meta-badge">Universal (Apple Silicon &amp; Intel)</span>
-        <span class="meta-badge">macOS 12.0+ (Tested on macOS 26 Tahoe)</span>
-        <span class="meta-badge">Signed &amp; Notarized</span>
-        <span class="meta-badge">MIT License</span>
-        <span class="meta-badge">Free &amp; Open Source</span>
+  <main>
+    <section class="hero-shell">
+      <div class="hero-content">
+        <div class="pill-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"/></svg>
+          <span>Actively Maintained Fork (formerly macpaper)</span>
+        </div>
+
+        <h1>The Wallpaper Manager for macOS</h1>
+
+        <p class="hero-desc">
+          Native Swift &amp; AppKit manager for per-Space static wallpapers, playlists, 1,000-item history, and live MP4, MOV &amp; GIF desktop playback.
+        </p>
+
+        <div class="cta-row">
+          <a href="https://github.com/shiquda/moonleaf/releases/latest/download/moonleaf.dmg" class="btn-download">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download moonleaf.dmg
+          </a>
+          <div class="brew-box" id="brewCmd" onclick="copyBrew()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){copyBrew();}">
+            <span class="prefix">$</span>
+            <span>brew install shiquda/moonleaf/moonleaf</span>
+            <span class="copy-icon" id="copyLabel">Copy</span>
+          </div>
+        </div>
+
+        <div class="meta-badges">
+          <span class="meta-badge"><span class="dot-mint"></span>Universal · Intel &amp; Apple Silicon</span>
+          <span class="meta-badge">macOS 12+ (Tested on 26 Tahoe)</span>
+          <span class="meta-badge">Apple Notarized</span>
+          <span class="meta-badge">MIT Open Source</span>
+        </div>
+
+        <div class="app-frame">
+          <div class="app-titlebar">
+            <div class="traffic-lights">
+              <span class="tl-red"></span>
+              <span class="tl-yellow"></span>
+              <span class="tl-green"></span>
+            </div>
+            <span class="app-titlebar-label">moonleaf — Desktop Overview &amp; Library</span>
+            <span style="width: 44px;"></span>
+          </div>
+          <img src="https://github.com/user-attachments/assets/15118fad-306d-4804-b108-462e81fef237" alt="Moonleaf macOS Wallpaper Manager Demo">
+        </div>
       </div>
+
+      <!-- Signature Moonleaf Wave Motif (from ContentView.swift AnimatedWaveView) -->
+      <svg class="hero-wave-bg" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,78 C200,34 400,112 600,72 C800,32 1000,104 1200,66 L1200,120 L0,120 Z" fill="rgba(137, 156, 232, 0.14)"></path>
+        <path d="M0,92 C240,54 420,118 660,84 C900,50 1050,108 1200,82 L1200,120 L0,120 Z" fill="rgba(137, 156, 232, 0.22)"></path>
+        <path d="M0,78 C200,34 400,112 600,72 C800,32 1000,104 1200,66" fill="none" stroke="rgba(137, 156, 232, 0.42)" stroke-width="2"></path>
+      </svg>
     </section>
 
-    <!-- Preview -->
-    <section class="preview-container">
-      <div class="preview-card">
-        <img src="https://github.com/user-attachments/assets/15118fad-306d-4804-b108-462e81fef237" alt="Moonleaf macOS Wallpaper Manager Demo GIF">
-      </div>
-    </section>
-
-    <!-- Features -->
+    <!-- Visual Bento Capabilities -->
     <section id="features">
-      <h2 class="section-title">Everything you need in a wallpaper engine</h2>
-      <p class="section-desc">Engineered in native Swift and AppKit for maximum performance, minimal battery draw, and total privacy.</p>
-
-      <div class="grid">
-        <div class="card">
-          <div class="card-icon">🖥️</div>
-          <h3>Per-Monitor &amp; Space Overview</h3>
-          <p>View every active display and virtual Space together in Desktop Overview. Assign and auto-recognize static wallpapers per display and Space, and shuffle all desktops or a single one in one click.</p>
-          <p style="margin-top: 10px; font-size: 0.88rem;">
-            Guide: <a href="guides/different-wallpaper-per-monitor-space-mac/" style="color: #79c0ff; text-decoration: underline;">Per-Monitor &amp; Space Setup</a>
-          </p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon">🗂️</div>
-          <h3>Named Playlists &amp; Menu Bar Switch</h3>
-          <p>Create playlists from your library without duplicating files. Choose sequential or random order with per-list intervals (15 min to daily), and switch the current desktop's playlist right from the menu bar.</p>
-          <p style="margin-top: 10px; font-size: 0.88rem;">
-            Guide: <a href="guides/wallpaper-playlists-mac/" style="color: #79c0ff; text-decoration: underline;">Wallpaper Playlists &amp; History</a>
-          </p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon">🕘</div>
-          <h3>1,000-Item History &amp; Clear Storage</h3>
-          <p>Browse your last 1,000 successful applies by Recent or Timeline, filter by display or desktop, and restore past setups. Storage settings clearly separate library files, external links, and clearable download cache.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon">🎬</div>
-          <h3>Video &amp; GIF Playback</h3>
-          <p>Import local MP4, MOV, and GIF files—or browse Wallhaven and Pexels—to play on one monitor or all displays via AVFoundation and Core Animation. Adjust volume or mute in the menu bar and pause/resume in Overview (desktop only; lock screen unchanged).</p>
-          <p style="margin-top: 10px; font-size: 0.88rem;">
-            Guides: <a href="guides/gif-wallpaper-mac/" style="color: #79c0ff; text-decoration: underline;">Set GIF as Wallpaper</a> · <a href="guides/video-wallpaper-mac/" style="color: #79c0ff; text-decoration: underline;">Set Video as Wallpaper</a>
-          </p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon">🔍</div>
-          <h3>Detail Sheet, Esc Preview &amp; Copy</h3>
-          <p>Inspect format, resolution, size, source, and playlist membership in one detail sheet. Double-click for full-window preview (press <code>Esc</code> to close) and copy images straight to the clipboard.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon">⚡</div>
-          <h3>Universal, Signed &amp; Auto-Updated</h3>
-          <p>Universal binary for Apple Silicon and Intel on macOS 12+ (tested on macOS 26 Tahoe). Developer ID signed, Apple notarized, Sparkle auto-updated, localized in 14 languages, and MIT licensed.</p>
-        </div>
+      <div class="section-head">
+        <h2>Everything inside one native window</h2>
+        <p>Built in Swift and AppKit—modeled on Moonleaf's Desktop Overview, Library, and menu bar controls.</p>
       </div>
-    </section>
 
-    <!-- Migration Guide -->
-    <section id="upgrade" class="migration-box">
-      <h2>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="#388bfd"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-        Upgrading from Moonleaf v4.0.0 or macpaper
-      </h2>
-      <p>
-        The original upstream repository (<code>illufied/moonleaf</code>) has been archived, meaning its automatic update checker can no longer receive new versions. Upgrading to this maintained fork is 100% seamless and safe.
-      </p>
+      <div class="bento-grid">
+        <!-- Card 1: Core Local Video & GIF Flow -->
+        <article class="bento-card bento-wide">
+          <div class="ui-diagram" aria-label="Local Video and GIF workflow diagram">
+            <div class="mini-flow">
+              <div class="flow-step">
+                <span class="flow-step-num">1 · Import</span>
+                <span class="flow-step-title">+ File / Drop</span>
+                <span class="flow-step-sub">.mp4 · .mov · .gif</span>
+              </div>
+              <div class="flow-step">
+                <span class="flow-step-num">2 · Display</span>
+                <span class="flow-step-title">All / 1 / 2</span>
+                <span class="flow-step-sub">Per-screen pick</span>
+              </div>
+              <div class="flow-step">
+                <span class="flow-step-num">3 · Control</span>
+                <span class="flow-step-title">Mute 0% · Pause</span>
+                <span class="flow-step-sub">Menu bar &amp; Overview</span>
+              </div>
+              <div class="flow-step is-mint">
+                <span class="flow-step-num">4 · Scope</span>
+                <span class="flow-step-title">Desktop Only</span>
+                <span class="flow-step-sub">Lock screen unchanged</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <h3>Local Video &amp; GIF Playback</h3>
+            <p>Import local MP4, MOV, or GIF files—or browse Wallhaven &amp; Pexels—and control per-display playback, mute, and fullscreen auto-pause.</p>
+            <div class="card-links">
+              <a href="guides/gif-wallpaper-mac/">GIF Guide &rarr;</a>
+              <a href="guides/video-wallpaper-mac/">Video Guide &rarr;</a>
+            </div>
+          </div>
+        </article>
 
-      <div class="migration-steps">
-        <div class="step-item">
-          <div class="step-num">1</div>
-          <div>
-            <strong>Install the maintained version:</strong> Run <code>brew install shiquda/moonleaf/moonleaf</code> or download the latest <code>moonleaf.dmg</code>.
+        <!-- Card 2: Per-Monitor & Space Overview -->
+        <article class="bento-card bento-mid">
+          <div class="ui-diagram" aria-label="Desktop Overview per-Space diagram">
+            <div class="mini-desktops">
+              <div class="mini-space-card active">
+                <div class="mini-thumb thumb-aurora"></div>
+                <div class="mini-row">
+                  <span>Desktop 1</span>
+                  <span class="mini-pill">Current</span>
+                </div>
+                <div class="mini-row">
+                  <span class="mini-pill mint">Static JPG/PNG</span>
+                  <span class="circle-dots">
+                    <span class="circle-dot" title="Shuffle">⇄</span>
+                    <span class="circle-dot mint" title="Active">✓</span>
+                  </span>
+                </div>
+              </div>
+              <div class="mini-space-card">
+                <div class="mini-thumb thumb-dusk"></div>
+                <div class="mini-row">
+                  <span>Desktop 2</span>
+                  <span class="mini-pill">Display 2</span>
+                </div>
+                <div class="mini-row">
+                  <span class="mini-pill">Per-Space</span>
+                  <span class="circle-dots">
+                    <span class="circle-dot" title="Shuffle">⇄</span>
+                    <span class="circle-dot blue" title="Info">i</span>
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="step-item">
-          <div class="step-num">2</div>
-          <div>
-            <strong>Non-destructive automatic migration:</strong> Launching Moonleaf automatically preserves and adopts your existing settings (<code>~/.config/moonleaf</code>) and downloaded wallpaper library (<code>~/.local/share/paper/wallpaper</code>). No data is deleted.
+          <div class="card-body">
+            <h3>Per-Monitor &amp; Space Overview</h3>
+            <p>Inspect every display and virtual Space together, assign static wallpapers independently, and shuffle one desktop or all in one click.</p>
+            <div class="card-links">
+              <a href="guides/different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space Guide &rarr;</a>
+            </div>
           </div>
-        </div>
-        <div class="step-item">
-          <div class="step-num">3</div>
-          <div>
-            <strong>Enjoy future updates:</strong> Subsequent releases will be delivered automatically via the built-in Sparkle updater.
+        </article>
+
+        <!-- Card 3: Playlists & Menu Bar -->
+        <article class="bento-card">
+          <div class="ui-diagram" aria-label="Named playlists diagram">
+            <div class="playlist-list">
+              <div class="playlist-row active">
+                <span>Focus Desk</span>
+                <span class="mini-pill">Sequential · 1 hr</span>
+              </div>
+              <div class="playlist-row">
+                <span>Night Loops</span>
+                <span class="mini-pill mint">Random · Daily</span>
+              </div>
+            </div>
           </div>
-        </div>
+          <div class="card-body">
+            <h3>Named Playlists</h3>
+            <p>Reference library files without copying, set per-list timers, and switch playlists from the menu bar.</p>
+            <div class="card-links">
+              <a href="guides/wallpaper-playlists-mac/">Playlists &amp; History Guide &rarr;</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 4: History & Storage -->
+        <article class="bento-card">
+          <div class="ui-diagram" aria-label="History and storage breakdown diagram">
+            <div class="mini-row">
+              <span>Storage Overview</span>
+              <span class="mini-pill">1,000-item history</span>
+            </div>
+            <div class="storage-bar">
+              <span class="seg-lib"></span>
+              <span class="seg-ext"></span>
+              <span class="seg-cache"></span>
+            </div>
+            <div class="storage-legend">
+              <span class="legend-item"><span class="legend-swatch" style="background:#6b78d9"></span>Library</span>
+              <span class="legend-item"><span class="legend-swatch" style="background:var(--mint)"></span>External</span>
+              <span class="legend-item"><span class="legend-swatch" style="background:var(--amber)"></span>Clearable Cache</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <h3>History &amp; Clear Storage</h3>
+            <p>Restore from Recent or Timeline views; clear download cache without touching saved wallpapers.</p>
+          </div>
+        </article>
+
+        <!-- Card 5: Quick Preview & Copy -->
+        <article class="bento-card">
+          <div class="ui-diagram" aria-label="Quick Preview overlay diagram">
+            <div class="preview-mock">
+              <span class="preview-clock">09:41</span>
+              <div class="preview-bar">
+                <span>MP4 · 1080p</span>
+                <span class="kbd-pill">Esc to close</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <h3>Quick Preview &amp; Detail Sheet</h3>
+            <p>Full-window clock preview, inspect resolution/source, and copy images directly to the clipboard.</p>
+          </div>
+        </article>
+
+        <!-- Card 6: Universal & Signed -->
+        <article class="bento-card bento-full">
+          <div class="upgrade-head" style="margin-bottom: 0;">
+            <div>
+              <h3 style="font-size: 1.05rem; margin-bottom: 4px;">Universal, Apple Notarized &amp; Auto-Updated</h3>
+              <p style="font-size: 0.88rem; color: var(--text-muted);">One signed Universal binary for Intel and Apple Silicon Macs on macOS 12 Monterey through macOS 26 Tahoe.</p>
+            </div>
+            <div class="spec-strip">
+              <div class="spec-chip">arm64 + x86_64</div>
+              <div class="spec-chip">macOS 12–26</div>
+              <div class="spec-chip">Sparkle Updates</div>
+              <div class="spec-chip">14 Languages</div>
+            </div>
+          </div>
+        </article>
       </div>
     </section>
 
     <!-- Guides -->
-    <section id="guides" class="migration-box" style="margin-top: 50px;">
-      <h2>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="#388bfd"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Guides &amp; Tutorials
-      </h2>
-      <p>Practical, step-by-step guides for customizing your macOS desktop wallpaper with Moonleaf.</p>
+    <section id="guides">
+      <div class="section-head">
+        <h2>Step-by-step guides</h2>
+        <p>Focused walkthroughs for multi-Space static setups, playlists, GIFs, and video wallpapers.</p>
+      </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 20px;">
-        <a href="guides/different-wallpaper-per-monitor-space-mac/" style="display: block; padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s;">
-          <h3 style="font-size: 1.15rem; color: #79c0ff; margin-bottom: 8px;">Different Wallpaper per Monitor &amp; Space on Mac &rarr;</h3>
-          <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">Manage static wallpapers per display and virtual Space in Desktop Overview, handle macOS Space modes, and shuffle desktops in one click.</p>
+      <div class="guides-grid">
+        <a href="guides/different-wallpaper-per-monitor-space-mac/" class="guide-card">
+          <span class="mini-pill">Spaces</span>
+          <h3>Different Wallpaper per Monitor &amp; Space &rarr;</h3>
+          <p>Per-Space static assignments, Mission Control modes, and one-click shuffles.</p>
         </a>
-        <a href="guides/wallpaper-playlists-mac/" style="display: block; padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s;">
-          <h3 style="font-size: 1.15rem; color: #79c0ff; margin-bottom: 8px;">macOS Wallpaper Playlists, Rotation &amp; History &rarr;</h3>
-          <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">Build named playlists without copying files, switch lists from the menu bar, and recover wallpapers from your last 1,000 applies.</p>
+        <a href="guides/wallpaper-playlists-mac/" class="guide-card">
+          <span class="mini-pill">Playlists</span>
+          <h3>Wallpaper Playlists, Rotation &amp; History &rarr;</h3>
+          <p>Zero-copy playlists, menu bar switching, and 1,000-item recall.</p>
         </a>
-        <a href="guides/gif-wallpaper-mac/" style="display: block; padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s;">
-          <h3 style="font-size: 1.15rem; color: #79c0ff; margin-bottom: 8px;">How to Set a GIF as Wallpaper on Mac (Free, No Converting) &rarr;</h3>
-          <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">Learn why macOS only shows the first frame of a GIF and how to play animated GIF wallpapers natively with no conversion.</p>
+        <a href="guides/gif-wallpaper-mac/" class="guide-card">
+          <span class="mini-pill mint">GIF</span>
+          <h3>Set a GIF as Wallpaper (No Converting) &rarr;</h3>
+          <p>Play local <code>.gif</code> loops directly on your desktop on Intel &amp; M-series Macs.</p>
         </a>
-        <a href="guides/video-wallpaper-mac/" style="display: block; padding: 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s;">
-          <h3 style="font-size: 1.15rem; color: #79c0ff; margin-bottom: 8px;">How to Set a Video as Wallpaper on Mac (Free, MP4 &amp; MOV) &rarr;</h3>
-          <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;">Turn any MP4 or MOV clip into a live Mac wallpaper for free. Multi-monitor setups, menu bar controls, and no subscriptions.</p>
+        <a href="guides/video-wallpaper-mac/" class="guide-card">
+          <span class="mini-pill mint">MP4 / MOV</span>
+          <h3>Set a Video as Wallpaper (Free) &rarr;</h3>
+          <p>Import MP4/MOV clips, pick displays, mute audio, and pause on fullscreen.</p>
         </a>
       </div>
     </section>
 
-    <!-- FAQ -->
-    <section id="faq" class="faq-container">
-      <h2 class="section-title">Frequently Asked Questions</h2>
-      <p class="section-desc">Answers to common questions about Moonleaf maintenance, installation, and capabilities.</p>
+    <!-- Compact Upgrade Strip -->
+    <section id="upgrade" class="upgrade-strip">
+      <div class="upgrade-head">
+        <h2>Upgrading from v4.0.0 or macpaper</h2>
+        <span>Non-destructive automatic adoption on first launch</span>
+      </div>
+      <div class="upgrade-steps">
+        <div class="upgrade-step">
+          <span class="step-num">1</span>
+          <div>
+            <strong>Install v4.2.0</strong>
+            <p>Run <code>brew install shiquda/moonleaf/moonleaf</code> or drag from <code>moonleaf.dmg</code>.</p>
+          </div>
+        </div>
+        <div class="upgrade-step">
+          <span class="step-num">2</span>
+          <div>
+            <strong>Keep existing library</strong>
+            <p>Adopts <code>~/.config/moonleaf</code> and <code>~/.local/share/paper/wallpaper</code> intact.</p>
+          </div>
+        </div>
+        <div class="upgrade-step">
+          <span class="step-num">3</span>
+          <div>
+            <strong>Auto-update via Sparkle</strong>
+            <p>Receive signed future releases directly inside <em>Settings &rarr; Updates</em>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-      <div class="faq-item" id="faq-maintenance">
-        <h3>Is moonleaf still maintained?</h3>
-        <p><strong>Yes, Moonleaf is actively maintained.</strong> While the original repository (<code>illufied/moonleaf</code>, originally <code>naomisphere/macpaper</code>) was archived after v4.0.0, this fork (<code>shiquda/moonleaf</code>) continues active development with bug fixes, Homebrew packaging, and Sparkle updates. It requires macOS 12 or later; tested on macOS 26 Tahoe.</p>
+    <!-- Collapsible FAQ -->
+    <section id="faq">
+      <div class="section-head">
+        <h2>Frequently asked questions</h2>
       </div>
 
-      <div class="faq-item" id="faq-spaces">
-        <h3>Can I set a different wallpaper on each monitor and virtual Space?</h3>
-        <p><strong>Yes.</strong> Moonleaf's Desktop Overview organizes active displays and macOS Spaces together so you can assign, shuffle, and track independent static wallpapers (<code>.jpg</code>, <code>.jpeg</code>, <code>.png</code>) per display and Space, with automatic recognition on launch. Video (<code>.mp4</code>, <code>.mov</code>) and <code>.gif</code> wallpapers play via the native desktop overlay across connected displays.</p>
-      </div>
+      <div class="faq-list">
+        <details class="faq-item" id="faq-maintenance">
+          <summary>Is moonleaf still maintained?</summary>
+          <p><strong>Yes.</strong> Upstream <code>illufied/moonleaf</code> was archived after v4.0.0, and this fork (<code>shiquda/moonleaf</code>) continues active development with notarized builds, Homebrew packaging, and Sparkle updates on macOS 12+ (tested on macOS 26 Tahoe).</p>
+        </details>
 
-      <div class="faq-item" id="faq-playlists">
-        <h3>Does Moonleaf support wallpaper playlists and usage history?</h3>
-        <p><strong>Yes.</strong> You can create named playlists referencing wallpapers in your library without copying files, choose sequential or random rotation with per-list intervals (15 minutes, 1 hour, 3 hours, or Daily), and switch the current desktop's playlist from the menu bar. Moonleaf also keeps up to your last 1,000 successful wallpaper changes in Recent and Timeline views.</p>
-      </div>
+        <details class="faq-item" id="faq-spaces">
+          <summary>Can I set a different wallpaper on each monitor and virtual Space?</summary>
+          <p><strong>Yes.</strong> Desktop Overview manages independent static wallpapers (<code>.jpg</code>, <code>.jpeg</code>, <code>.png</code>) per display and Space with startup recognition. Video (<code>.mp4</code>, <code>.mov</code>) and <code>.gif</code> wallpapers run via the native desktop overlay across connected displays.</p>
+        </details>
 
-      <div class="faq-item" id="faq-upgrade">
-        <h3>How do I upgrade from upstream Moonleaf v4.0.0 or macpaper without losing wallpapers?</h3>
-        <p>Install via Homebrew (<code>brew install shiquda/moonleaf/moonleaf</code>) or download <code>moonleaf.dmg</code> from GitHub Releases. On first launch, Moonleaf automatically and non-destructively adopts your existing settings (<code>~/.config/moonleaf</code>) and wallpaper library (<code>~/.local/share/paper/wallpaper</code>). In Storage settings, Library files, External references, and clearable Download cache are clearly separated so clearing cache never deletes your saved wallpapers.</p>
-      </div>
+        <details class="faq-item" id="faq-playlists">
+          <summary>Does Moonleaf support wallpaper playlists and usage history?</summary>
+          <p><strong>Yes.</strong> Create named playlists without copying files, choose sequential or random rotation (15 min, 1 hr, 3 hr, or Daily), switch lists from the menu bar, and browse up to 1,000 recent applies.</p>
+        </details>
 
-      <div class="faq-item" id="faq-homebrew">
-        <h3>How do I install Moonleaf with Homebrew?</h3>
-        <p>You can install Moonleaf with a single command:<br>
-          <code style="background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; display: inline-block; margin-top: 6px;">brew install shiquda/moonleaf/moonleaf</code><br>
-          Homebrew will automatically download, verify, and link Moonleaf to your Applications folder.
-        </p>
-      </div>
+        <details class="faq-item" id="faq-universal">
+          <summary>Does Moonleaf support Apple Silicon and Intel Macs?</summary>
+          <p>The v4.2.0 release is a Universal binary for Intel (<code>x86_64</code>) and Apple Silicon (<code>arm64</code>) running macOS 12 Monterey or later (tested on macOS 26 Tahoe).</p>
+        </details>
 
-      <div class="faq-item" id="faq-universal">
-        <h3>Does Moonleaf support Apple Silicon and Intel Macs?</h3>
-        <p>The v4.2.0 release is a Universal binary for Apple Silicon (<code>arm64</code>) and Intel (<code>x86_64</code>) Macs running macOS 12 Monterey or later. Tested on macOS 26 Tahoe.</p>
-      </div>
+        <details class="faq-item" id="faq-battery">
+          <summary>Does Moonleaf drain laptop battery?</summary>
+          <p>In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while playing a 1080p MP4. That is one machine and one file; we did not measure battery life on other Macs.</p>
+        </details>
 
-      <div class="faq-item" id="faq-battery">
-        <h3>Does Moonleaf drain laptop battery?</h3>
-        <p>In our test on an M1 Pro running macOS 26.7.1, CPU stayed under 1% while playing a 1080p MP4. That is one machine and one file. We did not measure battery life on other Macs.</p>
-      </div>
-
-      <div class="faq-item" id="faq-gatekeeper">
-        <h3>How do I bypass the macOS Gatekeeper quarantine prompt?</h3>
-        <p><strong>Official Moonleaf releases are code-signed with an Apple Developer ID and notarized by Apple.</strong> macOS Gatekeeper verifies the notarization ticket automatically, so Moonleaf opens directly on first launch. If you ever encounter a security prompt (e.g. after building from source or with strict custom security policies), you can right-click the app in Finder and choose <strong>Open</strong>, or run:<br>
-          <code style="background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; display: inline-block; margin-top: 6px;">xattr -dr com.apple.quarantine /Applications/moonleaf.app</code>
-        </p>
+        <details class="faq-item" id="faq-gatekeeper">
+          <summary>How do I bypass the macOS Gatekeeper quarantine prompt?</summary>
+          <p>Official releases are Apple Developer ID signed and notarized, so Gatekeeper verifies them automatically. For self-built binaries or strict policies, right-click <code>moonleaf.app</code> &rarr; <strong>Open</strong>, or run <code>xattr -dr com.apple.quarantine /Applications/moonleaf.app</code>.</p>
+        </details>
       </div>
     </section>
   </main>
 
   <footer>
-    <p style="margin-bottom: 12px;">
-      <a href="guides/different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space Guide</a> ·
-      <a href="guides/wallpaper-playlists-mac/">Playlists &amp; History Guide</a> ·
-      <a href="guides/gif-wallpaper-mac/">GIF Wallpaper Guide</a> ·
-      <a href="guides/video-wallpaper-mac/">Video Wallpaper Guide</a>
+    <p style="margin-bottom: 10px;">
+      <a href="guides/different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space</a> ·
+      <a href="guides/wallpaper-playlists-mac/">Playlists &amp; History</a> ·
+      <a href="guides/gif-wallpaper-mac/">GIF Guide</a> ·
+      <a href="guides/video-wallpaper-mac/">Video Guide</a>
     </p>
     <p>
-      Moonleaf is open-source software licensed under the <a href="https://github.com/shiquda/moonleaf/blob/main/LICENSE">MIT License</a>.<br>
-      Originally created by <a href="https://github.com/illufied">naomisphere</a>. Actively maintained by <a href="https://github.com/shiquda">shiquda</a> and contributors.
+      Moonleaf is open-source software under the <a href="https://github.com/shiquda/moonleaf/blob/main/LICENSE">MIT License</a>.
+      Originally by <a href="https://github.com/illufied">naomisphere</a> · Maintained by <a href="https://github.com/shiquda">shiquda</a>.
     </p>
   </footer>
+
   <script>
     function copyBrew() {
       navigator.clipboard.writeText("brew install shiquda/moonleaf/moonleaf").then(() => {
         const label = document.getElementById("copyLabel");
-        label.innerText = "✓ copied!";
-        label.style.color = "#3fb950";
+        label.innerText = "Copied";
+        label.style.color = "#84e6b8";
+        label.style.background = "rgba(61, 191, 133, 0.2)";
         setTimeout(() => {
-          label.innerText = "📋 copy";
+          label.innerText = "Copy";
           label.style.color = "";
+          label.style.background = "";
         }, 2000);
       });
     }

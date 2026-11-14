@@ -192,6 +192,32 @@
         Moonleaf is a native, MIT-licensed wallpaper manager for macOS. It decodes and plays <code>.gif</code> files directly without converting them to video first.
       </p>
 
+      <div class="visual-diagram" aria-label="GIF Wallpaper Workflow Diagram">
+        <div class="visual-diagram-label">Workflow at a Glance: Local GIF to Mac Desktop</div>
+        <div class="flow-grid">
+          <div class="flow-node">
+            <span class="flow-node-step">Step 1</span>
+            <span class="flow-node-title">Import Local GIF</span>
+            <span class="flow-node-desc">Library &rarr; <strong>+ add wallpaper</strong> &rarr; <strong>File&hellip;</strong> or drag &amp; drop</span>
+          </div>
+          <div class="flow-node">
+            <span class="flow-node-step">Step 2</span>
+            <span class="flow-node-title">Pick Display</span>
+            <span class="flow-node-desc">Select <strong>All</strong> or display <strong>1</strong> / <strong>2</strong> via card wand</span>
+          </div>
+          <div class="flow-node">
+            <span class="flow-node-step">Step 3</span>
+            <span class="flow-node-title">Pause &amp; Control</span>
+            <span class="flow-node-desc">Pause in <strong>Overview</strong>, auto-pause in fullscreen, or unset anytime</span>
+          </div>
+          <div class="flow-node mint">
+            <span class="flow-node-step">Scope</span>
+            <span class="flow-node-title">Desktop Only</span>
+            <span class="flow-node-desc">Plays on your desktop; lock screen stays unchanged</span>
+          </div>
+        </div>
+      </div>
+
       <h3>1. Install Moonleaf</h3>
       <p>
         Install Moonleaf via Homebrew or direct download:
@@ -263,6 +289,21 @@
       <p>
         For virtual desktops (macOS Spaces), static images (<code>.jpg</code>, <code>.jpeg</code>, <code>.png</code>) and animated GIFs behave differently. Static wallpapers are natively isolated per Display &times; Space with startup recognition. Animated GIF and video wallpapers run through Moonleaf's Space-bound <code>glasswp</code> overlay engine at <code>desktopWindow + 1</code> and automatically pause when a Space is hidden, though per-Space isolation for overlays has system-level Space-binding limits on recent macOS releases (such as macOS 26.7.1). If you want strictly different art per virtual Space on the same monitor, use static wallpapers or per-Space static playlists&mdash;see our <a href="../different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space Wallpaper Guide</a> and <a href="../wallpaper-playlists-mac/">Wallpaper Playlists Guide</a>.
       </p>
+      <div class="visual-diagram" aria-label="Static Wallpapers vs GIF Overlay Across Spaces">
+        <div class="visual-diagram-label">Multi-Space Behavior: Static Images vs. Animated GIF Overlay</div>
+        <div class="compare-grid">
+          <div class="compare-card is-static">
+            <span class="compare-badge">Static · JPG / PNG</span>
+            <h4>Native Per-Space Isolation</h4>
+            <p>Each Display &times; Space keeps its own static wallpaper, auto-recognized on launch and shuffled per desktop.</p>
+          </div>
+          <div class="compare-card is-overlay">
+            <span class="compare-badge">Overlay · GIF / MP4 / MOV</span>
+            <h4>Space-Bound glasswp Layer</h4>
+            <p>Renders at <code>desktopWindow + 1</code> and auto-pauses when hidden; recent macOS builds (e.g. 26.7.1) have Space-binding limits.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section>

@@ -202,6 +202,32 @@
         Moonleaf is a native macOS application engineered in pure Swift and AppKit. It uses Apple's native AVFoundation framework for hardware-accelerated video decoding with minimal energy consumption.
       </p>
 
+      <div class="visual-diagram" aria-label="Video Wallpaper Workflow Diagram">
+        <div class="visual-diagram-label">Workflow at a Glance: Local MP4 / MOV to Mac Desktop</div>
+        <div class="flow-grid">
+          <div class="flow-node">
+            <span class="flow-node-step">Step 1</span>
+            <span class="flow-node-title">Import Local Video</span>
+            <span class="flow-node-desc">Library &rarr; <strong>+ add wallpaper</strong> &rarr; <strong>File&hellip;</strong> or drag &amp; drop</span>
+          </div>
+          <div class="flow-node">
+            <span class="flow-node-step">Step 2</span>
+            <span class="flow-node-title">Pick Display</span>
+            <span class="flow-node-desc">Select <strong>All</strong> or display <strong>1</strong> / <strong>2</strong> via card wand</span>
+          </div>
+          <div class="flow-node">
+            <span class="flow-node-step">Step 3</span>
+            <span class="flow-node-title">Mute 0% &amp; Pause</span>
+            <span class="flow-node-desc">Menu bar / card volume to <code>0%</code>; pause in <strong>Overview</strong></span>
+          </div>
+          <div class="flow-node mint">
+            <span class="flow-node-step">Scope</span>
+            <span class="flow-node-title">Desktop Only</span>
+            <span class="flow-node-desc">Plays on your desktop; lock screen stays unchanged</span>
+          </div>
+        </div>
+      </div>
+
       <h3>1. Install Moonleaf</h3>
       <p>
         You can install Moonleaf quickly using Homebrew or by grabbing the pre-compiled DMG package:
@@ -303,6 +329,21 @@
       <p>
         Moonleaf's playback daemon (<code>glasswp</code>) renders at <code>desktopWindow + 1</code> using Space-bound overlay windows and automatically pauses drawing when a Space is hidden or covered by a fullscreen app. Unlike static wallpapers (<code>.jpg</code>, <code>.jpeg</code>, <code>.png</code>)&mdash;which macOS natively isolates per Display &times; Space&mdash;video and GIF overlays have system-level Space-binding limits on recent macOS releases (such as macOS 26.7.1). If you want strictly different art on each virtual Space of the same monitor, use static wallpapers or per-Space static playlists as described in our <a href="../different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space Wallpaper Guide</a> and <a href="../wallpaper-playlists-mac/">Wallpaper Playlists Guide</a>.
       </p>
+      <div class="visual-diagram" aria-label="Static Wallpapers vs Video Overlay Across Spaces">
+        <div class="visual-diagram-label">Multi-Space Behavior: Static Images vs. Video Overlay</div>
+        <div class="compare-grid">
+          <div class="compare-card is-static">
+            <span class="compare-badge">Static · JPG / PNG</span>
+            <h4>Native Per-Space Isolation</h4>
+            <p>Each Display &times; Space keeps its own static wallpaper, auto-recognized on launch and shuffled per desktop.</p>
+          </div>
+          <div class="compare-card is-overlay">
+            <span class="compare-badge">Overlay · MP4 / MOV / GIF</span>
+            <h4>Space-Bound glasswp Layer</h4>
+            <p>Renders at <code>desktopWindow + 1</code> and auto-pauses when hidden or fullscreen; recent macOS (26.7.1) has Space-binding limits.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section>
