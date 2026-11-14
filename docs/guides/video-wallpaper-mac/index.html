@@ -43,7 +43,7 @@
           "url": "https://shiquda.github.io/moonleaf/"
         },
         "datePublished": "2026-11-03",
-        "dateModified": "2026-11-13",
+        "dateModified": "2026-11-14",
         "mainEntityOfPage": "https://shiquda.github.io/moonleaf/guides/video-wallpaper-mac/"
       },
       {
@@ -78,7 +78,7 @@
             "name": "Does it work on Intel Macs and older macOS versions?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe."
+              "text": "The v4.2.0 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe."
             }
           },
           {
@@ -102,7 +102,7 @@
             "name": "Do video wallpapers play sound or audio?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Video audio volume can be adjusted directly from the Moonleaf menu bar slider or muted entirely. If your video contains audio, you have complete control over its playback volume."
+              "text": "Video audio volume can be adjusted directly from the Moonleaf menu bar slider, the active card slider, or Settings → Playback, or dragged to 0% to mute entirely."
             }
           },
           {
@@ -159,7 +159,7 @@
     <header class="guide-header">
       <h1>How to Set a Video as Your Wallpaper on Mac (Free)</h1>
       <div class="guide-meta">
-        <span>Updated: November 3, 2026</span>
+        <span>Updated: November 14, 2026</span>
         <span>&bull;</span>
         <span>7 min read</span>
         <span>&bull;</span>
@@ -175,10 +175,10 @@
         Quick Answer
       </h3>
       <p>
-        <strong>Can you set a video as your wallpaper on a Mac?</strong> Not from System Settings &mdash; macOS only offers Apple's own curated Aerial flyovers and dynamic landscapes. A wallpaper utility can play your own video files on the desktop instead. <a href="../../">Moonleaf</a> is a free, open-source app that plays MP4 and MOV videos (and animated GIFs) as your desktop wallpaper, supporting independent assignments on each monitor and virtual Space.
+        <strong>Can you set a video as your wallpaper on a Mac?</strong> Not from System Settings &mdash; macOS only offers Apple's own curated Aerial flyovers and dynamic landscapes. A wallpaper utility can play your own video files on the desktop instead. <a href="../../">Moonleaf</a> is a free, open-source app that plays local MP4 and MOV videos (and animated GIFs) as your desktop wallpaper across one or more monitors&mdash;desktop only, leaving your macOS lock screen unchanged.
       </p>
       <p>
-        <strong>Is there a free live wallpaper app for Mac that works on Intel?</strong> Moonleaf is free and open source, with no subscription. The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later; we tested it on macOS 26 Tahoe.
+        <strong>Is there a free live wallpaper app for Mac that works on Intel?</strong> Moonleaf is free and open source, with no subscription. The v4.2.0 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later; we tested it on macOS 26 Tahoe.
       </p>
       <span class="disclosure">Disclosure: Moonleaf is our open-source application. This guide outlines how to use it alongside honest comparisons with commercial and system-level alternatives.</span>
     </section>
@@ -202,6 +202,32 @@
         Moonleaf is a native macOS application engineered in pure Swift and AppKit. It uses Apple's native AVFoundation framework for hardware-accelerated video decoding with minimal energy consumption.
       </p>
 
+      <div class="visual-diagram" aria-label="Video Wallpaper Workflow Diagram">
+        <div class="visual-diagram-label">Workflow at a Glance: Local MP4 / MOV to Mac Desktop</div>
+        <div class="flow-grid">
+          <div class="flow-node">
+            <span class="flow-node-step">Step 1</span>
+            <span class="flow-node-title">Import Local Video</span>
+            <span class="flow-node-desc">Library &rarr; <strong>+ add wallpaper</strong> &rarr; <strong>File&hellip;</strong> or drag &amp; drop</span>
+          </div>
+          <div class="flow-node">
+            <span class="flow-node-step">Step 2</span>
+            <span class="flow-node-title">Pick Display</span>
+            <span class="flow-node-desc">Select <strong>All</strong> or display <strong>1</strong> / <strong>2</strong> via card wand</span>
+          </div>
+          <div class="flow-node">
+            <span class="flow-node-step">Step 3</span>
+            <span class="flow-node-title">Mute 0% &amp; Pause</span>
+            <span class="flow-node-desc">Menu bar / card volume to <code>0%</code>; pause in <strong>Overview</strong></span>
+          </div>
+          <div class="flow-node mint">
+            <span class="flow-node-step">Scope</span>
+            <span class="flow-node-title">Desktop Only</span>
+            <span class="flow-node-desc">Plays on your desktop; lock screen stays unchanged</span>
+          </div>
+        </div>
+      </div>
+
       <h3>1. Install Moonleaf</h3>
       <p>
         You can install Moonleaf quickly using Homebrew or by grabbing the pre-compiled DMG package:
@@ -219,14 +245,14 @@
 
       <h3>2. Add Your MP4 or MOV Video</h3>
       <p>
-        Launch Moonleaf. It sits conveniently in your menu bar. Open the manager window by clicking the menu icon and selecting <strong>Open Manager</strong>.
+        Launch Moonleaf. It sits in your menu bar. Open the manager window by clicking the menu icon and selecting <strong>Open Manager</strong>, then switch to <strong>Library</strong> in the sidebar.
       </p>
       <p>
-        To add video files:
+        To import local video files:
       </p>
       <ol>
-        <li>Click the blue <strong>+ add wallpaper</strong> button in the top toolbar and choose <strong>file</strong>.</li>
-        <li>Alternatively, simply <strong>drag and drop</strong> any <code>.mp4</code> or <code>.mov</code> file from Finder into the Moonleaf window.</li>
+        <li>Click the blue <strong>+ add wallpaper</strong> button in the top toolbar and choose <strong>File&hellip;</strong> (or <strong>Folder&hellip;</strong> to import a directory).</li>
+        <li>Alternatively, simply <strong>drag and drop</strong> any <code>.mp4</code> or <code>.mov</code> file from Finder into the Library window.</li>
       </ol>
       <p>
         Moonleaf automatically indexes the video, parses its dimensions and file size, and generates a preview thumbnail.
@@ -244,17 +270,17 @@
 
       <figure class="guide-img">
         <img src="../images/video-quick-preview.png" alt="Moonleaf Quick Preview overlay displaying MP4 video playback controls and clock">
-        <figcaption>Figure 2: Quick Preview lets you scrub through video loops, adjust volume, and check alignment before setting.</figcaption>
+        <figcaption>Figure 2: Quick Preview lets you play or pause loops, check clock alignment, and close with Esc (preview starts muted; adjust desktop volume on the active card or in the menu bar).</figcaption>
       </figure>
 
       <p>
         To apply the video to your desktop:
       </p>
       <ol>
-        <li>Hover over the video card in the manager grid.</li>
-        <li>Click the <strong>magic wand icon (Set Wallpaper)</strong>.</li>
+        <li>Hover over the video card in the Library grid.</li>
+        <li>Click the <strong>magic wand icon (set wallpaper)</strong>. (Or open the card's <code>&hellip;</code> menu for <strong>Set on current desktop</strong> or <strong>Set on this display's desktops</strong>.)</li>
         <li>If multiple displays are attached, select <strong>All</strong> or choose an individual display number (<strong>1</strong> or <strong>2</strong>).</li>
-        <li>Your video immediately begins playing seamlessly on the desktop.</li>
+        <li>Your video begins playing on the desktop immediately (desktop only&mdash;it does not change the macOS lock screen).</li>
       </ol>
 
       <figure class="guide-img">
@@ -262,15 +288,16 @@
         <figcaption>Figure 3: Active video wallpaper cards display a green checkmark, inline volume slider, and file details.</figcaption>
       </figure>
 
-      <h3>4. Shuffle, Adjust Volume, and Unset from the Menu Bar</h3>
+      <h3>4. Mute, Pause, Shuffle, and Unset Playback</h3>
       <p>
-        With Moonleaf running, you can manage playback without reopening the main window:
+        With Moonleaf running, you can control video playback without digging through System Settings:
       </p>
       <ul>
-        <li><strong>Volume Slider:</strong> Adjust video audio levels directly from the menu bar or card slider.</li>
-        <li><strong>Shuffle Now:</strong> Instantly rotate to another video or picture in your library.</li>
+        <li><strong>Mute &amp; Volume Slider:</strong> Adjust video audio levels from the menu bar slider, the inline slider on the active card, or <em>Settings &rarr; Playback</em>, or drag to <code>0%</code> to mute.</li>
+        <li><strong>Pause / Resume &amp; Smart Playback:</strong> Click the pause button on a desktop card in <strong>Overview</strong> to pause or resume anytime. Enable <strong>Smart Playback</strong> in <em>Settings &rarr; Playback</em> to pause automatically when apps go fullscreen; Moonleaf also pauses overlays when a Space is hidden.</li>
+        <li><strong>Shuffle Now:</strong> Instantly rotate to another video or picture in your library from the menu bar.</li>
         <li><strong>Automatically start wallpaper on login:</strong> Keep your video wallpaper active across restarts.</li>
-        <li><strong>Unset Live Wallpaper:</strong> Immediately pause and clear the video, restoring your default macOS picture.</li>
+        <li><strong>Unset Live Wallpaper:</strong> Immediately stop the video overlay and restore your static macOS desktop picture.</li>
       </ul>
     </section>
 
@@ -300,8 +327,23 @@
       </p>
       <h3>macOS Virtual Desktops (Spaces)</h3>
       <p>
-        Moonleaf's video playback daemon (<code>glasswp</code>) positions its rendering layer at <code>desktopWindow + 1</code> with the <code>.canJoinAllSpaces</code> collection behavior. This ensures your video continues playing smoothly without stuttering or reloading as you switch between virtual desktops. For assigning different static wallpapers or playlists per monitor and Space, read our <a href="../different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space Wallpaper Guide</a> and <a href="../wallpaper-playlists-mac/">Wallpaper Playlists Guide</a>.
+        Moonleaf's playback daemon (<code>glasswp</code>) renders at <code>desktopWindow + 1</code> using Space-bound overlay windows and automatically pauses drawing when a Space is hidden or covered by a fullscreen app. Unlike static wallpapers (<code>.jpg</code>, <code>.jpeg</code>, <code>.png</code>)&mdash;which macOS natively isolates per Display &times; Space&mdash;video and GIF overlays have system-level Space-binding limits on recent macOS releases (such as macOS 26.7.1). If you want strictly different art on each virtual Space of the same monitor, use static wallpapers or per-Space static playlists as described in our <a href="../different-wallpaper-per-monitor-space-mac/">Per-Monitor &amp; Space Wallpaper Guide</a> and <a href="../wallpaper-playlists-mac/">Wallpaper Playlists Guide</a>.
       </p>
+      <div class="visual-diagram" aria-label="Static Wallpapers vs Video Overlay Across Spaces">
+        <div class="visual-diagram-label">Multi-Space Behavior: Static Images vs. Video Overlay</div>
+        <div class="compare-grid">
+          <div class="compare-card is-static">
+            <span class="compare-badge">Static · JPG / PNG</span>
+            <h4>Native Per-Space Isolation</h4>
+            <p>Each Display &times; Space keeps its own static wallpaper, auto-recognized on launch and shuffled per desktop.</p>
+          </div>
+          <div class="compare-card is-overlay">
+            <span class="compare-badge">Overlay · MP4 / MOV / GIF</span>
+            <h4>Space-Bound glasswp Layer</h4>
+            <p>Renders at <code>desktopWindow + 1</code> and auto-pauses when hidden or fullscreen; recent macOS (26.7.1) has Space-binding limits.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section>
@@ -447,7 +489,7 @@
 
       <div class="faq-card">
         <h3>Does Moonleaf work on Intel Macs?</h3>
-        <p>The v4.1.1 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe.</p>
+        <p>The v4.2.0 release is a Universal binary (Intel and Apple Silicon). It requires macOS 12 or later. We tested it on macOS 26 Tahoe.</p>
       </div>
 
       <div class="faq-card">
@@ -462,7 +504,7 @@
 
       <div class="faq-card">
         <h3>Do video wallpapers play audio?</h3>
-        <p>Yes, if the video has an audio track. You can adjust the playback volume or mute it completely using the menu bar slider.</p>
+        <p>Yes, if the video has an audio track. You can adjust the playback volume or mute it completely (<code>0%</code>) using the menu bar slider, the active card slider, or <em>Settings &rarr; Playback</em>.</p>
       </div>
 
       <div class="faq-card">
